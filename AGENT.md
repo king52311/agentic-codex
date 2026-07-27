@@ -37,9 +37,11 @@ Agent 进入业务项目后，如项目内存在 `agentic-codex/AGENT.md`，应�
 ## 规则索引
 
 - `rules/python-standards.md`：Python 通用规范
+- `rules/java-backend-standards.md`：Java 后端通用规范
 - `rules/typescript-standards.md`：TypeScript / 前端通用规范
 - `rules/frontend-common-components.md`：前端通用组件使用规范
 - `rules/database-design.md`：数据库设计与迁移规范
+- `rules/project-script-standards.md`：项目脚本通用规范
 - `rules/agent-work-principles.md`：Agent 通用工作原则
 - `rules/security-and-permissions.md`：安全与权限规范
 - `rules/dependency-management.md`：依赖变更规范
@@ -50,4 +52,7 @@ Agent 进入业务项目后，如项目内存在 `agentic-codex/AGENT.md`，应�
 - `workflows/bug-fixing-flow.md`：Bug 修复流程
 - `workflows/context-memory.md`：上下文记忆流程
 - `workflows/validation-checklist.md`：验证清单
+- `workflows/maven-multi-module-debug.md`：Maven 多模块本地联调方法
+- `workflows/integration-self-test-scripts.md`：集成自测脚本方法
+- `workflows/release-shortcut-scripts.md`：快捷发版脚本推荐方案
 - `architectures/`：可复用业务架构方案库

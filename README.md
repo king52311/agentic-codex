@@ -22,10 +22,12 @@
 │   ├── agent-work-principles.md
 │   ├── security-and-permissions.md
 │   ├── dependency-management.md
+│   ├── java-backend-standards.md
 │   ├── python-standards.md
 │   ├── typescript-standards.md
 │   ├── frontend-common-components.md
-│   └── database-design.md
+│   ├── database-design.md
+│   └── project-script-standards.md
 ├── instructions/           # Agent 角色约束
 │   ├── code-reviewer.md
 │   ├── architect-agent.md
@@ -34,6 +36,9 @@
 │   ├── context-memory.md
 │   ├── validation-checklist.md
 │   ├── git-commit-rules.md
+│   ├── maven-multi-module-debug.md
+│   ├── integration-self-test-scripts.md
+│   ├── release-shortcut-scripts.md
 │   └── bug-fixing-flow.md
 ├── architectures/          # 可复用业务架构方案
 │   ├── README.md
