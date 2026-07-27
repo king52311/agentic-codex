@@ -56,3 +56,4 @@ Agent 进入业务项目后，如项目内存在 `agentic-codex/AGENT.md`，应�
 - `workflows/integration-self-test-scripts.md`：集成自测脚本方法
 - `workflows/release-shortcut-scripts.md`：快捷发版脚本推荐方案
 - `architectures/`：可复用业务架构方案库
+- `architectures/microservice-parent-reference-architecture.md`：微服务 Parent 工程参考架构
