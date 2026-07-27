@@ -1,0 +1,173 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1440" height="980" viewBox="0 0 1440 980" role="img" aria-labelledby="title desc">
+  <title id="title">Smart CS AI 项目框架流程图</title>
+  <desc id="desc">展示用户入口、前端、后端、业务模块、数据层、定时任务、外部系统和边缘 ASR 服务之间的关系。</desc>
+  <defs>
+    <style>
+      .bg { fill: #f7f9fc; }
+      .panel { fill: #ffffff; stroke: #d8e0ea; stroke-width: 1.5; rx: 12; }
+      .box { fill: #ffffff; stroke: #9fb2c7; stroke-width: 1.5; rx: 10; }
+      .frontend { fill: #e8f6f3; stroke: #35a987; }
+      .backend { fill: #edf4ff; stroke: #4b82d8; }
+      .service { fill: #fff8e8; stroke: #d4a13e; }
+      .data { fill: #f1edff; stroke: #8a70d6; }
+      .external { fill: #fff0f0; stroke: #d96c6c; }
+      .edge { fill: #eef8ff; stroke: #3b9bc9; }
+      .title { font: 700 30px Arial, "Microsoft YaHei", sans-serif; fill: #172033; }
+      .subtitle { font: 400 15px Arial, "Microsoft YaHei", sans-serif; fill: #5d6b7c; }
+      .h2 { font: 700 18px Arial, "Microsoft YaHei", sans-serif; fill: #172033; }
+      .h3 { font: 700 15px Arial, "Microsoft YaHei", sans-serif; fill: #1f2d3d; }
+      .text { font: 400 13px Arial, "Microsoft YaHei", sans-serif; fill: #344055; }
+      .small { font: 400 12px Arial, "Microsoft YaHei", sans-serif; fill: #667487; }
+      .arrow { stroke: #617187; stroke-width: 2; fill: none; marker-end: url(#arrowHead); }
+      .arrowDashed { stroke: #8896a8; stroke-width: 2; fill: none; stroke-dasharray: 7 6; marker-end: url(#arrowHead); }
+      .label { font: 700 12px Arial, "Microsoft YaHei", sans-serif; fill: #4f5f73; }
+    </style>
+    <marker id="arrowHead" markerWidth="10" markerHeight="10" refX="8" refY="3" orient="auto" markerUnits="strokeWidth">
+      <path d="M0,0 L8,3 L0,6 Z" fill="#617187"/>
+    </marker>
+  </defs>
+
+  <rect class="bg" x="0" y="0" width="1440" height="980"/>
+  <text class="title" x="60" y="58">Smart CS AI 项目框架流程图</text>
+  <text class="subtitle" x="60" y="86">企业内部 AI 业务平台：前端工作台 + FastAPI 后端 + RBAC + 数据同步 + 外部系统集成 + 边缘 ASR</text>
+
+  <rect class="panel" x="40" y="120" width="1360" height="800"/>
+
+  <rect class="box frontend" x="80" y="170" width="250" height="96"/>
+  <text class="h2" x="105" y="205">用户入口</text>
+  <text class="text" x="105" y="232">浏览器 / 移动端</text>
+  <text class="small" x="105" y="252">企业微信 OAuth 登录</text>
+
+  <rect class="box frontend" x="410" y="150" width="310" height="140"/>
+  <text class="h2" x="435" y="185">Frontend</text>
+  <text class="text" x="435" y="214">React 19 + TypeScript + Vite</text>
+  <text class="small" x="435" y="240">pages / components / api / store / types</text>
+  <text class="small" x="435" y="262">工作台、业务页面、看板、导入导出交互</text>
+
+  <rect class="box backend" x="800" y="150" width="340" height="140"/>
+  <text class="h2" x="825" y="185">Backend API</text>
+  <text class="text" x="825" y="214">FastAPI + SQLAlchemy + Alembic</text>
+  <text class="small" x="825" y="240">api / schemas / models / services / core / db</text>
+  <text class="small" x="825" y="262">认证、权限、业务接口、文件处理、流式响应</text>
+
+  <rect class="box backend" x="1190" y="170" width="160" height="96"/>
+  <text class="h2" x="1215" y="205">RBAC</text>
+  <text class="text" x="1215" y="232">用户 / 角色</text>
+  <text class="small" x="1215" y="252">权限点 / 工作台入口</text>
+
+  <path class="arrow" d="M330 218 L402 218"/>
+  <path class="arrow" d="M720 218 L792 218"/>
+  <path class="arrow" d="M1140 218 L1182 218"/>
+
+  <rect class="panel" x="90" y="360" width="600" height="270"/>
+  <text class="h2" x="120" y="395">前端业务层</text>
+
+  <rect class="box frontend" x="120" y="425" width="160" height="70"/>
+  <text class="h3" x="140" y="455">工作台</text>
+  <text class="small" x="140" y="477">应用卡片 / 权限可见</text>
+
+  <rect class="box frontend" x="305" y="425" width="160" height="70"/>
+  <text class="h3" x="325" y="455">业务列表</text>
+  <text class="small" x="325" y="477">筛选 / 分页 / 表格</text>
+
+  <rect class="box frontend" x="490" y="425" width="160" height="70"/>
+  <text class="h3" x="510" y="455">看板</text>
+  <text class="small" x="510" y="477">统计 / 排行 / 目标</text>
+
+  <rect class="box frontend" x="120" y="525" width="160" height="70"/>
+  <text class="h3" x="140" y="555">详情编辑</text>
+  <text class="small" x="140" y="577">表单 / 图片 / 保存</text>
+
+  <rect class="box frontend" x="305" y="525" width="160" height="70"/>
+  <text class="h3" x="325" y="555">管理后台</text>
+  <text class="small" x="325" y="577">目标 / 字典 / 任务</text>
+
+  <rect class="box frontend" x="490" y="525" width="160" height="70"/>
+  <text class="h3" x="510" y="555">AI 交互</text>
+  <text class="small" x="510" y="577">聊天 / 文件 / 语音</text>
+
+  <rect class="panel" x="760" y="340" width="600" height="330"/>
+  <text class="h2" x="790" y="375">后端业务模块</text>
+
+  <rect class="box service" x="790" y="405" width="160" height="74"/>
+  <text class="h3" x="810" y="435">智能客服</text>
+  <text class="small" x="810" y="457">Coze 流式对话</text>
+
+  <rect class="box service" x="980" y="405" width="160" height="74"/>
+  <text class="h3" x="1000" y="435">知识库</text>
+  <text class="small" x="1000" y="457">同步 / 管理 / 检索</text>
+
+  <rect class="box service" x="1170" y="405" width="160" height="74"/>
+  <text class="h3" x="1190" y="435">考勤助手</text>
+  <text class="small" x="1190" y="457">企微 / 钉钉 / OA</text>
+
+  <rect class="box service" x="790" y="510" width="160" height="74"/>
+  <text class="h3" x="810" y="540">税务助手</text>
+  <text class="small" x="810" y="562">发票 / 模板导出</text>
+
+  <rect class="box service" x="980" y="510" width="160" height="74"/>
+  <text class="h3" x="1000" y="540">回款看板</text>
+  <text class="small" x="1000" y="562">目标 / 汇总 / 明细</text>
+
+  <rect class="box service" x="1170" y="510" width="160" height="74"/>
+  <text class="h3" x="1190" y="540">台账登记</text>
+  <text class="small" x="1190" y="562">Excel / 图片 / 导出任务</text>
+
+  <rect class="box service" x="790" y="610" width="160" height="36"/>
+  <text class="h3" x="810" y="634">爬虫采集</text>
+
+  <rect class="box service" x="980" y="610" width="160" height="36"/>
+  <text class="h3" x="1000" y="634">造价部</text>
+
+  <rect class="box service" x="1170" y="610" width="160" height="36"/>
+  <text class="h3" x="1190" y="634">公共文件</text>
+
+  <path class="arrow" d="M565 290 L565 330 L1060 330 L1060 340"/>
+  <path class="arrowDashed" d="M690 495 L752 495"/>
+  <text class="label" x="695" y="485">REST / Stream</text>
+
+  <rect class="panel" x="90" y="720" width="470" height="140"/>
+  <text class="h2" x="120" y="755">数据与文件层</text>
+
+  <rect class="box data" x="120" y="785" width="180" height="52"/>
+  <text class="h3" x="140" y="815">MySQL</text>
+  <text class="small" x="140" y="833">业务表 / 权限表 / 同步表</text>
+
+  <rect class="box data" x="330" y="785" width="190" height="52"/>
+  <text class="h3" x="350" y="815">本地文件</text>
+  <text class="small" x="350" y="833">模板 / 上传 / 导出 / 图片</text>
+
+  <rect class="panel" x="620" y="720" width="360" height="140"/>
+  <text class="h2" x="650" y="755">任务调度</text>
+
+  <rect class="box backend" x="650" y="785" width="290" height="52"/>
+  <text class="h3" x="670" y="815">APScheduler</text>
+  <text class="small" x="670" y="833">定时同步 / 状态回填 / 后台导出</text>
+
+  <rect class="panel" x="1040" y="710" width="320" height="170"/>
+  <text class="h2" x="1070" y="745">外部与边缘能力</text>
+
+  <rect class="box external" x="1070" y="775" width="120" height="42"/>
+  <text class="h3" x="1090" y="802">企业微信</text>
+
+  <rect class="box external" x="1210" y="775" width="120" height="42"/>
+  <text class="h3" x="1230" y="802">钉钉 / OA</text>
+
+  <rect class="box external" x="1070" y="830" width="120" height="42"/>
+  <text class="h3" x="1090" y="857">Coze / 通义</text>
+
+  <rect class="box edge" x="1210" y="830" width="120" height="42"/>
+  <text class="h3" x="1230" y="857">Edge ASR</text>
+
+  <path class="arrow" d="M1030 670 L1030 790 L980 790"/>
+  <path class="arrow" d="M1060 670 L1060 735 L1200 735 L1200 767"/>
+  <path class="arrowDashed" d="M980 812 L1062 812"/>
+  <path class="arrowDashed" d="M980 832 L1062 852"/>
+  <path class="arrowDashed" d="M1210 830 L1140 670"/>
+  <path class="arrow" d="M880 670 L880 712"/>
+  <path class="arrow" d="M860 670 L260 720"/>
+  <path class="arrow" d="M930 670 L420 720"/>
+
+  <rect class="box" x="90" y="905" width="1270" height="42"/>
+  <text class="text" x="115" y="931">核心模式：外部数据同步入本地库，后端统一鉴权与业务接口，前端按权限展示工作台和业务页面，文件类业务保留模板并支持导入导出，AI 与 ASR 作为独立能力接入。</text>
+</svg>
