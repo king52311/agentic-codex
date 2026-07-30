@@ -1,5 +1,11 @@
 # PROJECT_HISTORY
 
+## 2026-07-30
+
+- 新增客户端应用创建通用规范：`rules/client-application-standards.md`。
+- 规范独立英文应用目录、默认版本 `1.0.0`、`晨天-***应用` 命名、应用文档、帮助入口、Web 热更新、短参数脚本和公共组件库复用要求。
+- 更新 `AGENT.md` 规则索引，便于后续项目创建客户端应用时复用。
+
 ## 2026-07-27 00:00:00 CST
 
 - 新增微服务 Parent 工程参考架构：`architectures/microservice-parent-reference-architecture.md`。
