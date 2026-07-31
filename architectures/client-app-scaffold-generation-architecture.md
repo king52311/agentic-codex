@@ -17,7 +17,7 @@
 
 - 每个应用必须有独立英文目录。
 - 首次版本统一为 `1.0.0`。
-- 展示名统一为 `晨天-***应用`。
+- 展示名使用当前组织或项目约定的统一前缀；没有约定时使用清晰的业务中文名称。
 - 每个应用都要有自己的 `start.sh`、`build.sh`、`.nvmrc`。
 - 每个应用都要有 `docs/REQUIREMENTS.md`、`docs/PLAN.md`、`docs/DATABASE.md`、`docs/USAGE.md`、`docs/ARCHITECTURE.md`。
 - 应用内必须有“帮助”入口，直接展示使用说明文档。
