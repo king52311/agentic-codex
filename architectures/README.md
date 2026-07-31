@@ -14,3 +14,4 @@
 - `smart-cs-ai-reference-architecture.md`：企业内部 AI 业务平台参考架构
 - `smart-cs-ai-framework-flow.svg`：Smart CS AI 项目框架流程图，可直接用浏览器查看
 - `microservice-parent-reference-architecture.md`：微服务 Parent 工程参考架构，包含公共组件抽象与新项目落地建议
+- `client-app-scaffold-generation-architecture.md`：客户端应用生成框架参考架构，适合快速搭建独立桌面应用

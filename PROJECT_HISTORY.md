@@ -21,3 +21,8 @@
 - 新增集成自测脚本方法：`workflows/integration-self-test-scripts.md`。
 - 新增快捷发版脚本推荐方案：`workflows/release-shortcut-scripts.md`。
 - 更新 `AGENT.md` 与 `README.md` 索引。
+## 2026-07-31
+
+- 新增客户端应用生成框架参考架构：`architectures/client-app-scaffold-generation-architecture.md`。
+- 沉淀独立客户端应用的完整生成流程、核心约束、目录脚手架、公共能力接入顺序和逻辑代码生成层次，方便后续项目快速搭建应用基础框架。
+- 更新 `AGENT.md` 与 `architectures/README.md` 索引。
