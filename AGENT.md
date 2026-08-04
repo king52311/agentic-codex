@@ -46,6 +46,7 @@ Agent 进入业务项目后，如项目内存在 `agentic-codex/AGENT.md`，应�
 - `rules/agent-work-principles.md`：Agent 通用工作原则
 - `rules/security-and-permissions.md`：安全与权限规范
 - `rules/dependency-management.md`：依赖变更规范
+- `rules/deployment-service-standards.md`：部署服务拆分通用规范
 - `instructions/code-reviewer.md`：代码审查角色约束
 - `instructions/architect-agent.md`：架构分析角色约束
 - `instructions/refactoring-agent.md`：重构角色约束

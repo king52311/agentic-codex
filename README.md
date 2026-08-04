@@ -22,6 +22,7 @@
 │   ├── agent-work-principles.md
 │   ├── security-and-permissions.md
 │   ├── dependency-management.md
+│   ├── deployment-service-standards.md
 │   ├── java-backend-standards.md
 │   ├── python-standards.md
 │   ├── typescript-standards.md
