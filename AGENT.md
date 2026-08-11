@@ -15,6 +15,8 @@
 
 Agent 进入业务项目后，如项目内存在 `agentic-codex/AGENT.md`，应把它作为通用规则入口读取；再读取当前项目自己的 `AGENTS.md`、上下文和历史文件。
 
+进入业务项目后，还应读取本仓库 `environment/local-dev-environment.md`，用于确认当前机器可用的 conda、nvm 等本机环境能力。
+
 ## 优先级
 
 1. 用户当前明确要求
@@ -47,6 +49,7 @@ Agent 进入业务项目后，如项目内存在 `agentic-codex/AGENT.md`，应�
 - `rules/security-and-permissions.md`：安全与权限规范
 - `rules/dependency-management.md`：依赖变更规范
 - `rules/deployment-service-standards.md`：部署服务拆分通用规范
+- `environment/local-dev-environment.md`：本机 conda、nvm 等通用开发环境配置
 - `instructions/code-reviewer.md`：代码审查角色约束
 - `instructions/architect-agent.md`：架构分析角色约束
 - `instructions/refactoring-agent.md`：重构角色约束

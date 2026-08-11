@@ -1,5 +1,11 @@
 # PROJECT_HISTORY
 
+## 2026-08-11 08:34:39 CST
+
+- 新增本机开发环境配置：`environment/local-dev-environment.md`。
+- 记录本机 Python 有 conda、Node.js 有 nvm，并补充常用检查命令。
+- 更新 `AGENT.md`，要求进入业务项目后读取该环境配置，避免误判系统环境。
+
 ## 2026-07-30
 
 - 新增客户端应用创建通用规范：`rules/client-application-standards.md`。
@@ -27,4 +33,3 @@
 - 沉淀独立客户端应用的完整生成流程、核心约束、目录脚手架、公共能力接入顺序和逻辑代码生成层次，方便后续项目快速搭建应用基础框架。
 - 更新 `AGENT.md` 与 `architectures/README.md` 索引。
 - 客户端应用生成框架去除案例专属品牌约束，将展示名规则改为使用当前组织或项目约定的统一前缀，保持框架通用性。
-
