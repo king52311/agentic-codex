@@ -365,3 +365,8 @@
 - 迁移本项目 `AGENTS.md`、`CURRENT_CONTEXT.md`、`PROJECT_HISTORY.md`、`PROJECT_HISTORY.archive.md`、`GIT_CHANGELOG.md` 到 agentic 项目目录。
 - 根目录同名文件改为轻量入口指针，后续上下文恢复和历史记录优先读取/写入新目录。
 - 记录财务报销开票主体中“天津宏捷安装工程有限公司”“晨天润泓（天津）科技服务有限公司”已删除，不再按停用主体处理。
+
+# 2026-08-24 16:30 清理主仓已忽略跟踪文件
+
+- 按 `.gitignore` 清理主仓已忽略但仍被 Git 跟踪的文件。
+- 使用 `git rm --cached` 保留本地文件，远端删除对应 md、启动脚本和 package-lock 等已忽略文件。
