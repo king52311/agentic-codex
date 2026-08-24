@@ -1,0 +1,4897 @@
+# 当前上下文
+
+用于会话恢复时优先读取，只保留当前阶段最关键的信息。
+
+## 最新记录
+
+- 2026-08-24 项目规则与上下文迁移：根目录 `AGENTS.md`、`CURRENT_CONTEXT.md`、`PROJECT_HISTORY.md`、`PROJECT_HISTORY.archive.md`、`GIT_CHANGELOG.md` 已迁移到 `agentic-codex/projects/smart-cs-ai/`，根目录保留轻量入口指针；后续恢复上下文和写历史优先使用新项目目录。财务报销开票主体中“天津宏捷安装工程有限公司”“晨天润泓（天津）科技服务有限公司”用户确认已删除，不再按停用主体处理。
+
+- 2026-08-24 `oa_e9_browser_session_guard` 已改成仅正式环境启动：`APP_ENV=prod/production` 才注册每分钟守护和启动即拉起；本地/测试环境启动 scheduler 时只打印 skipped，不再启动浏览器守护进程。后端 `py_compile app/tasks/scheduler.py` 通过。
+
+- 2026-08-24 正式环境韩颜合 2026-08-17 请假抵扣旷工已修复：
+  - 根因：OA 请假单 `1210611` 为 2026-08-14 08:00 至 2026-08-17 18:00、年假 2 天，旧拆分按自然日从前往后分配，错误落到 8-14、8-15，导致 8-17 没有年假抵扣。
+  - 代码已改为跨多日且请假时长少于自然日跨度时优先按工作日分配，跳过普通周末。
+  - 正式库已删除并重建该 request 的本地请假记录，当前落到 8-14 和 8-17 各 1 天；8-17 日汇总为 `annual_leave=1.0`、`absenteeism_count=0`、`missing_punch_count=0`。
+
+- 2026-08-24 已停止测试环境 `oa_e9_browser_session_guard`：测试库 `scheduler_job_meta.is_paused=1`，当前守护进程 `pid=12235` 已结束。
+
+- 2026-08-24 OA E9 独立凭证保活复测：正式环境 `zhidao-cron` 已吃到 `backend/runtime/oa_e9/credentials.json`，守护日志出现 `OA E9 独立凭证文件已刷新，当前会话保持可用。`；当前默认 10 分钟一轮保活。
+
+- 2026-08-24 财务报销助手“更新凭证”已改为在当前页面内弹窗处理，不再跳转到后台爬虫页；弹窗里支持账号、密码、验证码、Cookie、curl 和千问识别，保存后只关闭弹窗并保持当前页面。
+
+- 2026-08-24 财务报销助手已新增导入导出接口和页面入口：
+  - 支持下载包含 Excel 模板、说明文件的 zip；发票 PDF/图片放在压缩包同一目录。
+  - 支持上传 zip 导入，OSS 地址由程序自动生成；支持导出 Excel。
+  - 已清理 Git 中误跟踪的 OA E9 浏览器缓存、锁文件、运行日志和凭证文件，改由 `.gitignore` 忽略，保留本机运行数据。
+
+- 2026-08-24 OKCIS 招投标每日推送口径已修正：`push_okcis_daily_summary` 现在按昨天日期统计和展示，推送文案里的“数据抓取时间/今日日期”也改成昨天，避免把昨日数据写成当天时间。
+
+- 2026-08-24 OA E9 浏览器会话守护已接入 cron：
+  - 新增 `backend/app/services/oa_e9_browser_guard.py`，用 `Playwright` 持久化 profile + 后台巡检方式常驻维护会话。
+  - `backend/app/tasks/scheduler.py` 已把 `oa_e9_browser_session_guard` 加成内建调度任务，服务启动会立即拉起，之后每分钟巡检；服务重启后会自动重新执行。
+  - 新增 `backend/sql/upsert_oa_e9_browser_session_guard_scheduler_meta.sql`，方便把这个守护任务写入调度元数据。
+
+- 2026-08-24 财务报销助手 `1211398` 重新同步完成：
+  - 新 cookie 已刷新进 `crawler_site_credentials` 和站点文件，`check_oa_e9_login_status` 可通过，`is_nologin=false`。
+  - 重新跑 `1211398` 9 个附件后，识别出 8 个发票号，`41.pdf` 也已补出票号；当前库里该单 `invoice_no` 仍先保留主票号，附件名和 OSS 地址保持完整。
+  - 前端 OSS 预览区原来把 `xlsx` 名称错配到了第一条 PDF 上，已改成只按 pdf/jpg/png 参与 OSS 预览标签配对，避免把非发票附件混进 OSS 预览。
+
+- 2026-08-24 招标信息公示日期筛选已增加已有数据标识：公共 `DatePickerInput` 支持 `markedDates`，列表接口返回当前筛选条件下的已有发布日期，开始/截止日期组件会显示标记点；后端语法检查、前端 `./build.sh` 通过。
+
+- 2026-08-24 OKCIS 昨日数据补跑完成：正式环境 `crawler_task_3`（run_id `2248`）和 `crawler_task_4`（run_id `2249`）均为 `success`，失败请求 `0`。详情采集保留至少 5 秒间隔，未取消风控等待。
+
+- 2026-08-24 OKCIS 周日任务未执行排查：
+  - `crawler_task_3/4` 在 2026-08-23 没有运行记录，原因是 cron 写成 `sun-thu`，APScheduler 不支持跨周反向范围，任务注册失败。
+  - 已把代码和正式库 cron 改为 `sun,mon,tue,wed,thu`，并在 `_normalize_standard_cron_day_of_week` 里兼容展开 `sun-thu`。
+  - 已向正式调度器发送 refresh 和补跑命令；正式库当前 `crawler_task_3` 已在 2026-08-24 08:41:50 开始 running，`crawler_task_4` 等队列继续执行。
+
+- 2026-08-22 财务报销二维码识别继续收口：
+  - 现在不再假定二维码在固定位置，OCR 会对 PDF/图片做全页、旋转、半区和角区多轮扫描；只要票面带二维码，就能按二维码拿到票号。
+  - 已实测 `1211398` 里 9 个附件识别出 7 个发票号，`63.pdf`、`6元.pdf`、`45.pdf`、`47.jpg`、`10元.jpg`、`74元.jpg` 都可正常取号。
+
+- 2026-08-22 财务报销票号识别再补一层：
+  - 阿里云发票 OCR 现在已过期，`recognize_invoice_file` 会自动走 PDF 文本层兜底；之前购买方字段的局部正则会在空匹配上触发异常，已修成安全提取。
+  - 已用正式附件实测，PDF 兜底现在能读出票号、抬头和税号，`1170074` 这类文件可直接识别出 `26137000000339213793`。
+
+- 2026-08-22 财务报销附件下载链路修复：
+  - 发现 OA 附件直链放行依赖浏览器式导航头，原先 `httpx` 请求少了 `Accept-Language / Sec-Fetch-* / DNT` 等头，会被 302 到无权限页。
+  - 已把财务报销附件下载、回填、备份请求改成更接近浏览器的请求头；正式库 `finance_reimbursement_records` 当前 2 条记录都已有 `invoice_no` 和 `invoice_oss_url`，回填脚本小批次运行无待补数据。
+
+- 2026-08-22 OA E9 验证码无法直接展示已修复：改为前端携带登录令牌请求后端代理接口 `/admin/crawler/sites/oa_e9/captcha`，后端关闭 OA 自签名证书校验并返回图片，前端转成本地 Blob URL 展示，避免浏览器直连 OA 图片失败。后端 `py_compile`、前端 `./build.sh` 均通过。
+
+- 2026-08-22 OA E9 手动登录页已补齐：
+  - 后台爬虫站点凭证弹窗新增 `username/password/captcha` 手动登录，登录后直接保存 cookie 到系统。
+  - 后端新增 `POST /admin/crawler/sites/oa_e9/credentials/manual-login`，可把验证码提交给 OA 并回写 cookie。
+  - 前端 `./build.sh` 已通过，Node 为 `v20.20.2`；后端 `py_compile` 也已通过。
+
+- 2026-08-22 正式环境 OKCIS 采集与推送时间已调整：`okcis_notice_manual`（crawler_task_3）恢复详情采集，改为周日到周四 21:00；`okcis_notice_presales_marketing`（crawler_task_4）恢复详情采集，改为周日到周四 23:00；售后和售前汇总推送均改为工作日 09:00。正式库已执行并复查任务开关、cron、调度未暂停。
+
+- 2026-08-22 财务报销助手历史修复现状：
+  - 已给 OCR 增加 PDF 文本层兜底，能补抓清晰电子票里的票号。
+  - 但历史回填脚本在正式库里仍受 OA E9 Cookie 失效影响，当前无法重新下载附件，因此 `oa_request_id=1211399` 这类旧单仍未补出 OSS 和票号。
+  - 后端 `py_compile` 通过；后续只要更新一版有效 OA Cookie，就可以继续把历史附件补到 OSS 并回填票号。
+
+- 2026-08-22 财务报销助手继续落地：
+  - 已把 `finance_reimbursement_invoice_subjects` 和 `finance_reimbursement_records.attachment_names / invoice_oss_url` 直接执行到 test/prod 两套库，复查两边各有 13 条开票主体，新增列均已存在。
+  - `load_active_invoice_subjects` 已兼容表不存在场景，旧库不会直接 500；同步和列表展示仍能工作。
+  - 当前 `backend` 语法检查通过。
+
+- 2026-08-22 财务报销助手新增校验：
+  - 现在会校验 OA 报销表单的付款主体与任一发票抬头是否一致，不一致直接拦截整单。
+  - 触发时会发消息，理由固定为 `发票抬头（****）与付款主体（****）不一致`，并继续沿用申请人 + 财务韩颜合双发逻辑。
+  - 这次仍尝试直连数据库补历史数据，但数据库连接权限依旧不足，未能实际执行回填；代码层已经兼容历史展示和旧库结构。
+
+- 2026-08-22 财务报销助手附件名对齐 OA：
+  - 报销列表和附件弹窗现在优先使用 OA 原始文件名，不再只显示“附件1/2/3”。
+  - 后端列表接口会从 `raw_json.file_items` 兜底补出历史记录附件名；同步写库则对是否存在 `attachment_names` 列做兼容，避免旧库直接报错。
+  - 新增历史回填脚本 `backend/scripts/backfill_finance_reimbursement_attachment_names.py`，但当前数据库连接权限不足，脚本未能实际落库，历史展示已先通过接口兜底修正。
+  - 前端 `./build.sh` 已再次通过，Node 仍为 `v20.20.2`。
+
+- 2026-08-22 财务报销助手附件展示继续优化：
+  - 列表里前 4 个附件保留快捷入口，超出的 `+N` 现在可点击，弹窗会列出全部附件链接。
+  - 继续沿用 OSS 优先链接，弹窗标题展示流程标题和附件总数。
+  - 前端 `./build.sh` 再次通过，Node 为 `v20.20.2`。
+
+- 2026-08-22 财务报销助手继续收口：
+  - 新增开票主体管理 tab，独立权限 `app:finance_reimbursement:admin`。
+  - 报销列表去掉“当前节点”展示，`流程ID` 可直达 OA 表单，默认按 `reimbursement_time DESC, oa_request_id DESC` 排序。
+  - 发票附件通过 OA Cookie 直连下载后备份到独立 MinIO bucket，列表优先展示 OSS 链接；新表 `finance_reimbursement_invoice_subjects` 已补，`invoice_oss_url` 已入库。
+  - 已补 `doc/database_dictionary.md`，后端 `py_compile` 和前端 `./build.sh` 通过，Node 为 `v20.20.2`。
+
+- 2026-08-21 页面宽度规则更新：
+  - 财务报销助手移除外层 `max-w-7xl` 限制，主内容区改为 `w-full` 自适应撑满。
+  - `AGENTS.md`、`doc/frontend-style-guide.md`、`doc/frontend-common-components.md`、`agentic-codex/rules/frontend-common-components.md` 已补充规则：业务工具页、列表页、后台管理页默认自适应撑满可用宽度，不默认使用 `max-w-7xl/max-w-6xl`。
+
+- 2026-08-21 人事考勤助手宽度修复：
+  - `frontend/src/pages/wecom_attendance/index.tsx` 移除外层 `max-w-7xl` 限制，主内容区改为占满可用宽度，保留响应式左右内边距。
+  - 前端 `./build.sh` 已通过。
+
+- 2026-08-22 财务报销历史回填继续修复：
+  - `backend/app/services/ocr_service.py` 已补 PDF 文本层兜底，并改成按“购买方/销售方”分段提取抬头、税号、票号和日期，避免 OCR 服务过期后完全失效。
+  - 正式环境回填脚本已复测可跑，`scanned=8, updated=2`；小批量再跑 `scanned=6, updated=0`，说明当前剩余数据大多已补过或无需更新。
+  - 后端 `py_compile` 通过。
+
+- 2026-08-22 财务报销 OSS 预览修复：
+  - 列表接口现在把库里存的原始 OSS 地址转换成可直接打开的签名链接再返回前端，避免私有 bucket 直链 `AccessDenied`。
+  - 无附件的表单仍然直接跳过，不会进入同步入库判断。
+
+- 2026-08-22 财务报销同步范围收口：
+  - 现在只同步 `oa_request_id >= 1211398` 的流程，`1211398` 之前的单子都跳过。
+  - 无附件或没有 PDF 附件的表单继续跳过，不入库。
+
+- 2026-08-22 财务报销历史数据清理：
+  - 正式库已删除 `oa_request_id < 1211398` 的旧报销记录 4 条。
+  - 相关校验事件表目前没有需要清理的旧记录。
+  - 另外又清掉 2 条没有任何附件信息的空记录，当前只保留 2 条有附件的数据。
+
+- 2026-08-22 财务报销识别继续补强：
+  - `recognize_invoice_file` 现在除了阿里云 OCR 和 PDF 文本层兜底外，还会把 PDF 首页/图片交给通义视觉识别，优先补 `invoice_number`、抬头和税号。
+  - 已补 PyMuPDF 依赖，供 PDF 首页转图。
+  - 但 OA 文件下载当前仍然回登录页，现有 cookie 还是无效，`1211398` 这单还需要一版可用 cookie 才能真正跑通重识别。
+
+- 2026-08-22 财务报销附件下载浏览器兜底：
+  - `_download_oa_attachment` 现在先走 httpx，若命中登录页再用 Playwright 模拟浏览器取附件。
+  - OA E9 登录态检查也改成先开首页再查 `checkSSO`，更接近浏览器会话。
+  - `backend/requirements.txt` 和 `requirements-win.txt` 已补 `playwright==1.62.0`。
+
+- 2026-08-22 OA E9 健康检查修正：
+  - 现在会同时检查 `wui/index.html` 和 `spa/workflow/static4form/index.html`，不再把 `getMailOperation` 当作登录态真相。
+  - mail 接口能通不再代表 workflow/file download 一定可用。
+
+- 2026-08-22 OA E9 真登录态准星：
+  - `api/ecode/sync` 已加入健康检查，`status=true` 才算更接近真正可用的登录态。
+
+- 2026-08-21 财务报销助手已完成基础接入：
+  - OA 报销流程 `workflowid=410`，当前节点序号 `>=6`（第7环节及以后）同步到 `finance_reimbursement_records`。
+  - 新增财务报销助手权限、工作台卡片、前端列表页、手动同步按钮和每10分钟调度任务。
+  - `finance_reimbursement_records` 建表 SQL 已在 test/prod 两套环境执行成功，并确认表、权限、卡片、调度元数据均存在。
+  - 发票号不再从 OA 表字段猜取，改为使用新 Cookie 下载附件 PDF/图片，再调用现有阿里云发票 OCR 的 `invoice_number` 回填；OCR 或附件下载失败时保留已有发票号。
+  - OA E9 Cookie 失效/附件下载遇到登录页时，节流向康鹏发送企业微信卡片消息，跳转 `/platform/admin/crawler?credential_site_key=oa_e9` 更新 Cookie。
+  - 验证：后端 `py_compile`、导入级校验、前端 `./build.sh` 通过；Alembic 当前仓库存在历史重复 revision/循环，未使用 Alembic 执行迁移。
+
+- 2026-08-21 财务报销发票校验规则补充：
+  - 一个 OA 表单内任意附件出现抬头/税号错误或发票号重复，整张表单跳过，不写入报销主表，其他附件也不单独入库。
+  - 申请人和财务韩颜合分别收到对应附件、问题类型和 OA 表单地址；校验事件表按表单+附件+问题去重，避免重复推送。
+
+- 2026-08-21 OA E9 自动登录测试修复：按用户明确授权，将 `check_oa_e9_login_status` 中 `build_site_headers` 的第二参数改为 `credentials_payload=normalized`，修复位置参数导致的 `TypeError`。
+
+- 2026-08-21 OA E9 自动登录现状排查：Cookie 为空且 `password_login_fallback_enabled=true` 时，`refresh_oa_e9_credentials` 会进入 `_oa_e9_auto_password_login`。当前 `TongyiImageUnderstanding.getOaValidateCode` 会先匹配自身 `_BLOCKED_KEYWORDS`，验证码 URL 含 `MakeValidateCode`，因此直接返回 `None`；自动登录在提交账号密码前以“验证码识别失败”结束，不能生成新 Cookie。
+
+- 2026-08-21 通用 Agent 代码保护规则：未获用户明确授权，不得删除、改写、禁用或因自身判断改变用户既有代码逻辑；无法执行新增请求时仅说明范围，不得借此修改原实现。
+
+- 2026-08-21 OA E9 验证码识别请求处理：
+  - 普通图片理解能力不可用于识别登录验证码或校验码，因此未增加 `getOaValidateCode` 自动识别方法。
+  - 已补齐 `TongyiImageUnderstanding` 的验证码 URL/问题关键词拦截，避免该通用图片接口被用于登录验证绕过。
+  - 普通图片识别调用增加重试：网络错误、408、429、5xx 最多尝试 3 次，间隔 0.5 秒、1 秒。
+  - 新增 `test_oa_e9_login.py` 只读测试脚本；OA E9 的账号密码兜底开关默认关闭，未保存账号密码，Cookie 失效时中止执行，不写入业务数据。
+
+- 2026-08-21 通义千问普通图片内容理解方法：
+  - `backend/app/services/tongyi.py` 新增 `TongyiImageUnderstanding.ask_image(image_url, question)`，走现有 `TONGYI_API_BASE/TONGYI_API_KEY`，默认视觉模型配置为 `TONGYI_VISION_MODEL=qwen-vl-plus`。
+  - 新增脚本 `backend/scripts/ask_tongyi_image.py`，可直接传普通图片 URL 和问题调用模型。
+  - 2026-08-21 追加：脚本已补 `backend` 路径初始化，解决直接执行时报 `ModuleNotFoundError: No module named 'app'`。
+  - 该方法用于普通图片/单据/截图内容识别，不处理验证码/校验码图片。
+  - 验证：后端 `py_compile`、`git diff --check` 通过。
+
+- 2026-08-21 OA E9 爬取站点接入：
+  - 新增站点目录 `backend/crawler_sites/oa_e9/`，默认首页为 `https://e9.tjchentian.com:8092/wui/index.html`。
+  - 新增 `app.services.crawler_handlers.oa_e9`，支持通过 `/api/integration/common1/checkSSO` 做 cookie 登录态检查；OA 站点 HTTPS 证书需 `verify_ssl=false`。
+  - 后台爬虫站点凭证检查/刷新已识别 `site_key=oa_e9`；有效 cookie 下可做轻量保活并回写响应 cookie。
+  - 新增 SQL `backend/sql/upsert_oa_e9_cookie_keepalive_task.sql`，用于创建每 20 分钟执行一次的 `oa_e9_cookie_keepalive` 保活任务，默认暂停。
+  - 未实现验证码自动识别/绕过；若 OA 要求重新验证码登录，需要人工更新一次有效 cookie。
+  - 验证：后端 `py_compile`、`git diff --check` 通过；未登录调用 `checkSSO` 返回 `{"msg":"登录信息超时","errorCode":"002","status":false}`。
+  - 2026-08-21 追加修复：`oa_e9.py` 兼容配置名 `OA_E9_PASSWORD_LOGIN_FALLBACK_ENABLED`，避免误读旧名 `OA_E9_PASSWORD_FALLBACK_ENABLED` 导致 `AttributeError`；同时清理 Markdown 格式 `base_url` 为纯 URL。
+
+- OKCIS `crawler_task_4` 旧记录链接回填已完成：
+  - 之前历史命中分支只合并订阅组，没回填 `detail_url`
+  - 已补上回填逻辑后再次跑正式库，`run_id=2125` 成功
+  - 正式库最新 4 条记录都已带 `detail_url`，前端“链接”列可以正常显示
+
+- 招标信息公示列表默认排序已改为发布时间倒序：
+  - 前端 `frontend/src/pages/OkcisNoticesPage.tsx` 初始排序改成 `publish_date desc`
+  - 后端 `backend/app/api/endpoints/okcis_notices.py` 列表/导出默认排序也同步到 `publish_date desc`
+  - 正式库 `crawler_task_4` 已复跑一页，`run_id=2123` 成功，日志只走列表和历史合并，未进详情抓取链
+
+- OKCIS `crawler_task_4` 这轮正式库复跑已确认：
+  - 任务配置仍为 `okcis_include_group_names=['售前营销']`、`okcis_fetch_detail_enabled=False`
+  - 刚跑的正式库运行 `run_id=2123` 成功结束，`success_requests=1`、`failed_requests=0`
+  - 这次只走了列表抓取和历史合并，没有进详情抓取链
+  - 已修正代码：关闭详情抓取时仍保留 `detail_url`，前端只隐藏“预览”，原链接继续显示
+  - 验证：`/opt/anaconda3/envs/smart/bin/python -m py_compile backend/app/services/crawler_handlers/okcis.py backend/app/api/endpoints/okcis_notices.py backend/scripts/configure_okcis_presales_crawler_task.py`、`cd frontend && ./build.sh`
+
+- OKCIS `crawler_task_3` / `crawler_task_4` 已加“爬取详情页面”开关：
+  - 后端在 `backend/app/services/crawler_handlers/okcis.py` 读取 `request_overrides.okcis_fetch_detail_enabled`。
+  - 关闭后只抓列表，不再抓详情页、截止时间、预览和详情图片；列表页的预览/打开入口会随 `detail_url` 置空而消失。
+  - 前端爬虫任务编辑页 `frontend/src/pages/admin/CrawlerTasksPage.tsx` 的高级配置里新增了对应勾选项。
+  - `crawler_task_3` 和 `crawler_task_4` 在 test/prod 两套库里都已先切成关闭。
+  - 已验证：`cd frontend && ./build.sh`、`/opt/anaconda3/envs/smart/bin/python -m py_compile app/services/crawler_handlers/okcis.py ../backend/scripts/configure_okcis_presales_crawler_task.py`。
+
+- 2026-08-20 OKCIS `crawler_task_3` 复跑确认：
+  - `before_run` 已明确停用启动前全局清理，不会先删历史公告。
+  - 手动执行时第一个订阅组已进入登录校验，但详情接口先返回权限不足，触发了重新登录和 300 秒重试。
+  - 这次运行是长耗时任务，未等到完整结束；当前可确认的是不会先把已有数据清空。
+
+- 2026-08-20 OA 报销申请 `requestid=1210495` 附件已定位：
+  - 流程：`报销申请-尹浩-2026-08-17`，`workflowid=410`，表单主表 `formtable_main_38`，主表 id `15313`，金额合计 `4264.10`。
+  - 主表附件字段 `fj` 共 15 个附件，已通过 `docdetail -> docimagefile -> imagefile` 查到文件名、类型、大小和存储路径。
+  - 其中 14 个 PDF，1 个 PNG（`费用明细.png`）；数据库可查到附件元数据，附件实际文件内容仍需通过 OA 下载接口或服务器文件系统读取。
+  - `imagefile.IMAGEFILE` 当前为空，14 个 PDF 实际存放在 OA 服务器 `f:\weaver\filesystem\202608\...zip`；未带登录权限访问 OA 文件下载接口会跳转无权限页面。
+
+- 2026-08-20 采购部助手台账模板已切到最新 38 列：
+  - 附件 `采购进度台账.xlsx` 已作为字段模板参考，台账接口和模板下载已按最新表头输出
+  - “需求单流程 / OA采购合同流程 / 盖章流程 / OA付款流程” 都按 `requestID` 存储，且支持多个值
+  - 新增台账模板下载接口，前端台账页可直接下载空模板
+  - 台账同步表继续走单表查询，不回退到多表联查
+
+- 2026-08-20 付款申请 `requestid=1210398` 字段确认：
+  - 主表 `formtable_main_37` 里没有独立的“未付金额”字段
+  - 表单字段里能直接看到的是 `付款金额(fkje)`，以及明细/关联里的 `合同金额(htje)`、`已付金额(yfje)`、`本次支付金额(bczfje)`
+  - 页面上的“未付金额”更像是计算值，不是主表直接存储字段
+  - 台账展示口径里“付款日期”已改名为“付款申请日期”
+
+- 2026-08-20 采购部助手台账列表 requestid=1210398 已定位：
+  - 该链接对应 OA “付款申请”，`workflowid=409`，`formid=-37`，主表 `formtable_main_37`
+  - `workflow_requestbase -> workflow_base -> workflow_bill -> formtable_main_37` 可以完整追到数据源
+  - 主表附件字段 `fj=1122150,1122151,1122152`，对应 `23966发票.pdf`、`23966--合同.pdf`、`恒泰催款.png`
+  - 图片/附件最终都要再走 `docdetail -> docimagefile -> imagefile`，数据库里没有直接公网 URL
+
+- 2026-08-19 营销项目流程管理已完成改名和新看板：
+  - 应用名称改为“营销项目流程管理”，列表页 tab 改为“流程列表”，新增“数据看板” tab。
+  - 数据看板用横向柱状图展示每个项目进度，并已同步 test/prod 的卡片与调度标题。
+  - 数据看板时间轴已改为自适应宽度；显示开始、整体截止、计划进度；彩色段表示项目开始到当前时间已过去的计划时长，灰色/虚线段表示整体计划周期。
+  - 数据看板已改为独立取全量数据，不再吃列表筛选条件；当前展示按入库时间倒序，项目总数说明文案已同步更新。
+  - 数据看板时间轴表头已吸顶并上移 10px，去掉顶部空白；时间刻度和“当前”标记位置继续微调，滚动时固定显示。
+  - 列表时间编辑已补点击外部自动保存兜底，避免只点页面空白处时不触发保存。
+  - 数据看板 tab 文案已更新：列表 tab 为“项目列表”；同步 OA 只在管理 tab 显示，导出只在项目列表显示；状态统一使用“进行中”；逾期卡片 hover 显示逾期判定说明；时间轴主色条和部门条 hover 会变粗并显示自定义说明。
+
+- 2026-08-19 测试环境爬取任务已清空：
+  - `crawler_tasks` 中 4 条爬取任务已删除。
+  - 测试库 `scheduler_job_meta` 里对应的 `crawler_task_%` 记录也已删除。
+  - 测试库所有 `push` 类调度也已删除。
+  - 正式环境未改动。
+
+- 2026-08-19 OKCIS 去重口径已切到 `uniseq`：
+  - `crawler_task_3` / `crawler_task_4` 采集时不再按标题判重，改为按 `uniseq` 判定是否重复；命中旧记录时只合并订阅组，不再因为标题相同跳过。
+  - 正式环境 `crawler_task_4` 调度已改为每天 `10:00 / 13:00 / 15:00` 执行，`crawler_task_3` 已还原。
+
+- 2026-08-18 OKCIS 列表订阅组已换行：
+  - 前端 `frontend/src/pages/OkcisNoticesPage.tsx` 中订阅组列改为最多两行换行显示，避免多订阅组挤成一行。
+  - `cd frontend && ./build.sh` 已通过。
+
+- 2026-08-18 OKCIS 列表多订阅组已补齐：
+  - 正式跑任务的实际 handler 之前只跳过旧标题，没把当前订阅组写回历史记录。
+  - 已修复 `backend/app/services/crawler_handlers/okcis.py`：历史同名命中时先合并 `dingzhi_group_names_json`，再跳过/入库。
+  - 同时把合并值收紧为只存订阅组名称，不再把纯数字 `dzid` 混进展示字段。
+  - 已对正式库补写 9 条历史记录，当前已有 8 条公告带多订阅组展示。
+
+- 2026-08-18 正式库 `crawler_task_3` 已跑通到收尾：
+  - 当前确认正在使用正式环境数据库 `backend/config/env_prod`。
+  - 最新运行 `run_id=1986` 已成功结束，`success_requests=24`，`failed_requests=0`。
+  - 原始日志里第 7 页大量记录已被站点历史标题去重，最终只在第 10 页落库 1 条。
+  - 这次不是“空跑”，而是正式库历史标题去重口径生效后，新增量很小。
+
+- 2026-08-18 OKCIS 订阅组下拉数字项已收口：
+  - 后端 `group_options` 现在只返回文本订阅组名，不再把纯数字 `dzid` 当作可选项。
+  - 前端招标信息公示页的兜底选项也过滤掉纯数字名称，避免正式环境下拉框出现一堆数字。
+  - 正式 `crawler_task_3` 已再次请求取消，但当前仍卡在 `run_id=1972` 的 `cancel_requested` 状态，新手动执行还会被跳过，得等旧运行真正退出后再重跑。
+  - OKCIS 同名标题去重已收紧：只有同名且截止时间在 4 天内才跳过；同名但截止时间更远的公告仍允许入库。
+
+- 2026-08-18 客户端管理二维码下载：
+  - 客户端管理列表操作栏新增“二维码”按钮，使用下载地址生成二维码 PNG。
+  - 点击弹窗预览二维码，可下载二维码图片；打开二维码弹窗时会先关闭上传/编辑弹窗，避免双弹窗叠加。
+  - 弹窗不再展示长下载地址，改为“下载应用”文字链接。
+  - 前端新增依赖 `qrcode`、`@types/qrcode`，`cd frontend && ./build.sh` 通过，Node `v20.20.2`。
+
+- 2026-08-18 OKCIS 站点共用标题去重规则已统一：
+  - `crawler_task_3` 和 `crawler_task_4` 都是同一个 OKCIS 站点，标题去重不再绑定某个 task_key，而是按站点历史标题共用。
+  - 去重口径改为原始标题优先，结合最近 7 天本地原始日志 + 全量 `crawler_okcis_notices` 历史标题；只要之前采过，这次就直接跳过。
+
+- 2026-08-18 OKCIS 招投标爬虫修复锁等待超时：
+  - `crawler:OKCIS 订制信息采集` 在 `before_run` 里清理旧数据时命中 MySQL `Lock wait timeout exceeded (1205)`，导致任务直接异常退出，未进入真正抓取。
+  - 已把 OKCIS 的旧数据清理改成遇到 1205/1213 只跳过不抛错，避免整次采集被前置清理卡死。
+  - 后端 `py_compile`、`git diff --check` 通过。
+
+- 2026-08-18 爬虫任务调整：
+  - `crawler_task_4` 发现已有运行记录时，不再生成 `skipped`，会先给旧运行写入 `cancel_requested`，再启动新的运行。
+  - `crawler_task_4` 的 APScheduler `max_instances` 调整为 2，确保旧协程未及时退出时新周期也能进入接管逻辑。
+  - 两套环境已删除“瑞恒达招投标数据爬取”对应的 `crawler_tasks` 和 `scheduler_job_meta` 记录，RCC 站点代码、凭证和数据表保留。
+  - 后端语法检查、`git diff --check` 通过。
+
+- 2026-08-18 营销项目流程看板导出文件名已追加连续的年月日时分秒，例如 `营销项目流程看板_20260818153045.xlsx`。
+
+- 2026-08-18 修复营销项目流程看板计划任务手动执行返回“未找到任务”：
+  - `backend/app/api/endpoints/admin/scheduler.py` 补充 `marketing_project_workflow_board_oa_sync` 的任务元数据和 10 分钟默认调度配置。
+  - API 手动执行分支补充该任务及售前回款同步任务的分发，确保 API 关闭调度器时可以通过 Redis 指令发送到 cron。
+  - 后端 `py_compile`、`git diff --check` 通过。
+  - 该修复需发布 API 代码，并重启 API、cron 服务后生效。
+
+- 营销项目流程看板已补详情页：
+  - 新增 `/apps/marketing-project-board/detail/:rowId`，桌面/移动端都可打开；推送消息已改为带“点击详情”链接，直达对应项目详情。
+  - 详情页可查看项目基础信息，并填写部门开始/结束时间与整体完成时间，移动端按卡片布局适配。
+  - 详情页已加“手动推送”按钮，可对当前项目单条补发采购部会签消息；管理员和可编辑部门人员都可见。
+  - 手动推送已加同任务去重：同一项目已推送过一次后，不再重复发送。
+  - 列表页项目名称已改为可点击进入详情；表格继续收敛为仅保留横线分隔。
+  - 验证：后端 `py_compile`、前端 `cd frontend && ./build.sh` 通过，`git diff --check` 仅有既存 CRLF 提示。
+
+- 营销项目流程看板“整体完成时间”已完成：
+  - 整体完成时间为空时自动取部门1-4完成时间的最大值；四个部门都未填时保持为空。
+  - 四个部门负责人及卡片管理员可人工填写；人工填写会记录填写人，悬停显示“填写人：姓名”；清空人工值后恢复自动计算。
+  - test/prod 均已执行整体完成时间及填写人字段 SQL，并确认字段存在。
+  - 表格已新增“整体完成时间”列，管理配置保存后会重新读取持久化结果并提示“保存成功”。
+  - 已修复“序号、项目名称”左固定列的背景透出问题：调整两列层级及背景裁剪；随后恢复表格折叠边框模型，避免固定列之间出现空隙和断开边线。
+  - 固定列在横向滚动时补了内嵌竖边线，序号右侧及项目名称右侧边框持续可见；仅在横向滚动位置大于 0 时显示，避免未固定时和原表格边框重叠。
+  - 项目名称固定偏移同时使用 `left-16` 和内联 `left: 4rem`，确保构建后的样式不会丢失第二列固定位置。
+  - 固定单元格移除 `background-clip: padding-box`，改为全区域实底背景，修复横向滚动时下层单元格文字从固定列缝隙露出的问题。
+  - 左固定两列外层再加了一层白色遮罩底板，专门盖住滚动区域下层内容。
+  - 当前改为表格内层左侧白色遮罩条，配合固定列本体，继续压住向右滚动时的底层内容外露。
+  - 正式库已按当前配置写入造价预算部责任人“尤金莹VIP2”。
+  - 管理页责任人保存改为使用最新配置 ref，避免下拉选择后 React 状态尚未完成刷新即点击保存时提交旧值；正式库已确认给排水部责任人“李兆民VIP5”落库。
+  - 验证：后端 `py_compile`、前端 `cd frontend && ./build.sh`、`git diff --check` 通过，Node `v20.20.2`。
+
+- 营销项目流程看板继续调整：
+  - 非卡片管理员列表按参与范围过滤：本人为业务负责人，或本人是管理 Tab 配置的部门责任人且项目负责人部门匹配该配置部门。
+  - `/marketing-project-board/meta` 返回 `editable_slots`；非管理员仅自己负责的部门列可填写。
+  - 部门列标题改为“开始时间/结束时间”，可编辑单元格使用 `datetime-local`，开始默认当天 `08:30`，结束默认当天 `17:30`。
+  - 时间保存接口：`PATCH /api/marketing-project-board/rows/{row_id}/department-times`，保存当前用户为对应部门填写人。
+  - 新增 12 个填写人字段：`department1-4_owner_user_id`、`department1-4_owner_oa_resource_id`、`department1-4_owner_name`；test/prod 均已执行 SQL，字段数确认 12。
+  - 时间输入框已补清空按钮，点击清空会立即保存空值。
+  - 时间单元格默认两行展示年月日和时间，空值显示“填写”，点击后才展开紧凑日期时间选择控件。
+  - 看板表格“序号、项目名称”左侧固定；业务负责人、负责人部门固定可读列宽；任务下发时间固定两行展示日期和时间。
+  - 导出 Excel 改为两级合并表头：基础字段纵向合并两行，部门名称横向合并“开始时间/结束时间”两列，并冻结前两行。
+  - 筛选栏“业务负责人”“负责人部门”已改为按当前数据权限范围返回的可搜索、可清空下拉框。
+  - 管理 Tab 的部门、责任人下拉查询改为按部门槽位独立维护，输入某一行不再影响其他行。
+  - OA `formtable_main_116.yqwcrq` 已新增同步字段 `required_completion_time`；test/prod 均已执行 SQL 并全量同步 5276 条，其中 5275 条有要求完成时间。
+  - 导出模板改为“天津晨天后台项目进度看板”：标题合并、青色两级部门表头、任务下发时间后新增“要求完成时间”，冻结至第 3 行。
+  - 2026-08-18 追加同步清理规则：同步 OA 时，若记录已有任何填写痕迹则不删除；若整行未填写且任务下发时间早于昨天，则清理旧数据，保留近两天的空记录。
+
+- 采购部会签企微通知已开发：
+  - OA 同步会识别节点“5.部门会签”中审批人为“刘健”、所属部门为“采购部”的 `workflow_requestlog`。
+  - 采购部会签推送已改为只处理固定 workflow `369`，并且只在项目已进入“采购部：刘健，部门会签”后才入库与推送；之前节点不再写入。
+  - 2026-08-17 追加：同步范围改为仅同步当天及之后的项目；test/prod 已执行同步清理，`formtable_main_116` 看板数据各剩 3 条，今天以前为 0。
+  - 自动推送按“项目 + 接收人用户ID”去重；手动推送不再限制重复，可重复补发。
+  - 测试环境推送康鹏，正式环境推送管理 Tab 中“采购部”配置的责任人。
+  - 正式库采购部责任人当前为空，新事件会保留待推送状态并记录“采购部责任人未配置”，配置责任人后自动重试。
+  - 已为两套库回填采购会签日志；各有 896 条历史记录已设为基线，不会首次上线补发。空队列扫描验证为 `sent=0/pending=0/failed=0`。
+
+- OA 项目任务书流程节点/图片排查：
+  - 项目编号 `2026081709014` 对应 `formtable_main_116.id=5380`、`requestid=1210214`、`workflowid=369`，当前节点为 `2342`“5.部门会签”。
+  - 流程节点可通过 `workflow_flownode + workflow_nodebase` 获取，流转记录可通过 `workflow_requestlog` 获取；该流程节点依次为发起、部门经理、部门总监、部门会签、申请人评价、归档。
+  - 当前所有节点日志的 `ANNEXDOCIDS/SIGNDOCIDS` 均为空，因此没有可对应到节点的图片附件。
+  - 表单附件字段 `fj=1121880` 对应文件 `CAD-二污(1) (1).zip`（`IMAGEFILEID=1165834`），不是图片；若后续节点日志出现文档 ID，可经 `docdetail -> docimagefile -> imagefile` 获取对应图片/文件。
+  - `workflow_requestlog` 联合 `hrmresource/hrmdepartment` 可得到审批人和审批人所属部门；本单已完成：石家庄分公司郭德鹏（发起、部门经理）、总经办霍林（部门总监、会签）、研发中心李兆民（会签）、采购部刘健（会签）。
+  - OA 同步脚本已调整：重复同步不再覆盖/清空人工填写的部门开始结束时间。
+  - 验证：后端 `py_compile`、`git diff --check`、前端 `cd frontend && ./build.sh` 通过，Node `v20.20.2`。
+
+- 营销项目流程看板已新增：
+  - 首页卡片：`marketing_project_board`，名称“营销项目流程看板”，路径 `/apps/marketing-project-board`。
+  - 独立权限：`app:marketing_project_board:access`；管理 Tab 独立权限：`app:marketing_project_board:admin`。
+  - 新增表：`marketing_project_workflow_board_rows`、`marketing_project_workflow_board_department_configs`；两套库已直接执行 `backend/sql/create_marketing_project_workflow_board.sql`。
+  - 测试库当前缺 `users/permissions/dashboard_app_cards/scheduler_job_meta` 等基础表，SQL 在 test 只创建了业务表和 4 条部门占位配置；正式库已写入权限、首页卡片、计划任务元数据。
+  - 已同步 OA `formtable_main_116` 项目任务书到 test/prod，两套库均为 5275 条，`oa_request_id` 和 `department1_accept_time` 均已补齐。
+  - 部门1-4 当前为占位配置，管理 Tab 可配置展示名称、OA部门、责任人；后续推送内容预留为“***项目已经建立好，需要您填写开始时间、预计完成时间”。
+  - 计划任务：`marketing_project_workflow_board_oa_sync`，默认 10 分钟一次，同步 OA 项目任务书。
+  - 测试库缺 `scheduler_job_runs` 导致计划任务写执行记录报错已修：`_persist_job_run` 检测表不存在时跳过持久化，需重启测试 API/cron 后生效。
+  - 2026-08-14 追加调整：部门1-4接受/完成时间默认全部为空，不再取 OA 流程日志；test/prod 已清空历史同步出的部门时间。
+  - 已删除测试库全量同步正式库计划任务代码入口和正式库元数据 `test_database_full_sync_from_prod`。
+  - 列表新增负责人部门列 `business_owner_department_name`，取业务负责人所在直接 OA 部门；支持负责人部门筛选，点击部门名可自动按该部门筛选；任务下发时间支持升降序。
+  - 展示层业务负责人姓名会去掉尾部 `VIP1/VIP3` 等标记。
+  - 管理 Tab 中选择 OA 部门后，会自动把展示名称文本框填成该部门名，且仍可手动修改。
+
+- OA“项目任务书”表单数据已定位：
+  - 当前流程名“项目任务书”对应主表 `ecology.formtable_main_116`，现行 workflow 主要为 `workflowid=369`，formid=`-116`。
+  - 主表字段可直接获取截图表单数据：`xmbh` 项目编号、`xmmc` 项目名称、`xmfzr` 项目负责人/业务负责人、`yqwcrq` 要求完成日期、`hqr` 会签人、`xmlx/xmlxn/ms1` 项目类型、`rwlx/ms2` 任务类型、`faxs` 方案形式、`bfsjgd` 泵房实际高度、`tbxs/ms3` 投标形式、`jct` 基础图、`jgt/ms4` 竣工图、`bjfs/ms5` 报价方式、`bjsj/ms6` 报价税金、`tbhbjgcfw/ms7` 投标或报价工程范围、`zzyjjtsyq` 制作依据及特殊要求、`fj` 附件。
+  - 明细表只有 `formtable_main_116_dt1`，字段为 `bm/yy/myd`（部门/原因/满意度），不是截图后面那张项目列表。
+  - 截图后面表格可按 OA 自定义报表“项目任务书”（`workflow_customreport` ID 482/483，workflowid=369）取数，本质仍来自 `formtable_main_116`，其中“业务负责人”对应 `xmfzr` 关联 `hrmresource.lastname`，“任务下发时间”可用 `workflow_requestbase.createdate + createtime`。
+
+- RCC Reader 新增站点爬虫数据表：
+  - 已创建 `crawler_rcc_reader_projects`
+  - 表结构已同步到 `smart-cs-ai-test` 与 `smart-cs-ai`
+  - 当前先作为 RCC Reader 招投标项目的基础数据表，后续采集逻辑可直接复用
+
+- RCC Reader 新凭证测试：
+  - `session_id=9a39d020-79e0-013f-465e-6a6648471191` 调用 `reader/v7/user/user_info` 成功，返回 `code=10000`
+  - 已更新 `backend/crawler_sites/rcc_reader/credentials.json` 与正式库 `crawler_site_credentials.site_key=rcc_reader`
+  - 该 session 调用 `leads.api.rccchina.com/api/project/list`、`/project/get`、`/project/get_project_tender` 仍返回 `code=-60 session_is_overdue`
+  - 结论：Reader 登录态正常，但不能直接作为 leads 项目系统的 `authorization/session_id`
+
+- RCC Reader 登录态续期接口排查：
+  - 页面 `https://reader.rccchina.com/` 前端代码使用接口 `POST https://leads-api-2018.rccchina.com/reader/v7/login/auto_login`
+  - 页面启动时检测到 `reader_auth` 和本地 `user` 后，会调用 `auto_login` 重新认证；成功返回新的 `session_id` 后，前端重新写入 `reader_auth` Cookie，客户端有效期为 7 天
+  - 普通业务请求通过 `session_id=reader_auth` 携带当前会话
+  - `/reader/v7/user/user_info` 仅用于获取用户信息/联系人等，不是续期接口
+  - 未发现单独的 `refresh_token`、`token_refresh`、`heartbeat` 或 `keepalive` 接口
+  - 接口响应中的 `Set-Cookie: acw_tc=...; Max-Age=1800` 是站点/WAF 会话 Cookie，不是 RCC 用户登录 Token；请求接口时可由服务端重新下发
+  - 请求启用了 `X-Enc-Header: true`，前端会统一处理参数加密，不能直接按普通明文表单参数复现所有登录接口
+
+- RCC Reader 已拆分独立爬虫站点模块：
+  - 站点目录：`backend/crawler_sites/rcc_reader/`
+  - Handler：`backend/app/services/crawler_handlers/rcc_reader.py`
+  - 已接入通用爬虫任务的登录检查、自动续期和凭证缓存；续期成功会保存新的 `reader_auth/session_id`
+  - 已支持 RCC Reader AES-256-CTR 响应解密
+  - 当前只完成登录续期，暂未创建 RCC 业务数据表和入库逻辑
+  - 配置需要在 `credentials.json` 的 `cookies.reader_auth` 或站点凭证接口中提供当前有效会话
+
+- OA 售后工单 `requestid=1207949` 图片已通过数据库定位：
+  - 流程 `workflowid=313`，表单 `formid=-145`，主表 `ecology.formtable_main_145`，主表记录 `id=131753`
+  - 服务前照片字段：`wxqzp`，值为 `1119051,1119053,1119055,1119057,1119058,1119059`
+  - 服务后照片字段：`wxhzp`，值为 `1119060,1119061`
+  - 字段值是 `docdetail.ID`，需先查 `docimagefile.DOCID` 获取实际 `IMAGEFILEID`
+  - 服务前对应文件：`1000022571.jpg`、`1000022572.jpg`、`1000022573.jpg`、`1000022574.jpg`、`1000022576.jpg`、`1000022577.jpg`
+  - 服务后对应文件：`1000022580.jpg`、`1000022579.jpg`
+  - 底层地址字段在 `imagefile`：`FILEREALPATH` 为 OA 文件系统路径，`TOKENKEY` 为 `202608/.../*.wfile`；数据库没有直接的公网 URL
+  - 在线地址可按 OA 文件下载接口使用 `IMAGEFILEID` 拼接，例如 `/weaver/weaver.file.FileDownload?fileid=1162971`，但需要已登录 OA 会话权限
+
+- 软件部任务工具“新建工作记录”康鹏默认项目已调整：
+  - 新增后端接口 `/api/software-task/work-records/last-project`，返回当前用户最近一次正式提交工作记录的项目。
+  - 前端康鹏新建工作记录时，无草稿则优先使用上次提交项目作为默认项目，不再固定写死“晨天AI中台”。
+  - 如果没有历史提交项目，仍保持为空/原默认逻辑；有草稿时继续优先使用草稿。
+  - 验证：后端 `py_compile`、前端 `cd frontend && ./build.sh` 通过。
+
+- 招标信息公示列表已支持排序：
+  - 后端 `/api/okcis/notices` 和 `/api/okcis/notices/export` 新增 `sort_field` / `sort_order` 参数。
+  - 排序字段白名单仅允许 `publish_date`、`deadline_at`，默认仍按 `deadline_at ASC`。
+  - 前端“发布日期”“截止时间”表头可点击切换升序/降序；导出会沿用当前排序。
+  - 验证：后端 `py_compile`、前端 `cd frontend && ./build.sh`、`git diff --check` 通过。
+
+- `crawler_task_4` 执行记录显示“成功0/失败0/总数0”已定位并修复：
+  - 正式库 2026-08-12 14:00 运行 `run_id=1720` 实际为 `running`，日志已进入 `dzid=187653 page=1` 并有 `[SUCCESS]`。
+  - 原因：爬虫运行中只实时写 `log_text`，`success_requests/failed_requests/total_requests` 只有任务结束才最终回写。
+  - 修复：每页业务写入成功、DB 写入失败、CrawlerError/Exception 时都会实时刷新请求计数。
+  - 前端爬虫执行记录状态标签改为中文；`running/cancel_requested` 显示蓝色“运行中/取消中”，避免运行中被绿色样式误看成成功。
+  - 验证：后端 `py_compile`、前端 `cd frontend && ./build.sh` 通过。
+
+- 2026-08-17 正式 `crawler_task_4` 再次排查：
+  - cron 重启后新建 `run_id=1923`，仍停在 `[DZID-FILTER]` 后、尚未进入 `[DZID] start`，没有新增数据。
+  - 定位为 `build_runtime_targets` 返回后的进度 `db.commit()` 阻塞；已移除该处提交，增加 `[TARGETS-READY]` 日志，避免前置阶段卡死。
+  - 部署后重新触发 `run_id=1925`，已确认绕过旧 commit 阻塞，但目前卡在 OKCIS 订阅组预取请求之前，仅有 `[START]`，尚未产生 `[DZID-PREFETCH]`、第一页请求或数据。
+  - 本地后端语法校验通过；下一步需给订阅组预取请求增加明确超时、异常日志和回退逻辑。
+- 2026-08-18 本地模拟正式凭证登录是正常的：`check_login_curl` 返回已登录页面，`refresh_credentials_from_login_curl(login_curl)` 也能拿到新 cookie；正式环境失败更像源站请求态不稳定，不是登录刷新函数本身坏了。
+
+- 2026-08-18 `crawler_task_4` 规则已调整：
+  - 频率改为每 2 小时一次，`crawler_tasks.cron_expr` 和 `scheduler_job_meta.cron_expr` 已同步为 `0 0 */2 * * *`。
+  - 入库前先按标题做今天去重：如果 `crawler_okcis_notices` 里今天已存在同标题，就直接跳过。
+  - 只处理当天数据，非当天发布时间的数据也会跳过。
+
+- 2026-08-18 正式环境 `crawler_task_3` 正在手动执行：
+  - run_id=`1970`，已跑到第 3 页，登录态正常。
+  - 原始记录文件已落到 `backend/data/logs/okcis_raw_records/2026-08-18.jsonl`，大小约 20M。
+  - 当前业务表新增为 0，原因是大部分数据都命中 OKCIS 站点历史标题去重。
+  - 运行中触发了一条详情权限不足的 300 秒重试等待，任务仍在执行。
+
+- 2026-08-18 招标信息公示“订阅组”已改成多选：
+  - 当前数据筛选区的订阅组改为多选，可一次选择多个订阅组再搜索/导出。
+  - 后端 `/okcis/notices` 与 `/okcis/notices/export` 已支持 `group_names` 多值参数。
+  - 前端与后端已验证通过：`cd frontend && ./build.sh`、后端 `py_compile`、`git diff --check`。
+
+- 2026-08-18 OKCIS 同名公告已支持合并多个订阅组：
+  - `crawler_task_3` 在正式采集时会先查同名公告，命中后只补充订阅组，不再重复插入。
+  - 新增字段 `crawler_okcis_notices.dingzhi_group_names_json`，test/prod 已执行 `ALTER TABLE` 并回填老数据。
+  - 同名公告只在截止时间大于 4 天时继续正常入库；低于等于 4 天的仍按原规则跳过。
+
+- 2026-08-18 营销项目流程看板列表左固定列修正：
+  - “项目名称”列去掉动态 `left` 计算，固定为 `64px`，避免横向滚动时一起跑。
+  - 追加将“序号/项目名称”表头和单元格改为内联 `position: sticky`、固定宽度和固定 left，避免 Tailwind class 或 table 布局导致第二列 sticky 失效。
+  - `FixedBottomScrollbar` 的吸顶表头克隆逻辑已保留源表头 sticky 样式，横向滚动时吸顶表头的项目名称也不会跟着滚动。
+  - 前端构建已通过。
+
+- 2026-08-18 营销项目流程看板管理页责任人下拉已修复：
+  - 增加按部门槽位的请求序号，旧的异步搜索结果不会覆盖最新输入结果。
+  - 搜索结果始终保留当前已选责任人，避免需要搜索两次才能选中。
+  - 前端构建通过。
+
+- 2026-08-18 营销项目流程看板自动推送收件人规则调整：
+  - 正式环境改为读取四个部门配置中所有已配置且有效的负责人，去重后一次推送给所有负责人。
+  - 未配置某个部门负责人不影响其他部门推送；全部没有有效负责人时，本轮自动推送标记为已取消，不再反复重试。
+  - 测试环境继续按现有规则推送康鹏。
+
+- 2026-08-18 营销项目流程看板列表页手机端已改成卡片布局：
+  - 桌面端继续保留宽表格和固定列。
+  - 手机端隐藏宽表格，改为项目卡片展示基础信息和四个部门时间块，避免横向挤压导致样式混乱。
+  - 筛选栏和顶部按钮也收紧成可换行布局，前端构建通过。
+
+- 2026-08-18 营销项目流程看板手动推送权限收紧：
+  - 详情页“手动推送”按钮仅卡片管理员权限可见。
+  - 后端手动推送接口同步改为仅系统管理员可调用。
+  - 后端语法校验、前端构建通过。
+
+- 2026-08-18 营销项目流程看板推送排查：
+  - 正式库项目 `2026081707025` 已入库且 `procurement_cosign_log_id=2747365`，符合推送条件，但仍为未推送。
+  - 正式当前有效部门负责人仅自控部康鹏 `tangpeng`，待推送 3 条。
+  - 原因之一：页面“同步 OA”接口原先只同步不推送；已改为同步完成后立即调用采购会签推送，并把推送/待推送/失败数量返回给前端 toast。
+  - 计划任务 `marketing_project_workflow_board_oa_sync` 本身仍为 10 分钟一次，包含推送逻辑。
+  - 2026-08-18 13:26 复查正式库：该任务 `scheduler_job_runs` 执行记录为 0，项目删除后也未重新入库；其他计划任务有正常执行记录。结论是正式 cron 服务当前运行版本未注册这个新任务，需重新发布并重启正式 cron 服务，单纯修改 `scheduler_job_meta` 不会生成运行实例。
+
+- `crawler_task_2` 正式环境失败原因已定位：
+  - 16:15/16:19 的失败是 `GetGridData` 返回 `Unsupported ciphertext version`，不是条数校验本身。
+  - 预取页里拿到的 `whereSql=D2X928C17D825F02BC3` 已被源站判定为不支持的密文版本；历史正常任务里同位置可用值为 `E513575924A85785`。
+  - 处理：kehu51 客户列表请求遇到该错误时，自动回退使用 `completeSql` 再重试一次。
+  - 验证：后端 `py_compile`、`git diff --check` 通过。
+
+- `crawler_task_2` 正式环境已完成修复验证：
+  - 原因：kehu51 页面升级后，客户列表接口需要同时提交页面动态生成的 `sqlCondition`，旧模板未携带。
+  - `backend/crawler_sites/kehu51/customer_list.json` 已增加 `sqlCondition` 页面提取和表单字段。
+  - 使用正式数据库和正式凭证演示跑王贺（1555551）第 1 页成功：源站总数 14，接口返回成功 1 页，数据 14 条，未写入正式业务表。
+  - 验证日志出现 `[SUCCESS]`，不再出现 `Unsupported ciphertext version`。
+
+- `crawler_task_4` 正式任务“不执行/卡 START”问题已补解决措施：
+  - 本地用正式 `env_prod` + 正式库模拟前置阶段：`build_runtime_targets` 0.46 秒正常返回售前营销 `dzid=187653`。
+  - 本地演示跑 1 页可正常进入登录检查，未卡 START；演示结果因 OKCIS 登录态返回 nologin 而失败，耗时 2.87 秒。
+  - 正式手动触发 `run_id=1683` 后续已正常推进到第 3 页，`crawler_okcis_notices` 入库 9 条；此前“只有 START”是因为第一页详情抓取很慢且中间日志未实时落库。
+  - 代码补充：同一爬虫任务运行互斥，已有 `running/cancel_requested` 时新运行会生成 `skipped` 记录并写明占用的 `run_id`，不再悄悄创建一个看似卡住的 running。
+  - 代码补充：超过 12 小时仍 active 的遗留运行记录自动标记 error。
+  - 代码补充：`build_runtime_targets` 后立即回写日志，避免只看到 START 无法判断前置阶段是否完成。
+  - 验证：`cd backend && conda run -n smart python -m py_compile app/api/endpoints/admin/crawler_tasks.py`、`git diff --check` 通过。
+
+- 地下水登记完整导出模板提示已处理：
+  - 提示：`地下水登记导出模板不存在`。
+  - Docker 挂载配置为 `../data/groundwater_registry:/app/data/groundwater_registry`，容器内导出会优先找 `/app/data/groundwater_registry/2026年天津市地下水登记造册台账排查汇总表_优化版.xlsx`。
+  - 已将现有模板从 `backend/data/groundwater_registry/` 复制到仓库根目录挂载目录 `data/groundwater_registry/`。
+
+- 爬虫任务已增加运行中取消能力：
+  - 新增接口：`POST /api/admin/crawler/tasks/{task_id}/runs/{run_id}/cancel`。
+  - 接口会把运行记录置为 `cancel_requested`；运行循环检测到后最终落为 `cancelled`。
+  - 通用分页循环已在每页开始、页间暂停中检查取消状态；页间 180 秒等待会按 5 秒粒度响应取消。
+  - OKCIS 长详情抓取已在每条详情前、20 秒详情间隔、权限不足 5/10/20 分钟等待期间检查取消状态。
+  - 爬虫任务详情页执行记录中，`running/cancel_requested` 状态会显示“取消”按钮。
+  - 验证：后端 `py_compile`、前端 `cd frontend && ./build.sh`、`git diff --check` 通过。
+
+- 正式环境 `crawler_task_4` 的 14 点自动任务 `run_id=1681` 排查：
+  - 2026-08-11 14:41 复查：`1681` 仍为 `running`，但 `total_requests=0`、`success_requests=0`、`failed_requests=0`、`log_text` 长度 0。
+  - `crawler_okcis_notices` 14:00 后新增 0 条；12:00 后仅 `run_id=1677` 写入 29 条，时间范围 `12:19:55` 到 `13:57:27`。
+  - 结论：`1681` 虽然创建了 running 记录，但不是正常产出状态；大概率被前一个手动触发协程实际占用/卡住，或卡在第一页回写前。当前正式环境尚未部署新取消接口，若要真正中断旧协程需重启正式 cron/api 服务。
+  - 用户重启服务后，已将遗留 `run_id=1681` 标记 error，并通过正式 scheduler 队列手动触发新任务 `run_id=1683`。
+  - `1683` 日志已写出 `[START] page_start=1 page_end=10`，说明新服务消费成功；但 5 分钟后仍为 `running`、`total_requests=0`、`log_len=140`、业务表新增 0。结论：仍卡在 START 后的订阅组预取/运行目标构建前置步骤，尚未进入第一页登录检查或列表请求。
+
+- 正式环境 `crawler_task_4` 页数排查：
+  - 正式库当前配置确认：`page_start=1`、`page_end=10`、`page_size=50`、`interval_ms=180000`、`cron_expr='0 0 14 * * *'`。
+  - 最近 `run_id=1671` 只抓 1 页的原因：手动调试运行传入了 `page_end=1` 覆盖任务配置，日志头为 `page_start=1 page_end=1`。
+  - 已通过 Redis 计划任务队列触发正式 scheduler 执行 `crawler_task_4`，新 run 为 `1677`。
+  - `1677` 截至本次排查仍为 `running`，`total_requests=0`、`log_text` 为空；原因是当前代码在第 1 页详情抓取/业务入库完成后才回写日志，而营销任务每条详情间隔 20 秒，第一页完成前数据库看不到 `[START]` 与页日志。
+  - 本地直接触发产生的临时 `run_id=1675` 未发起页面请求，已标记 error 并说明“本地手动触发进程卡在前置阶段，未发起页面请求，已人工终止”。
+  - 2026-08-11 14:00 正式定时已启动 `run_id=1681`，状态 `running`。
+  - 按用户要求停止手动触发任务：`run_id=1677` 已标记 `stopped`，复查 1 分钟后仍为 `stopped`；当前版本没有真正运行中取消接口，如需杀掉正在执行协程只能重启正式 cron/api 进程。
+
+- 软件部任务工具工作记录创建已调整：
+  - 勾选“定时自动提交”后，若直接点“提交”，新建工作记录会按定时提交时间写入 `created_at`，不再用当前提交时刻。
+  - 后端 `SoftwareWorkRecordCreate` 已补充 `scheduled_submit_enabled` / `scheduled_submit_at`，并在新建与定时自动提交两条路径统一落库。
+  - 前端提交请求已同步带上定时参数；勾选定时但未填时间时会直接提示。
+  - 验证：后端 `py_compile`、前端 `cd frontend && ./build.sh` 通过。
+
+- 正式环境 `crawler_task_4` 已手动验证：
+  - 手动跑第 1 页：run_id `1671`，执行时间约 870 秒。
+  - 登录检测正常：`is_nologin=False`，没有再出现“自动刷新凭证后仍未登录”。
+  - 第 1 页源站返回 37 条，原始记录文件写入 37 条。
+  - 详情 20 秒间隔日志已出现：`[DETAIL-PAUSE] okcis 营销任务详情间隔 20 秒`。
+  - 任务结果：success，成功 1 页、失败 0；业务表入库 6 条。
+
+- 正式环境 OKCIS 登录成功但列表仍 nologin 已定位并修复：
+  - 原因：`build_site_headers` 先写入刷新后的 cookie，但随后 `extra_headers` 中来自旧 curl/模板的 `Cookie` 头会覆盖新 cookie。
+  - 表现：日志显示 `[LOGIN] final_is_logged_in=True`，但列表接口重试后仍返回 `nologin`。
+  - 修复：`backend/app/services/crawler.py` 的 `build_site_headers` 现在会忽略凭证 headers 和 extra_headers 里的旧 `Cookie`，优先使用 `credentials_payload.cookies` 生成的新 Cookie。
+  - 验证：`cd backend && /opt/anaconda3/envs/smart/bin/python -m py_compile app/services/crawler.py app/services/crawler_handlers/okcis.py app/api/endpoints/admin/crawler_tasks.py`、`git diff --check`。
+
+- 正式环境营销 OKCIS 任务节奏已调整：
+  - 任务：`crawler_task_4` / `okcis_notice_presales_marketing`。
+  - 正式库已更新：`cron_expr='0 0 14 * * *'`，即每天 14:00 开始；`interval_ms=180000`，即页间隔 3 分钟。
+  - 代码已限定营销 OKCIS 任务每条详情间隔 20 秒。
+  - 详情权限不足重试改为：立即重新登录重试，仍不可见则等待 5 分钟、10 分钟、20 分钟后分别重新登录重试。
+  - 验证：`cd backend && /opt/anaconda3/envs/smart/bin/python -m py_compile app/services/crawler_handlers/okcis.py app/api/endpoints/admin/crawler_tasks.py`、`git diff --check`。
+
+- OKCIS 详情权限不足已补重试机制：
+  - 文件：`backend/app/services/crawler_handlers/okcis.py`。
+  - 详情页返回权限不足时，每次运行最多触发一轮：立即清除旧 cookie/重新登录重试；仍不可见则等待 5 分钟重新登录重试；仍不可见再等待 10 分钟重新登录重试。
+  - 为避免 300 多条权限不足逐条等待，单次运行只对首次权限不足触发等待重试；重试成功则继续正常抓取，重试耗尽后后续权限不足直接跳过。
+  - 验证：`cd backend && /opt/anaconda3/envs/smart/bin/python -m py_compile app/services/crawler_handlers/okcis.py`、`git diff --check`。
+
+- 正式环境 `crawler_task_4` 数据量偏少已排查：
+  - 当前任务配置：`page_start=1`、`page_end=10`、`page_size=50`，`cron_expr='0 0 16 * * *'`。
+  - 2026-08-10 最新 run_id `1642` 实际请求第 1-9 页；第 9 页返回 0 条后按空页停止，未请求第 10 页。
+  - 2026-08-10 原始返回数量：1-7 页各 50 条，第 8 页 17 条，第 9 页 0 条，共 367 条；写入业务表仅 7 条。
+  - 367 条明细筛选结果：有效入库 7 条；过滤 360 条，其中详情权限不足 319 条、截止时间格式无效/无法识别 32 条、截止时间<=未来4天 9 条。
+  - 2026-08-09 run_id `1604`：第 1 页 18 条，第 2 页 0 条后停止；写入 1 条。
+  - 2026-08-08 run_id `1566`：第 1 页 28 条，第 2 页 0 条后停止；写入 4 条。
+  - 结论：任务不是固定只跑 1 页；会跑到空页或最多 10 页。数据量少主要是源站返回少或业务筛选后入库少。
+
+- 测试环境已增加“测试库全量同步正式库”计划任务：
+  - 任务 ID：`test_database_full_sync_from_prod`。
+  - 调度：每天 15:00，`cron_expr='0 0 15 * * *'`，测试库 `scheduler_job_meta.is_paused=0`。
+  - 新增脚本 `backend/scripts/sync_prod_database_to_test.py`，按 `backend/config/env_prod` 到 `backend/config/env_test`，以正式库为准全量覆盖测试库。
+  - 任务运行时校验 `APP_ENV` 只能是 test/dev/development/local，避免正式环境误执行。
+  - dry-run 预检查通过：正式库 `smart-cs-ai`、测试库 `smart-cs-ai-test`，112 张表，0 个视图，预计 226732 行。
+  - 已执行测试库元数据 SQL：`backend/sql/upsert_test_database_full_sync_from_prod_scheduler_meta.sql`。
+  - 验证：`/opt/anaconda3/envs/smart/bin/python -m py_compile app/tasks/scheduler.py app/api/endpoints/admin/scheduler.py scripts/sync_prod_database_to_test.py` 通过，`git diff --check` 通过。
+
+- 项目规则已补充生产环境 Python/Pip 命令约定：
+  - 生产环境没有 `conda` 命令，也不直接使用 `pip` 命令。
+  - 生产环境 Python 固定用 `/anaconda3/envs/smart/bin/python`。
+  - 生产环境依赖安装用 `/anaconda3/envs/smart/bin/python -m pip ...`，Alembic 用 `/anaconda3/envs/smart/bin/python -m alembic ...`。
+  - 后续给生产环境命令时，不再写 `conda activate smart`、`conda run -n smart` 或裸 `pip`。
+
+- 税务助手发票文件管理权限已改为和发票管理一致：
+  - 前端“发票文件管理”Tab 可见性从系统管理员改为 `app:tax_assistant:access`，仍兼容 `*` 与 `super_admin`。
+  - 后端 `/invoice-files*` 文件列表、上传、下载、删除、OCR、导出、扫描推送接口移除系统管理员二次校验，统一依赖 `APP_TAX_ASSISTANT_ACCESS`。
+  - 验证：后端 `py_compile`、前端 `cd frontend && ./build.sh`（Node `v20.20.2`）、`git diff --check` 通过。
+
+- 正式环境 `crawler_task_4` 已改为全量翻页：
+  - `crawler_tasks.id=4` / `task_key=okcis_notice_presales_marketing`
+  - `page_end` 已最终调整为 `10`
+  - 运行时最多抓 10 页；源站提前无更多数据会提前停止
+  - 2026-08-07 已按用户要求临时补跑第 2-6 页：run_id `1527` 跑第 2-4 页成功、第 5 页登录态失败；随后 run_id `1528` 补跑第 5-6 页成功。原始 JSONL 记录第 2-6 页各 50 条，共 250 条。
+- 正式环境 `crawler_task_3` 已同步调整为最多 10 页：
+  - `crawler_tasks.id=3` / `task_key=okcis_notice_manual`
+  - `page_start=1`、`page_end=10`、`page_size=50`
+
+- 地下水完整导出历史任务已清理：
+  - test/prod 两套库 `groundwater_registry_export_tasks` 已全部删除，复查剩余记录均为 0。
+  - 本地 `backend/data/exports/groundwater_registry` 下 7 个历史失败导出文件/目录已清理，当前为空。
+
+- 地下水登记造册台账完整导出已改为 ZIP 包：
+  - 完整导出不再把图片嵌入 Excel。
+  - 后台生成目录结构：`<batch_key>/<batch_key>.xlsx` 与 `<batch_key>/images/*`，Excel 的站点照片列写 `images/xxx.jpg` 相对路径。
+  - 提交任务后通过 `asyncio.create_task` 立即返回，Excel 生成、图片复制和 zip 打包通过 `asyncio.to_thread` 放到工作线程执行，避免阻塞 API 事件循环。
+  - 下载文件改为 `.zip`，接口仍为 `/api/dengji/records/full-export-tasks/{task_id}/download`。
+  - 已用测试库 1 条带照片记录生成临时包验证：zip 内有 xlsx 与 images，Excel 单元格显示“查看图片1”并带 `images/27_...jpg` 超链接，临时文件已清理。
+  - 验证：后端 `py_compile`、`git diff --check` 通过。
+
+- 地下水登记造册台账已用正式环境覆盖测试环境：
+  - 覆盖表：`groundwater_registry_records`。
+  - test 库已按 prod 表数据整表覆盖，当前 test/prod 均为 1793 条，已填写 1779 条，已完成 1779 条。
+  - 覆盖前测试库备份：`/tmp/groundwater_registry_records_test_backup_before_prod_sync_20260807_135559.sql`。
+
+- 税务助手发票文件扫描推送已配置计划任务：
+  - 任务 ID：`tax_invoice_file_notification_push`。
+  - 后端 APScheduler 已按 5 分钟一次运行，管理后台元数据说明同步改为“每 5 分钟、默认暂停”。
+  - test/prod 两套库 `scheduler_job_meta` 已写入：`trigger_type=interval`、`interval_minutes=5`、`is_paused=1`。
+  - 当前恢复为测试环境固定推送康鹏，正式环境按申请人推送（康鹏企微 userid 按现有别名规范归一化为 `tangpeng`）。
+  - 新增幂等 SQL：`backend/sql/upsert_tax_invoice_file_notification_push_scheduler_meta.sql`。
+  - 验证：后端 `py_compile`、`git diff --check` 均通过。
+
+- RCC leads 页面项目列表已解密：
+  - 接口：`POST https://leads.api.rccchina.com/api/project/list`。
+  - 请求体里的 `session_id/rcc_gx_pl/plid/reach_id` 已能命中正式返回。
+  - 返回 `code=10000`，`data` 是 AES-CTR 加密字符串；前端解密固定使用 key `d6F3Efeqd6F3Efeqd6F3Efeq`、IV `1234567890123456`。
+  - 解密后结构为 `{ projects: [...], search_info: {...} }`，本次 `page=1&page_size=20` 实际返回 50 条项目。
+- OKCIS 原始爬取记录已改为本地 JSONL 文件日志：
+  - 路径：`backend/data/logs/okcis_raw_records/YYYY-MM-DD.jsonl`。
+  - 每条爬取记录都会写入一行 JSON，包含 task/run/dzid/page、标题、uniseq、detail_url、原始/enriched record，以及可直接检索的 raw_record_text/detail_content_text/pc_detail_content_text。
+  - OKCIS 业务筛选入库改为先写本地日志文件，再从该日志文件读回本页记录后筛选。
+  - 清理任务同步清理 OKCIS 原始记录文件，保留最近 7 天。
+  - 已用本地写读测试验证 JSONL 生成/读取正常，测试记录已清理；后端 `py_compile` 通过。
+  - 本地文件 `backend/data/logs/okcis_raw_records/2026-08-06.jsonl` 当前 50 条，未命中“深能保定/168小时/交接仪式/西北郊热电厂二期项目#3机组”；仅命中“赵县燃气员工深能之家服务平台采购项目”。
+
+- 正式环境招投标群发推送已排查并调整：
+  - 原因：`okcis_daily_summary_presales_push` 16:50 查售前营销当天数据为空，是因为 16:15 售前 OKCIS 采集先失败，日志为自动刷新凭证后仍未登录；后续手动补跑后售前当天已入库，`贵善路(隆华道-兴旺道)市政管网新建工程` 已匹配到 `2026-08-14 14:00:00`。
+  - `深能保定西北郊热电厂二期项目#3机组168小时试运行基建转生产交接仪式及视频制作服务` 当前正式库 `crawler_okcis_notices` 和 2026-08-06 运行日志均未查到原始记录；新日志已增加 `[ITEM]` 每条标题/截止时间/url，后续可按标题反查。
+  - 已增强截止时间识别：`报价截止日期`、`开标时间和地点`、`投标材料递交时间/截止时间`、`09点30分`、`13：30前` 等格式。
+  - 调度层对 OKCIS 登录失败增加 1/5/10 分钟重试；运行日志清理保留期改 7 天。
+  - 正式库已把售后/售前招投标群发推送 cron 改为 `0 17 * * mon-fri`，即周一到周五 17:00。
+  - 验证：后端 `py_compile` 通过；正式库复查 `okcis_daily_summary_push`、`okcis_daily_summary_presales_push` 均为 17:00；最新售前采集 run_id=1487 为 success 且包含 `[ITEM]` 日志。
+
+- 税务助手发票文件管理筛选/导出布局与重复票号校验已修复：
+  - “发票文件管理”Tab 已限制为系统管理员可见；后端文件列表、上传、下载、删除、OCR、导出、扫描推送接口同步加管理员校验。
+  - 批量上传完成后显式保持在“发票文件管理”Tab，并修正顶部副标题。
+  - 发票文件筛选、搜索、导出、批量上传已强制同一行展示；宽度不足时横向滚动。
+  - 上传发票文件改为 OCR 后、入库/存储前按发票号码判重；重复票号不保存文件、不写库，并返回已存在文件名。
+  - 重新识别也增加重复票号保护，避免旧文件改写成已存在票号。
+  - 扫描匹配已改为本地镜像未命中时直查 OA `formtable_main_33_dt1.fph`，并补写最小本地镜像用于列表展示。
+  - OA 同步已补抓近期已归档且已有发票号的开票申请，避免未曾进入待处理窗口就归档的单据漏同步。
+  - 正式库已补齐票号 `26122000001047992611`：OA `1176649`，项目 `CTRD-20260709-天津市北辰区御龙湾-水箱清洗`，金额 `9000.00`。
+  - test/prod 均已升级到 `l3m4n5o6p7q8`；test 表当前 4 条旧文件仍在，prod 表当前 0 条。
+  - 已验证：后端 `py_compile`、前端 `cd frontend && ./build.sh`（Node `v20.20.2`）、`git diff --check`。
+
+- 税务助手发票文件批量上传交互已优化：
+  - “批量上传”不再占用页面大块空间，改为点击按钮打开弹窗。
+  - 弹窗支持拖拽或点击选择 PDF/JPG/JPEG/PNG，多文件选择后自动逐个上传并 OCR。
+  - 弹窗内每个文件独立展示上传/识别进度、成功或失败状态。
+  - 文件名复制下载地址增加剪贴板失败兜底和提示；MinIO 文件成功提示“复制 OSS 下载地址成功”。
+  - 已验证：`cd frontend && ./build.sh`（Node `v20.20.2`）、`git diff --check`。
+
+- 税务助手发票文件管理已完成：
+  - 新增“发票文件管理”Tab，支持批量上传 PDF/JPG/JPEG/PNG、OCR 识别、结果查询、重新识别、删除和下载。
+  - 文件名改为可点击按钮，点击请求在线下载地址并复制到剪贴板，提示“复制下载地址成功”；右侧打开按钮保留直接下载。
+  - 后端新增 `tax_invoice_files` 表及接口，OCR 复用 `backend/app/services/ocr_service.py` 的 `recognize_invoice_file`。
+  - test/prod 已同步迁移到 `k2l3m4n5o6p7`，独立 MinIO bucket 分别为 `tax-invoices-test`、`tax-invoices`，两套 bucket 均已确认存在。
+  - 已移除企微回调后的二次 `snsapi_privateinfo` 授权跳转，避免“redirect_uri 与配置的授权完成回调域名不一致”提示。
+  - 已验证：后端 `py_compile`、test/prod `alembic current`、独立 bucket、前端 `./build.sh`（Node `v20.20.2`）、`git diff --check`。
+
+- 客户端管理编辑版本替换文件已支持拖拽：
+  - `frontend/src/pages/client_management/index.tsx` 将“替换客户端文件/客户端文件”原生文件输入改为虚线拖拽区域。
+  - 支持点击区域选择文件、拖拽文件进区域、键盘 Enter/Space 打开选择文件；选择/拖入后自动上传，已去掉单独“上传”按钮。
+  - 编辑版本时仍沿用原逻辑：上传后覆盖原文件，下载地址保持不变；不上传则只保存版本配置。
+  - 已验证：`cd frontend && ./build.sh`，Node `v20.20.2`；构建同步更新 `frontend/dist.zip`。
+
+- 地下水完整导出任务中断处理最终调整：
+  - 完整导出 `pending/running` 超时判断改为 1 小时
+  - 页面不显示重试按钮，失败任务只展示失败原因；需要重新执行时点击“提交任务”新建导出
+  - 已移除 `/api/dengji/records/full-export-tasks/{task_id}/retry` 重试接口，避免连续点击生成重复任务
+  - 正式库已清除 2 条执行中任务，复查 `running=0`
+  - 已验证：后端 `py_compile`、前端 `cd frontend && ./build.sh`、`git diff --check`
+
+- 地下水完整导出任务中断处理：
+  - 结论：完整导出当前使用 FastAPI `BackgroundTasks`，服务重启或进程退出后不会自动续跑，旧任务会停在 `running`
+  - `backend/app/api/endpoints/groundwater_registry.py` 新增滞留任务处理：`pending/running` 超过 2 小时会自动标记为失败，并提示可能是服务重启或进程退出导致，可重新提交
+  - 提交新完整导出任务、查看任务列表时都会先处理滞留任务
+  - 已验证：`cd backend && conda run -n smart python -m py_compile app/api/endpoints/groundwater_registry.py`、`git diff --check`
+
+- 地下水登记造册台账新增完成状态与管理列表：
+  - `groundwater_registry_records` 新增 `is_completed`，默认 `0`，含索引；test/prod 均已升级到 `j1k2l3m4n5o6`，复查 1793 条均为未完成。
+  - 普通导出和完整导出均增加“填写状态”“完成状态”列；普通导出支持按当前填写/完成筛选导出。
+  - `/dengji?admin=1` 显示管理表格，列为：行政区、镇(街)、许可证编号、取水权人、2026改造、水源转换、资金来源、安装时间、管径、表类型、品牌/型号、接口类型、远传终端、传水资源、超周期、备注、填写状态、完成状态、操作；取水权人列定宽截断并保留悬浮完整内容。
+  - 管理表格中“已填/未填”“已完成/未完成”支持点击切换；列表筛选增加完成状态；填写状态、完成状态、操作三列固定在右侧，不随横向滚动移动。
+  - 管理表格已压缩字号、列宽和单元格间距；取水权人压到约四字宽截断，2026改造/水源转换/接口类型/远传终端/传水资源压到约两字宽并允许换行。
+  - 已验证后端 `py_compile`、`cd frontend && ./build.sh`、`git diff --check`。
+
+- 地下水登记造册台账已用正式环境覆盖测试环境：
+  - 覆盖表：`groundwater_registry_records`，测试库表结构和数据均来自正式库。
+  - 覆盖后测试库总数 1793 条，已填写 1337 条，已完成 0 条，与正式库一致。
+  - 测试库覆盖前备份：`/tmp/groundwater_registry_records_test_backup_before_prod_cover_20260803_162513.sql`。
+
+- 钉钉考勤助手卡片与权限设置已移除：
+  - 前端/后端卡片种子 `dashboard_app_cards` 已删掉 `dingtalk_attendance`。
+  - `permissions.py`、`db_init.py` 里的钉钉考勤权限种子已删，`wecom_attendance_viewer` 仅保留人事考勤权限。
+  - `create_dingtalk_attendance_records.sql` 和 `update_wecom_attendance_permission_role.sql` 已同步清理相关权限/卡片语句。
+  - test/prod 两套库已删除 `app:dingtalk_attendance:access`、`dashboard_app_cards.dingtalk_attendance` 和对应 role_permissions 绑定，复查均为 0。
+  - 已验证 `conda run -n smart python -m py_compile backend/app/permissions.py backend/app/db_init.py backend/app/api/endpoints/dingtalk_attendance.py`、`git diff --check`。
+
+- 正式环境地下水宁河区 544 条剩余数据已改为已填写：
+  - 范围沿用上次宁河区批量更新条件：排除 `/Users/sunday/Downloads/宁河108口井.xlsx` 中 108 条后的剩余 544 条，且 `need_water_source_conversion='是'`、`remarks='水务局已确定不用排查'`。
+  - 更新：`is_filled=1`，`filled_at` 为空时补当前时间。
+  - 复查：544 条均为已填写且 `filled_at` 非空；排除的 108 条未命中新批次备注组合。
+  - 更新前备份：`/tmp/groundwater_ninghe_is_filled_backup_20260803_150945.csv`。
+
+- 给排水统计页“项目周期统计”提示层继续优化：
+  - 去掉周期条和项目名上的原生 `title`，避免出现两个提示。
+  - 自定义提示改为白底卡片风格，通过 `createPortal` 挂到页面层，不再被图表横向滚动容器截断。
+  - 提示内容：项目名、开始日期至截止日期、为期 N 天。
+  - 已验证 `cd frontend && ./build.sh`、`git diff --check`。
+
+- 给排水统计页图表交互已调整：
+  - “任务数量统计”右上角增加折线图/柱状图切换，默认显示折线图。
+  - “项目周期统计”周期条悬浮提示已补回，显示“项目名：开始日期 至 截止日期，为期 N 天”。
+  - 已验证 `cd frontend && ./build.sh`、`git diff --check`。
+
+- 正式环境地下水登记造册台账宁河区数据已批量更新：
+  - 依据 `/Users/sunday/Downloads/宁河108口井.xlsx`，Excel 共 108 条，全部为宁河区，按 `sequence_no` 序号作为排除键。
+  - 正式库 `groundwater_registry_records` 中宁河区共 652 条，Excel 108 条全部命中并排除，剩余 544 条已更新。
+  - 更新字段：`need_water_source_conversion='是'`，`remarks='水务局已确定不用排查'`。
+  - 复查：剩余 544 条均已更新；排除的 108 条未写入该备注；更新前本地备份 CSV：`/tmp/groundwater_ninghe_update_backup_20260803_143622.csv`。
+
+- 给排水统计页“任务数量统计”不可见已修复：
+  - 原因是前端仅在 `received_task_trend.length > 0` 时显示，筛选范围内没有接收任务日期数据时整张卡片被隐藏。
+  - 已改为给排水统计页始终显示“任务数量统计”。
+  - 后端已按统计页日期筛选补齐完整日期范围，没数据的日期返回 `count=0`，保证横轴日期可见。
+  - 已验证后端 `py_compile`、前端 `cd frontend && ./build.sh`、`git diff --check`。
+
+- 给排水部助手统计图与任务大厅列已调整：
+  - 统计页新增“任务数量统计”图，横轴日期、纵轴任务数量，统计日期使用 `received_task_date` 接收任务日期，并跟随统计页日期筛选。
+  - 后端 `/stats/summary` 给排水场景新增 `received_task_trend`。
+  - 任务大厅在“业务区域”列后面加回“任务描述”列，展示富文本描述转纯文本后的内容。
+  - 已验证后端 `py_compile`、前端 `cd frontend && ./build.sh`、`git diff --check`。
+
+- 通用前端组件规则已补充强约束：
+  - `agentic-codex/rules/frontend-common-components.md` 明确要求下拉搜索框、可输入下拉框、可选择并回显当前值的下拉控件，必须提供清除当前已填/已选数据功能。
+  - 除非业务明确禁止清空，否则不能省略清除入口。
+
+- 给排水新建/编辑任务“项目编号”下拉已继续优化：
+  - 填写项目名称后，若历史项目编号只有一个，自动填充到项目编号。
+  - 若历史项目编号有多个，项目编号展示对应下拉列表；若无历史，回退展示全部项目编号。
+  - 项目名称、项目编号、业务区域、业务人员输入框均补充右侧清空按钮；项目编号手动清空后不会立刻被自动填回。
+  - 已验证 `cd frontend && ./build.sh`、`git diff --check`。
+
+- 给排水/软件任务统计页已在“每日任务完结趋势”下方增加“项目周期统计”：
+  - 统一使用统计页当前日期筛选 `date_from/date_to`。
+  - 后端 `/stats/summary` 新增 `project_periods`，筛选计划开始/截止日期与筛选区间有交集的项目任务。
+  - 前端按天显示横轴，以项目计划开始/截止日期裁剪到筛选范围后绘制横向周期条。
+  - 给排水按任务项目编号聚合，普通软件任务按项目表编号聚合。
+  - 已验证后端 `py_compile`、前端 `cd frontend && ./build.sh`、`git diff --check`。
+
+- 给排水部助手任务大厅已新增“接收任务日期”：
+  - `water_supply_tasks_v2` 新增可空字段 `received_task_date`，test/prod 两套库均已执行迁移到 `i1j2k3l4m5n6`，字段复查存在。
+  - 新建、编辑任务弹窗均支持填写/回显接收任务日期；列表和详情同步展示。
+  - 部门管理员在任务未审核阶段（待领取、已指派、进行中、待审核）可点击列表“审核员”打开弹窗修改审核员；已审核/打回/完结不开放该快捷入口。
+  - 新建/编辑任务富文本工具栏按钮已放开，编辑器外层不再裁剪工具栏弹层；任务大厅列表已去掉“任务描述”列，表单字段保留。
+  - 任务详情时间轴“任务创建”已改为渲染富文本 HTML，图片可正常展示。
+  - 新建/编辑任务“项目编号”下拉已按当前填写的项目名称优先筛选历史编号；该项目无历史编号时回退展示全部项目编号。
+  - 已验证后端 `py_compile`、前端 `cd frontend && ./build.sh`、`git diff --check`。
+
+- 正式环境已按“研发中心及其下属部门”查询钉钉最新调休余额：
+  - 递归匹配 39 人，包含研发中心、软件开发部、自控部、给排水部、测试部。
+  - 总余额：33.5 天 / 268.0 小时。
+  - 研发中心：2 人，0 天
+  - 软件开发部：10 人，9.3 天
+  - 自控部：13 人，21.5 天
+  - 给排水部：10 人，2.7 天
+  - 测试部：4 人，0 天
+
+- 正式环境已查询钉钉最新调休余额：
+  - 筛选部门：研发中心
+  - 人员：孙永跃、赵广文，共 2 人
+  - 两人钉钉余额均为 `0.0 天 / 0.0 小时`
+  - 当前实现为实时查询钉钉余额，没有单独本地余额落库表。
+
+- 钉钉考勤/请假/加班历史数据已补同步：
+  - 正式环境范围：`2026-07-20` 至 `2026-08-02`。
+  - 执行钉钉考勤打卡入库、考勤日汇总合并、缺卡重算、钉钉请假状态同步、钉钉加班同步。
+  - prod 结果：钉钉考勤 748 条，日汇总合并 476 条，钉钉请假 21 条，钉钉加班 14 条。
+  - 用户后续要求仅执行 prod；前一步并行执行时 test 也已同步同一范围，过程幂等，无重复写入。
+
+- 客户端管理安装包替换与 MD5 校验已完成：
+  - 编辑客户端版本时可选择“替换客户端文件”；不选文件则只保存配置。
+  - 替换文件时覆盖原 `object_key`，不生成新地址，已分发出去的永久下载地址继续有效。
+  - `client_app_releases` 新增 `file_md5` 字段和索引；上传、替换文件时自动计算 MD5。
+  - 客户端更新接口支持 `current_file_md5` 参数；如果服务端最新包 MD5 与客户端当前 MD5 相同，返回 `has_update=false`。
+  - 更新接口返回 `file_md5`，列表文件信息下显示 MD5 前 8 位。
+  - test/prod 两套库均已执行迁移到 `h0i1j2k3l4m5`；正式库已有 1 条客户端记录回填 MD5，测试库当前 0 条。
+  - 已验证后端 `py_compile`、前端 `cd frontend && ./build.sh`。
+
+- 客户端管理下载地址有效期配置已完成：
+  - `client_app_releases` 新增 `download_url_type`、`download_url_expire_seconds`。
+  - 下载地址类型支持 `presigned` 有时效、`permanent` 永久；默认保持 `presigned`，有效期默认 3600 秒。
+  - 有时效链接继续带 `Signature/Expires`；永久链接返回 `https://zhidao.tjchentian.com:9091/ctupload/...`，不带签名参数。
+  - 上传/编辑弹窗已增加“下载地址”和“有效期”选择：1小时、12小时、1天、7天、30天。
+  - test/prod 两套库均已执行迁移到 `g9h0i1j2k3l4`，字段复查存在。
+  - 已验证后端 `py_compile`、前端 `cd frontend && ./build.sh`、`git diff --check`。
+
+- 客户端管理列表交互已调整：
+  - 点击文件名会请求下载地址并复制完整 URL，成功提示“复制下载地址成功”。
+  - 状态列改为可点击按钮，点击“启用”可切为“停用”，点击“停用”可切回“启用”。
+  - 状态列表头和内容增加固定宽度与不换行样式。
+  - 已验证 `cd frontend && ./build.sh`，Node `v20.20.2`。
+- 客户端管理上传流程已改为独立上传：
+  - 文件字段右侧增加“上传”按钮，使用 Axios 上传进度实时展示百分比。
+  - 编辑已有版本时，上传接口直接覆盖原 `object_key` 对应文件，下载地址保持不变；保存按钮只保存版本配置。
+  - 新建版本先上传文件并保存临时文件元数据，重复上传复用同一稳定地址；点击保存时只落配置和文件地址。
+  - 新增接口：`POST /api/client-management/releases/upload-file`、`POST /api/client-management/releases/{id}/file`。
+  - 已验证后端 `py_compile`、前端 `./build.sh`、`git diff --check`。
+  - 编辑/新建弹窗中“强制更新状态”和“启用状态”已统一改为单选格式；新建默认未启用。
+
+- 正式环境 OSS 文件下载域名已改为配置项：
+  - 新增 `MINIO_PUBLIC_ENDPOINT`，只用于生成 MinIO/S3 预签名下载链接。
+  - `MINIO_ENDPOINT` 仍用于内部上传、读取、删除等 S3 API 操作，避免影响内网 MinIO 连接。
+  - `backend/config/env_prod` 已配置为 `https://zhidao.tjchentian.com:9091`；`backend/config/env_test` 已同步新增空配置项，不改变测试环境现有行为。
+  - 正式环境校验生成下载链接前缀：`https://zhidao.tjchentian.com:9091/ctupload/...`。
+  - 需要 nginx 将 `/ctupload/` 代理到 MinIO bucket 路径，否则浏览器访问新域名下载会 404/签名失败。
+
+- 税务助手发票购买方字段清洗已修复：
+  - 问题单 `1175780` 的 OA 主表 `dwmc` 为空、`dwmc1=900380`，旧逻辑把编码当购买方名称保存。
+  - 同步逻辑已改为 `dwmc1` 只作为 `buyer_code`，购买方名称优先按清洗后税号从 OA `formtable_main_97.mc` 解析，合同台账 `uf_httz.khmc/khwb` 兜底。
+  - 本地保存的购买方名称、公司名称、税号、地址、电话、开户行、银行账号统一移除所有空白字符。
+  - test/prod 已手动同步税务 OA 发票数据；`1175780` 两套均为 `天津和平新城吾悦广场商业管理有限公司`，税号 `91120101MACHAJ9LXG`。
+  - 复查两套 `tax_invoice_basic_info` 购买方相关字段含空格数量均为 `0`。
+
+- 客户端管理已完成基础功能并补充部门筛选：
+  - 新增卡片“客户端管理”，归属软件开发部，独立权限 `app:client_management:access`。
+  - 后端表 `client_app_releases` 支持按应用编码独立版本管理，版本号拆分为外部版本号 `external_version` 和内部版本号 `internal_version`。
+  - 客户端升级接口无需登录：按 `app_code + platform + internal_version` 判断是否有新版本，有新版本返回下载地址、外部/内部版本号、强制更新标记等。
+  - 文件优先保存 OSS 独立目录 `client_management/releases/...`，本地兜底目录 `backend/data/uploads/client_management/...`。
+  - 管理列表已增加部门多选筛选；未限制部门的版本按“全部部门”处理，筛任意部门时仍展示。
+  - test/prod 两套库已执行客户端管理建表、权限和卡片 SQL，当前 revision 到 `f8a9b0c1d2e3`。
+  - 已验证：后端 `py_compile`、前端 `cd frontend && ./build.sh`、`git diff --check`。
+
+- 宫庆超 2026-07-02 考勤修正覆盖未打卡已改回后端统一口径：
+  - 后端 `checkin_records` 已先按 OA 修正方向过滤同槽位的原“缺卡/未打卡”，页面和导出共用同一份结果。
+  - 前端重复过滤已去掉，只做展示。
+  - 已验证：`conda run -n smart python -m py_compile app/api/endpoints/wecom_attendance.py app/services/wecom_attendance.py app/services/dingtalk_attendance.py app/tasks/scheduler.py`、`cd frontend && ./build.sh`、`git diff --check`。
+
+- 售前营销业务团队看板推送任务已补齐：
+  - 任务 ID：`presales_business_dashboard_push`
+  - 名称：`售前营销业务团队看板推送`
+  - 分类：`营销管理中心部门`
+  - 调度：周一到周五 08:30，cron 表达式 `0 30 8 * * mon-fri`
+  - 默认暂停：`is_paused=1`
+  - test/prod 两套库均已写入 `scheduler_job_meta` 并复查一致。
+  - 后端已接入手动执行和 cron 执行入口，正式环境自动推送只在 `APP_ENV=prod` 生效；手动执行允许非 prod 测试。
+  - SQL：`backend/sql/upsert_presales_business_dashboard_push_scheduler_meta.sql`
+
+- 张永勋调休明细重复/余额重复扣减已修复：
+  - 根因：钉钉请假同步同时写入“假期状态/余额扣减记录”和“审批实例记录”，同一人同一假期日期重叠，导致本地镜像表重复，进而影响调休余额统计。
+  - 修复：钉钉同步合并时以假期状态记录为余额扣减依据，若审批实例记录与其同人、同假期类型、同日期重叠，则不再写入本地镜像。
+  - 历史清理：新增轻量脚本 `backend/scripts/cleanup_dingtalk_leave_overlaps.py`，按内存日粒度 key 清理重复/重叠记录；test/prod 两套库均已清理 169 条，复查 delete=0。
+  - 正式库复算：张永勋 2026-01-01 至 2026-05-31 调休扣减为 13.0 天。
+  - 已验证：后端 `py_compile`、清洗脚本 dry-run/apply、`git diff --check`。
+
+- 移动端首页排行榜已临时隐藏：
+  - 前端移除移动端首页排行榜模块渲染和 `/dashboard-rankings` 请求。
+  - 后端接口和权限定义暂时保留，方便后续恢复。
+  - 已验证：`cd frontend && ./build.sh`，Node `v20.20.2`。
+
+- 项目规则已补充：凡是列表筛选后的统计、分组、去重、合并、汇总、排行、导出、图表口径等数据处理，默认放到后端接口或 service 执行，页面只负责展示和轻量格式化，不在页面里重复算口径。
+
+- 移动端首页“排行榜”已改为独立权限控制：
+  - 新权限：`app:mobile_dashboard_rankings:access`
+  - 后端 `GET /api/dashboard-rankings` 改为权限校验
+  - 前端移动端首页仅在有权限时请求和展示排行榜模块
+  - test/prod 两套库已执行 Alembic 迁移并升级到 `d6e7f8a9b0c1`
+  - 已验证：后端 `py_compile`、前端 `cd frontend && ./build.sh`
+
+- 人事考勤钉钉缺卡补录规则已修复：
+  - 问题：钉钉只同步到上班或下班其中一条真实打卡时，系统原先只统计显式“缺卡/未打卡”记录，未自动推断另一条缺卡，导致张永勋 `2026-07-10` 这类“只有上班卡、没有下班卡”的日期未统计缺卡。
+  - 调整：钉钉保存链路在同步日期范围内按启用人员逐日检查 `OnDuty/OffDuty`，缺少任一侧时写入稳定 ID 的占位缺卡记录：`dingtalk_missing:{user}:{date}:{OnDuty|OffDuty}`，同步写入 `dingtalk_attendance_records` 与 `attendance_checkin_records`。
+  - 覆盖规则：后续真实钉钉打卡同步到同一用户、日期、上下班槽位时，会先删除对应占位缺卡，再写入真实记录。
+  - 汇总规则：钉钉占位缺卡不计为实际出勤；后台缺卡重算增加兜底，即使历史库还没有占位记录，也会从当天钉钉明细推断缺少的上下班槽位。
+  - 已验证：后端 `py_compile`、`git diff --check`、函数级校验“一条 OnDuty 生成 OffDuty 下班未打卡占位”通过。
+
+- 系统管理“徽章管理”空白和图标展示已修复：
+  - 空白原因：前端 Tabs 组件是受控组件，徽章页只传 `defaultValue`，导致 `TabsContent` 不渲染；已改为 `value/onValueChange`。
+  - 默认徽章修正为 `勤劳模范`、`加班楷模`。
+  - 新增 6 个 SVG 徽章图标文件，分别提供大/中/小三个尺寸；后端挂载 `/api/admin/badge-icons/...`；图标改为字标徽章风格：`勤劳模范=勤`、`加班楷模=加`。
+  - test/prod 两套库均已写入默认图标路径，当前 revision 均为 `c5d6e7f8a9b0`。
+  - 徽章配置列表和用户徽章列表均展示徽章图标；图片未加载时前端显示同字标风格的渐变兜底徽章。
+  - 已验证：后端 `py_compile`、`git diff --check`、前端 `cd frontend && ./build.sh`。
+
+- 线上办公助手权限已在两套环境确认并统一绑定：
+  - 权限定义：`app:online_office:access`，描述 `访问线上办公助手`。
+  - test/prod 两套库均已执行 `INSERT ... ON DUPLICATE KEY UPDATE`。
+  - 两套库中“线上办公助手”存在旧卡片 `smart_spreadsheet` 和新卡片 `online_office`，已统一将两张卡片的 `permission_json` 绑定为 `"app:online_office:access"`。
+
+- 正式库张辉考勤汇总“20分钟内”排查：
+  - 正式库 `smart-cs-ai` 中张辉 `2026-06-25` 至 `2026-07-28`：`late_early_within_20=0`、`late_early_20_40=0`、`late_early_40_60=0`，`attendance_correction_count=2.5`。
+  - 有考勤修正的日期为 `2026-07-09`、`2026-07-10`、`2026-07-11`、`2026-07-22`；其中 `2026-07-22` 原始上班打卡为 `09:01:57 时间异常`，但已有 OA 上班补卡 `07:50`，日汇总迟到早退三类均为 0。
+  - 用户提供的正式接口返回中 `2026-07-22` 被实时重算成 `late_early_within_20=1`，根因是接口按打卡明细重算迟到时未按同一时段 OA 考勤修正抵扣原始异常。
+  - 已修复：接口实时重算和后台重算任务都先识别 OA 补卡时段，补卡覆盖的上班/下班时段不再计入迟到早退；用用户提供的 JSON 复算 `2026-07-22` 已变为 `late20=0, late40=0, late60=0`。
+
+- 系统管理已新增“徽章管理”：
+  - 新增后端模型、接口和迁移：`badges` 徽章配置表、`user_badges` 用户每月获徽章明细表。
+  - 徽章配置支持名称、描述、大/中/小图标、规则标识、规则说明、每月授予上限、启停；用户徽章按 `period_month` 每月独立统计，默认查看上个月。
+  - 后端新增 `/api/admin/badges` CRUD、启停、用户徽章列表和手动授予接口；系统管理统计新增徽章数和用户徽章记录数。
+  - 前端新增 `/platform/admin/badges` 页面，系统管理首页和模块切换器已加入“徽章管理”入口。
+  - 迁移种子包含示例徽章：`勤劳模范`（上个月没有请假）、`加班开模`（上个月加班排名前50）。
+  - 当前 `DATABASE_URL` 指向的数据库已执行 `alembic upgrade head`，revision 为 `b3c4d5e6f7a8`。
+  - 已验证：后端 `py_compile`、`alembic heads/current`、`git diff --check`、前端 `cd frontend && ./build.sh`。
+
+- 移动端 AI 中台首页已新增排行榜卡片：
+  - 后端新增 `GET /api/dashboard-rankings`，当前返回“稳如泰山区域”排行。
+  - 统计口径：仅统计一级部门；一级部门下所有子部门人员汇总到一级部门；按离职人数升序，相同按入职/招聘人数降序，再按总人数降序。
+  - 移动端首页在“最近访问”和“应用入口”之间展示排行榜，当前展示前 5 个一级部门。
+  - 已验证：`cd backend && conda run -n smart python -m py_compile app/api/endpoints/dashboard_app_cards.py`、`git diff --check`。
+  - 前端完整构建已恢复通过：本轮已新增 `src/pages/admin/BadgeManagementPage.tsx` 并通过 `cd frontend && ./build.sh`。
+
+- 移动端 AI 中台首页已调整：顶部右侧展示当前用户头像，无头像时显示姓名首字；已去掉右上角退出按钮和“当前角色”；原位置改为“最近访问”，点击移动端卡片时写入本地最近访问记录，最多展示 4 个可见卡片。已通过 `cd frontend && ./build.sh`，Node `v20.20.2`。
+
+- 售前营销回款页面筛选行已继续统一尺寸：`MonthRangePicker` 不再强制小号，下拉高度回到公共默认；“回款列表”和“部门回款”两处的搜索/重置/导出按钮统一为 `h-10 rounded-xl`，输入框也收齐为同一高度。已通过 `cd frontend && ./build.sh`，当前 Node 为 `v20.20.2`。
+
+- 售前营销回款管理“回款列表”已改造：月份筛选改为公共年月区间选择，默认当年 1 月到当前月；增加部门多选搜索、合同编号、客户名筛选，搜索/重置后生效；列表、顶部统计和导出共用筛选条件。工具栏已按要求调整为标题单独一行，部门筛选、年月区间、合同编号、客户名、搜索、重置、导出、月底待回款尽量挤在同一行，导出放在重置后面。新增 `GET /api/presales-payment-dashboard/rows/export` 导出当前列表口径 Excel，忽略分页，导出列与列表一致。已验证后端 `py_compile`、`git diff --check`、前端 `cd frontend && ./build.sh`。
+
+- 人事考勤花名册导出已改为直接复用 `/api/wecom-attendance/daily-records` 的 `attendance_summary_items`：
+  - 原因：花名册导出/上传填充仍在 `_fill_roster_workbook` 内走 `_load_attendance_summary_by_department_name`，形成第二套汇总 SQL，导致张桐这类人员未打卡、旷工抵扣与考勤汇总页面不一致。
+  - 调整：`/roster/export` 和 `/roster/fill` 先调用 `list_wecom_attendance_daily_records`，再把返回的 `attendance_summary_items` 转为花名册填充映射；`_fill_roster_workbook` 只负责按模板写 Excel，不再查询或重算汇总。
+  - 已验证：`cd backend && conda run -n smart python -m py_compile app/api/endpoints/wecom_attendance.py app/services/wecom_attendance.py`、`git diff --check`。
+  - 本次未改前端，未新增依赖或数据库结构变更。
+
+- 人事考勤助手缺卡提醒导出口径已修复：
+  - 原因：考勤汇总使用后端聚合值，缺卡提醒/导出又在前端按每日明细二次重算，导致张桐这类人员出现“汇总未打卡 0、导出未打卡 3”的不一致。
+  - 调整：缺卡提醒人员列表直接使用考勤汇总 `personSummaries` 的旷工/未打卡值；导出时按人员汇总剩余次数限制明细导出，不再超过汇总值。
+  - 已验证：`cd frontend && ./build.sh`
+
+- 人事考勤花名册导出已改为使用最后一次上传的原始花名册：上传时拆分部门纵向合并单元格并逐行补齐部门，规范化模板原样保存到 `wecom_attendance_roster_uploads.template_data`；后续“导出考勤汇总”和上传后自动下载共用该模板与同一填充逻辑。系统未识别的姓名保留原姓名、部门和行结构，仅统计列填 0。已同步修复 `daily-records` 调用已删除旧方法导致的 500。test/prod 均已升级到 `s0t1u2v3w4x5`；历史上传记录没有模板文件，发版后需重新上传一次花名册。
+
+- 售前营销回款记录已增加 `corrected_department_name` 修正部门：同步新增记录时与 OA 申请部门一致；后续同步仅在两者原本相同时跟随 OA 更新，人工修正后不覆盖。所有回款统计、部门排行、看板图片和业绩导出均按修正部门归属。首页“回款列表”只展示一列部门，人工修正后显示“部门名（修正）”，操作栏提供“部门修正”；操作栏权限与“管理后台”按钮一致。管理后台“数据处理”仍只保留排除操作。test/prod 已升级到 `r9s0t1u2v3w4`。
+
+- 已新增计划任务“售前营销回款OA数据同步”，分类为“营销管理中心部门”，每 30 分钟同步 OA 回款通知到本地回款看板表。test/prod 的 `scheduler_job_meta` 均已写入且未暂停；按要求未重启服务，发版启动 cron 服务后生效。
+
+- 售前营销回款管理“部门回款”已增加可搜索、多选的部门筛选；年月区间改为公共 `MonthRangePicker`，可跨年选择，最早值取本地回款数据最早月份，最晚限制当前月份；默认和重置为当年 1 月至当前月份（本地数据更晚时从最早数据月份开始）。部门列表统计和 Excel 导出共用筛选条件。
+- 月度回款看板的“合同回款排行”和“部门回款完成排行”右侧均已增加独立的部门筛选，两个筛选互不影响。
+
+- 李旭晴企微双账号与考勤重复行处理：
+  - 正式库 `users` 中李旭晴只有主账号 `lixuqing` 一条，`id=262`，`oa_resource_id=537`
+  - 代码别名组已包含 `lixuqing <-> 15692250985`
+  - 已在正式库把 `users.sso_uid_aliases` 从 `,lixuqing,` 补为 `,15692250985,lixuqing,`
+  - 正式库历史考勤日汇总里 `2026-06-25`、`2026-06-26` 仍存在 `15692250985` 空占位行和 `lixuqing` 实际打卡行并存
+  - `daily-records` 接口已增加展示兜底：同一天同姓名同部门已有实际打卡/明细时，忽略没有实际打卡、请假、外出、修正的空占位记录
+  - 已升级日汇总缓存版本，避免继续读旧缓存
+
+- 正式日志中人事考勤花名册导出 500 已修复：
+  - 接口：`GET /api/wecom-attendance/roster/export`
+  - 报错：`AttributeError: 'MergedCell' object attribute 'value' is read-only`
+  - 原因：填充花名册模板时直接清空/写入了 Excel 合并单元格中的非左上角只读格
+  - 修复：`_fill_roster_workbook` 新增 `writable_cell`，写入前自动定位到合并区域左上角真实单元格，并跳过只读 `MergedCell`
+  - 已验证：`conda run -n smart python -m py_compile backend/app/api/endpoints/wecom_attendance.py`、`git diff --check`
+
+- 正式环境容器与售后看板企微推送排查：
+  - 正式服务器 `/opt/docker-data/smart-cs-ai/backend` 下 `docker compose ps` 显示 `zhidao-api`、`zhidao-cron`、`zhidao-dingtalk-stream-worker`、`zhidao-kdocs-browser` 均为 `Up`
+  - `zhidao-cron` 容器内当前可解析 `qyapi.weixin.qq.com`，返回 `140.206.161.227`、`210.22.244.32`
+  - `zhidao-cron` 容器内访问 `https://qyapi.weixin.qq.com` 返回 HTTP 403，说明网络链路和 DNS 当前可用
+  - `2026-07-29 08:30` 自动执行 `after_sales_business_dashboard_push` 失败原因是短暂 DNS 解析异常：`ConnectError: [Errno -3] Temporary failure in name resolution`
+  - `2026-07-29 08:32` 后续 Redis/手动触发同任务已成功请求企微 webhook，日志显示 HTTP 200，并记录“晨天润达业务团队看板推送完成”
+  - 已给企微机器人图片发送增加网络/DNS 异常重试：`httpx.RequestError` 现在也会按 `0/30/60` 秒最多 3 次尝试，最终失败再写错误日志
+  - 已验证：`conda run -n smart python -m py_compile backend/app/services/wecom.py`、`git diff --check`
+
+- 计划任务列表展示已优化为部门聚合折叠：
+  - `/platform/admin/scheduler` 不再默认平铺所有任务，改为按 `business_department` 分组展示
+  - 部门行显示“部门名（前 5 个任务名…）”，任务名预览单行截断，不因任务名过多撑出横向滚动
+  - 列表容器已去掉横向滚动，表格改为固定布局；长任务名、ID、最近结果截断或换行展示
+  - 点击部门名称展开/收起该部门下任务；任务行保留状态切换、编辑、详情、调度计划、下次执行和最近结果
+  - 部门排序按运行中任务数倒序；运行中数量相同按总任务数倒序，再按部门名排序
+  - 分页改为按部门组分页，底部显示“部门数 / 任务数”
+  - 已验证：`cd frontend && ./build.sh` 通过，Node `v20.20.2`
+
+- 正式环境计划任务编辑弹窗“保存”不可点击已定位并修复：
+  - 原因：API 已关闭内置 scheduler 后，部分内置任务缺少数据库 `cron_expr/interval_minutes` 元数据时，编辑弹窗拿到的调度值为空
+  - 表单校验要求 cron 任务必须填写 cron 表达式，因此“保存”按钮被禁用
+  - 已改为由 `cron` 服务启动及每分钟刷新时，把真实注册的内置任务调度计划自动同步到 `scheduler_job_meta`
+  - API 管理端以数据库元数据为主要展示来源，数据库里已有的新任务即使未写入 `JOB_META` 也会展示、编辑、暂停和恢复
+  - 以后新增内置计划任务时，注册到 `cron` 后会自动落库；中文标题、部门、描述和调度计划可再通过后台编辑维护
+  - Redis 仍用于 API -> cron 的 `run/refresh` 指令队列，不作为唯一元数据来源
+  - 已验证：后端 `py_compile`、前端 `cd frontend && ./build.sh`、`git diff --check`
+
+- 计划任务已拆为独立 Docker 服务方案：
+  - 新增 `SCHEDULER_ENABLED` 开关；`api` 容器设置为 `false`，不再随 FastAPI 生命周期启动 APScheduler
+  - 新增独立服务入口 `app.scheduler_main`，`backend/docker-compose.yml` 新增服务名 `cron`，容器名 `zhidao-cron`
+  - `cron` 独立持有 APScheduler，并每分钟刷新数据库中的任务计划、暂停状态和爬虫 cron 任务
+  - API 与 cron 通过 Redis 队列 `scheduler:commands` 互通：API 写入 `run/refresh` 指令，cron 消费后执行立即运行或刷新调度状态
+  - 管理后台在 API 不持有 scheduler 时仍可展示、编辑、暂停、恢复和查看运行历史；立即执行会入 Redis 队列交给 cron
+  - Redis 配置继续沿用 `.env` 中 `REDIS_ENABLED/REDIS_URL/REDIS_HOST/REDIS_PORT/REDIS_PASSWORD/REDIS_DB`
+  - 已验证：后端 `py_compile`，`docker compose -f backend/docker-compose.yml config --services`
+  - 本轮 Git 提交将同时包含计划任务独立 cron 服务、Redis 指令队列、后台管理兼容，以及后端控制台日志格式/关闭 SQLAlchemy echo 的已有改动
+
+- 已关闭 SQLAlchemy `echo`，测试和正式环境后端控制台不再输出 SQL 语句；新增统一控制台日志格式，输出“时间 | 级别 | 模块 | 内容”。仅提交代码，按要求未重启服务。
+
+- 已检查两套数据库日志体量：主要增长表为 `crawler_task_runs`、`scheduler_job_runs`，同时纳入 `wecom_message_logs` 和爬虫运行结果清理；每日 03:20 统一清理超过 30 天的日志，业务数据表不清理。test/prod 已执行迁移 `q7r8s9t0u1v2` 增加时间索引。
+
+- 线上办公助手回收站已补齐恢复、单个彻底删除、勾选多文件批量彻底删除和清空回收站；永久删除仅允许文件所有者操作，并同步删除实体文件和元数据。已通过后端语法、服务层所有权/批量删除实测及前端 `./build.sh`。
+
+- 采购需求后续统一从四类 OA 流程获取：采购申请 `formtable_main_47`（当前 `workflowid=279`）、项目需求单 `formtable_main_65`（`workflowid=345`）、项目需求单变更 `formtable_main_67`（当前启用 `workflowid=416`）、项目需求单补充流程 `formtable_main_82`（当前启用 `workflowid=281`）。查询时通过 `workflow_requestbase -> workflow_base -> workflow_bill` 动态定位。
+
+- 看板推送图片只在内存中生成并直接发送，不落地保存文件；新增每日 03:20 清理任务，删除售前/售后看板图片发送日志中超过 30 天的记录，避免日志持续累积。
+
+- 已在 test/prod 两套环境复制企微模板“晨天润达业务团队看板推送”，新增“售前营销业务团队看板推送”，模板键为 `presales_business_dashboard_push`；未改动原售后模板及其推送任务绑定。
+
+- 月度回款看板已统一采用当月口径：顶部指标、合同排行、部门完成情况和最近回款均只取当月数据；部门完成情况保持原紧凑排行样式，展示当月目标、当月实际、完成率和待回款，并按完成率降序排列。
+- 看板页面保留“月度回款 / 目标”年度趋势图和部门筛选，不展示部门完成率图；最近回款放在右侧部门排行下方。手机推送图独立生成，只展示部门完成排行和横向完成率图。
+- 新增 `GET /api/presales-payment-dashboard/dashboard-image`，按指定年月生成 750px 宽手机竖版 JPEG 推送图；当前未配置企微推送任务。
+- 手机推送图已按售后推送样式重绘：顶部增加“业绩目标”四项指标卡，部门排行使用交替行表格，底部“部门完成率”使用横向进度条；顶部标题为“月度回款看板”。
+
+- 月度回款看板“部门回款完成情况”已改为按完成率从高到低排名，完成率相同时按回款金额从高到低排序。
+
+- 本轮 Git 提交范围：售前业绩回款月份区间导出、管理员排除、数据处理 Tab 与 OR 筛选、U8 客户名称同步、部门月份搜索联动、公共分页、浮动横向滚动条和操作列；test/prod 数据库已升级到 `p6q7r8s9t0u1` 并完成客户名称回填。
+
+- 售前营销回款列表已增加管理员排除功能：
+  - `presales_payment_dashboard_rows` 新增 `is_excluded`、`excluded_at`、`excluded_by_user_id`
+  - 新增索引 `ix_presales_payment_dashboard_is_excluded`
+  - 只有具备 `app:presales_payment_dashboard:admin` 权限的管理员可看到操作列并执行排除
+  - 首页回款列表已去掉操作列；管理后台新增“数据处理”Tab，管理员可在该列表查看已排除记录并执行排除
+  - 普通用户、首页回款列表及看板列表不展示已排除记录
+  - 汇总金额、合同数、月度/部门统计、排行和 Excel 导出均忽略已排除记录
+  - test/prod 已执行迁移到 `o6p7q8r9s0t1`，两套字段和索引均确认存在
+  - 已验证后端 `py_compile`、`alembic heads`、前端 `cd frontend && ./build.sh`
+  - 管理后台页头新增“回款列表”按钮，可直接切回原列表并保留筛选、分页状态
+  - 数据处理 Tab 已去掉月份筛选，新增项目编号、流程ID、合同编号、客户名筛选，多项同时填写时按 OR 任一命中
+  - 流程ID对应 `oa_request_id`；四个筛选字段均有索引
+  - 本地表新增 `customer_name`，同步时通过 OA `kh/khbh` 客户编码关联 U8 `Customer.cCusCode/cCusName`
+  - test/prod 已升级到 `p6q7r8s9t0u1` 并全量同步；两套各 12180 条，其中 11503 条有客户名称
+  - 示例 `1160005` 客户名称已回填为“天津大冢饮料有限公司”
+  - 数据处理列表已隐藏申请人列，新增客户名、流程ID、项目编号列；首页回款列表列结构不变
+  - 部门回款月份区间搜索已接入后端汇总，列表、目标金额和导出共用同一生效区间；重置恢复 1 月至当前月
+  - 实库验证：2026年6月为 188 条/12 个部门，7月为 140 条/11 个部门，搜索结果会随月份变化
+  - 数据处理超宽列表已接入通用 `FixedBottomScrollbar`：原生横向滚动条不在视口时显示底部浮动滚动条，滑到底部看到原生滚动条后自动隐藏
+  - 数据处理列表分页已改用公共 `PaginationControl`，并增加每页 10/20/50/100 条下拉选择，切换条数自动回到第 1 页
+  - 首页回款列表也已改用公共 `PaginationControl` 和每页 10/20/50/100 条下拉
+  - 数据处理操作列改为右侧粘性列：横向未滚到底时浮动显示，滚到最右侧后回到真实操作列位置
+  - 部门回款导出按搜索后生效的月份区间动态生成月份列；文件名包含月份范围和 `YYYYMMDD_HHMMSS` 导出时间，避免重复覆盖
+
+- 本轮 Git 提交范围：OA 项目需求单及变更/补充流程表映射、正式环境日报提醒未推送排查、临时停用日报未打卡过滤；后端语法检查及 `git diff --check` 已通过。
+
+- 软件部日报提醒已临时停用未打卡过滤：
+  - `backend/app/tasks/scheduler.py` 新增 `_SOFTWARE_WORK_RECORD_REQUIRE_ATTENDANCE = False`
+  - 当前按软件开发部在职人员判断是否提交日报，不再要求昨日考勤表存在实际打卡
+  - 原考勤查询和过滤逻辑完整保留；考勤恢复每日同步后，将开关改回 `True` 即可恢复
+  - 已验证后端 `py_compile`、`git diff --check`
+
+- 正式环境 `software_work_record_reminder` 2026-07-28 未推送排查：
+  - 09:00 定时任务和 09:39 手动任务均执行成功，任务未暂停，无企微发送失败记录
+  - 检查日期为 `2026-07-27`，软件开发部 10 名在职人员中 8 人已写日报；李鹏瑞、王业龙未写
+  - `attendance_checkin_records` 在 `2026-07-27` 为 `0` 条，数据最大日期仅到 `2026-07-25`，导致李鹏瑞、王业龙都被判为“全天无实际打卡”并跳过提醒
+  - 根因：`wecom_dingtalk_attendance_sync` 当前仅每月 26 日 03:50 执行，7 月 26 日同步截止 7 月 25 日；日报提醒每天 09:00 依赖昨日考勤，两个任务频率不匹配
+  - 运行日志只显示“执行完成”的原因：内部空名单分支只更新进程内 `_record_job_result` 且返回 `None`，外层 `_execute_job_with_log_capture` 最终使用通用成功文案覆盖结果；正式日志级别也未收集该分支的 `logger.info`
+
+- OA 项目需求衍生流程表定位：
+  - `项目需求单变更` 当前启用 `workflowid=416`、`formid=-67`，主表 `formtable_main_67`，明细表 `formtable_main_67_dt1` 至 `dt4`
+  - `项目需求单补充流程` 当前启用 `workflowid=281`、`formid=-82`，主表 `formtable_main_82`，明细表 `formtable_main_82_dt1`
+  - 两个流程均存在多个历史 workflow 版本，但各版本共享对应业务主表；查新单据应优先使用当前启用 workflow ID
+
+- OA 项目需求单 `requestid=1150604` 表定位：
+  - 流程：`项目需求单`，`workflowid=345`，`workflow_base.formid=-65`
+  - 主表：`ecology.formtable_main_65`，本条主表 `id=1273`
+  - 明细表：`formtable_main_65_dt1` 至 `formtable_main_65_dt5`，均通过 `mainid=1273` 关联；本条当前均为 `0` 行
+  - 截图中的自控部、给排水部、项目部描述及附件均直接存主表字段：`jsybms/jsybfj`、`jsebms/jsebfj`、`azbms/azbfj`
+  - 附件关联：主表附件字段保存 `docdetail.id`，再经 `docimagefile.docid` 获取 `imagefileid/文件名`，物理文件信息在 `imagefile`
+  - 申请人/部门：`hrmresource`、`hrmdepartment`；审批记录/当前处理人：`workflow_requestlog`、`workflow_currentoperator`
+  - 关联合同流程字段 `hthwhtlc=1145256`，对应合同审批主表 `formtable_main_59`
+
+- OA 采购申请 `requestid=1174928` 表定位：
+  - 流程：`采购申请`，`workflowid=279`，`workflow_base.formid=-47`
+  - 主表：`ecology.formtable_main_47`，本条主表 `id=6478`
+  - 明细表：`ecology.formtable_main_47_dt1`，通过 `mainid=6478` 关联，本条明细 `id=4954`
+  - 关键字段：`xmbh` 项目编号、`xmmc` 项目名称、`sqr` 申请人、`sqbm` 申请部门、`sqrq` 申请日期、`cgmx` 采购明细、`fj` 附件、`sqdw` 申请单位、`yqdhrq` 要求到货日期、`jjyf` 紧急与否
+  - 附件：`formtable_main_47.fj=1103300`，对应 `docdetail.ID=1103300`、`docimagefile.DOCID=1103300`，文件名 `7-25润达采购.xlsx`
+
+- 计划任务暂停状态已改为持久化：
+  - 原因：内置计划任务暂停只暂停当前进程内 APScheduler，未写入数据库；服务重启或调度器初始化后会恢复运行
+  - `scheduler_job_meta` 新增 `is_paused` 字段
+  - 内置任务暂停/启用会写入 `scheduler_job_meta.is_paused`
+  - 调度器启动时 `apply_scheduler_meta_overrides` 会按 `is_paused` 恢复暂停/运行状态
+  - 爬虫任务仍沿用 `crawler_tasks.is_enabled`
+  - test/prod 已执行迁移到 `n5o6p7q8r9s0`，两套均确认 `scheduler_job_meta.is_paused` 存在
+  - 已验证：后端 `py_compile`、`alembic heads`、test/prod `alembic upgrade head`
+
+- 售前营销回款导出功能已新增：
+  - 模板来源：`/Users/sunday/Downloads/业绩回款统计表.xlsx`
+  - 模板已保存到 `backend/static/presales-payment-performance-template.xlsx`
+  - 新增接口 `GET /api/presales-payment-dashboard/export-performance`
+  - 导出文件名：`售前业绩回款统计表.xlsx`
+  - 导出范围：支持选择当前年份的开始月份和结束月份，默认 1 月至当前月
+  - 导出口径：按部门 + 月份聚合，填充当月目标、当月实际、完成率、月底待回款金额
+  - 权限：沿用售前回款目标管理权限，管理员/营销管理角色可导出
+  - 页面：导出按钮已从普通回款列表移到管理后台；管理后台导出区域已增加月份筛选、搜索、重置、导出按钮
+  - 导出支持 `start_month`、`end_month` 参数，Excel 只生成所选连续月份区间的表头和数据
+  - 已验证：后端 `py_compile`、相关文件 `git diff --check`、前端 `cd frontend && ./build.sh`
+
+- OA 回款单 `requestid=1160005` 月份归属：
+  - 来源表 `ecology.formtable_main_117`，主表 `id=12113`
+  - `sjhkrq=2026-06-26`，`sqrq=2026-06-26`
+  - 当前同步及统计按 `COALESCE(payment_time, apply_date)` 归属月份，因此该单计入 `2026年6月`
+  - 本次回款金额为 `-2190000.00`，合同编号 `CT2024041207014`
+
+- 工作台应用入口数量文案已去除：
+  - `/platform/dashboard` 智能应用标题右侧不再展示“X 个运行中 · Y 个规划中”
+  - `/m/dashboard` 应用入口标题右侧不再展示“X 个运行中”
+  - 已验证：`cd frontend && ./build.sh`
+
+- 管理工作台“今日活跃”改为按今日登录用户数：
+  - `users` 表新增 `last_login_at` 字段并已更新数据库字典
+  - 企微 SSO、企微敏感字段授权、开发登录成功后都会更新 `last_login_at`
+  - `/api/admin/stats/dashboard` 的 `active_users_today` 改为统计 `last_login_at >= 当天 00:00:00` 的用户数
+  - 登录成功后会清理后台统计缓存；统计缓存最长只保留到当天结束
+  - 当前环境已执行 `alembic upgrade head` 到 `m5n6o7p8q9r0`
+  - 2026-07-28 已补执行 test/prod 两套环境迁移，确认 `smart-cs-ai-test` 与 `smart-cs-ai` 的 `users.last_login_at` 均存在，`alembic_version=m5n6o7p8q9r0`
+  - 已验证：后端 `py_compile`、`alembic heads`、`alembic upgrade head`
+
+- 软件部任务工具工作记录默认值：
+  - 康鹏新建工作记录时，项目默认匹配并选中 `晨天AI中台`
+  - 康鹏新建工作记录时，工时默认 `8`
+  - 仅影响“新建工作记录”，不影响编辑记录和从任务带入的添加任务记录
+  - 已验证：`cd frontend && ./build.sh`
+
+- Agent 通用规则与架构方案库已初始化：
+  - `agentic-codex/` 新增通用入口 `AGENT.md`
+  - 新增 `rules/`、`instructions/`、`workflows/` 通用规则文件
+  - 通用规则已补充 `frontend-common-components.md`，覆盖下拉框、日期选择、横向滚动条、筛选分页联动等前端公共组件规则
+  - 新增 `architectures/` 架构方案目录，并沉淀 `smart-cs-ai-reference-architecture.md`
+  - 新增可直接查看的框架流程图 `agentic-codex/architectures/smart-cs-ai-framework-flow.svg`
+  - 根目录 `AGENTS.md` 已增加共享规则与架构方案引用入口，并要求会话初始化先读取 `agentic-codex/AGENT.md`
+  - 根目录 `AGENTS.md` 中通用工作原则、禁令、流程、依赖规则已收口为引用，保留项目专属落地规则
+  - 本次仅文档与规则文件调整，未改业务代码、未新增依赖
+
+- 售前营销回款管理看板最近回款调整：
+  - `/apps/presales-payment-dashboard/kanban` 最近回款改为只请求并展示前 5 条
+  - 已验证 `git diff --check`、`cd frontend && ./build.sh`
+
+- 售前营销回款管理新增个人月底待回款金额：
+  - 新增表 `presales_payment_user_month_end_pending`，按 `year + month + user_id` 独立保存个人月底待回款金额
+  - 表内记录系统用户 ID、OA 人员 ID、用户姓名、部门快照、月份、金额、创建/更新时间
+  - 新增接口 `GET/PUT /api/presales-payment-dashboard/month-end-pending`
+  - 回款列表右侧新增“月底待回款”按钮，弹窗内可选择月份并填写金额（万元）
+  - 已执行当前环境 `alembic upgrade head` 到 `l4m5n6o7p8q9`
+  - 已验证后端 `py_compile`、`alembic heads`、前端 `cd frontend && ./build.sh`
+
+- 税务助手本次调整：
+  - 发票管理“供货单位”筛选已改为下拉框，选项来自本地 `tax_invoice_basic_info.sales_unit_name` 去重后的数据表内容
+  - 后端新增 `GET /api/tax-assistant/invoice-sales-units`
+  - 发票列表供货单位筛选改为按下拉值等值匹配
+  - 批量开票模板导出会读取当前供货单位筛选过滤数据；Excel 内容不新增列
+  - 导出下载文件名以供货单位名称开头，不带“税务助手”；供货单位筛选为全部时，文件名写“全部”
+  - 发票管理列表已新增分页组件，固定默认每页 50 条；筛选/重置回到第 1 页，只影响发票列表
+  - 批量开票模板导出 `1-发票基本信息` 固定填充：T列“是否展示购买方地址电话银行账号”和 AD列“是否展示销售方地址电话银行账号”均为 `展示地址、电话、开户银行及银行账号`；X列“报废产品销售类型”不填写
+  - 税务助手超宽表格已改用通用 `FixedBottomScrollbar`；AGENTS 已新增规则：以后业务页面表格列宽超过屏幕需要横向滚动时，默认使用通用浮动横向滚动条组件
+  - 已查 `1175230` 开票金额为负：test/prod 本地均为 `-2533438.80`；OA `ecology.formtable_main_33.kpje` 和 `formtable_main_33_dt1.kpje` 原始值也是 `-2533438.80`，不是同步转换问题
+  - 已查合同 `CT2022103101147%`：本地 test/prod 当前各同步 6 条未审核；OA 原始表当前节点也有 6 条同批申请，另有 2023 年历史 3 条已归档/申请人确认
+  - 已验证：后端 `py_compile` 通过，前端 `cd frontend && ./build.sh` 通过
+
+- 售前营销回款管理回款列表新增月份筛选：
+  - 普通回款列表页新增“月份”下拉，支持全部月份和 1-12 月
+  - 切换月份后回款列表分页重置到第一页，并把 `month` 参数带给列表和汇总接口
+  - 顶部统计卡片随月份筛选同步变化，避免列表和统计口径不一致
+  - 已验证 `git diff --check`；`cd frontend && ./build.sh` 卡在 `tsc && vite build` 无输出，已中断，未发现遗留构建进程
+
+- 售前营销月度回款看板管理后台继续完善：
+  - 部门列表改为“部门回款列表”
+  - 新增操作列“编辑”，可弹出部门月度目标编辑层
+  - 弹层按月份展示并可修改该部门已有回款目标
+  - 回款目标弹层已缩窄为小弹窗，适合只填金额
+  - 月度回款看板里“合同回款排行”移到左侧，“最近回款”下移
+
+- 售前营销月度回款看板继续收口：
+  - 管理后台只保留“部门回款列表”，不再展示目标列表编辑
+  - 明细仍按 OA 个人粒度同步，列表按本人回款分页展示
+  - 管理后台按部门、按月统计已有回款数据，每行一个月份，只显示有数据的月份
+  - `marketing_dept_member` 和售前管理员都可见管理后台按钮
+
+- 售前营销月度回款看板按最新口径修正：
+  - OA 同步明细表 `presales_payment_dashboard_rows` 保持到个人粒度不变，普通员工仍按本人 OA ID 只看自己的回款列表
+  - `/apps/presales-payment-dashboard` 默认内容改为“回款列表”，不再叫“最近回款”，已加分页，每页 20 条
+  - 管理后台部门固定来自当年回款明细里的申请部门，不支持新增/删除/改部门名，只维护 1-12 月回款目标
+  - `presales_payment_department_monthly_targets` 已直接补建到 test/prod，两套当前均存在且空表
+  - 后端目标接口返回固定部门的 12 个月目标空行；保存时只接受固定部门
+  - 已验证：后端 `py_compile`、前端 `cd frontend && ./build.sh`、`git diff --check`
+
+- 售前营销月度回款看板新增独立部门统计看板与目标管理：
+  - 原页面 `/apps/presales-payment-dashboard` 头部新增“回款看板”按钮，跳转独立页面 `/apps/presales-payment-dashboard/kanban`
+  - 独立看板参照售后管理看板色调，使用蓝青绿风格；统计维度改为部门，不再按个人排行展示
+  - 新增部门月度回款目标表 `presales_payment_department_monthly_targets`，管理后台可按部门维护 1-12 月目标，前端按万元录入，后端按元保存
+  - 后端新增 `/api/presales-payment-dashboard/department-targets` GET/PUT；`summary` 返回部门回款、目标、完成率和月度目标
+  - 数据库迁移 `k3l4m5n6o7p8_create_presales_payment_department_targets.py` 已执行 `alembic upgrade head`
+  - 聊天窗口 Markdown 代码块默认折叠，支持展开/收起和复制
+  - 已验证：后端 `py_compile`、`alembic heads`、`alembic upgrade head`、前端 `cd frontend && ./build.sh`、`git diff --check`
+  - 本次未新增依赖
+
+- 售前营销月度回款看板逻辑复查：
+  - 数据源为 OA 回款通知主表 `formtable_main_117`，同步到本地 `presales_payment_dashboard_rows`
+  - 同步字段包含申请人/部门、项目、合同、合同额、已回款额、本次回款、实际回款日期、申请日期、OA request/workflow ID
+  - 汇总和列表按 `COALESCE(payment_time, apply_date)` 做年度/月度过滤和倒序展示
+  - 普通员工按当前登录用户 `oa_resource_id = submitter_oa_user_id` 查看本人提交数据；没有 OA ID 时按昵称兜底；管理员权限可看全部
+  - 前端当前只展示当年年度回款、合同数量、回款记录和最近 20 条；管理员后台暂只是在表格额外显示申请人 ID
+  - 本次仅排查逻辑，未改业务代码，未新增依赖
+
+- 地下水登记首页筛选联动：
+  - `/api/dengji/options` 新增 `district` 参数；传入行政区时，`town_street` 候选只返回该行政区下的镇(街)
+  - 首页行政区筛选变化后会清空镇(街)，并刷新镇(街)候选列表
+  - 编辑页候选保持原全量逻辑，不受影响
+  - 已验证：`conda run -n smart python -m py_compile app/api/endpoints/groundwater_registry.py`、`cd frontend && ./build.sh`
+
+- 地下水登记导出调整：
+  - 普通“导出”改为固定全量导出，不带站点图片，不再受首页筛选条件影响
+  - PC 端新增“完整导出”tab；完整导出固定全量，带站点图片，改为后台异步任务
+  - 完整导出任务完成后页面展示下载地址并可点击下载；移动端不展示完整导出 tab
+  - 新增表 `groundwater_registry_export_tasks`，本地/测试库已执行 `alembic upgrade head`
+  - 首页列表筛选“已填”时按更新时间倒序展示
+  - 已验证：后端 `py_compile`、`alembic heads`、`alembic upgrade head`、前端 `cd frontend && ./build.sh`、`git diff --check` 通过
+  - 正式环境已执行：`git pull` 显示 `Already up-to-date`；容器内 `python -m alembic upgrade head` 成功升级到 `j2k3l4m5n6o7`；API 容器运行中
+  - 正式接口验证：`/api/dengji/records/full-export-tasks` 返回 200；`/api/dengji/records/export` 返回 200 且文件为 xlsx
+  - 注意：正式服务器工作区存在既有 `frontend/dist.zip` 删除状态，本次未处理
+
+- 地下水登记正式环境导出 500 排查：
+  - 日志报错：`AttributeError: 'MergedCell' object attribute 'value' is read-only`
+  - 原因：正式环境导出仍在用未处理合并单元格的代码，写入模板合并单元格子格时报错
+  - 当前仓库 `master` 最新提交 `f354ec3` 已包含修复：导出前取消数据区合并单元格，再覆盖数据库数据
+  - 本地验证：`conda run -n smart python -m py_compile app/api/endpoints/groundwater_registry.py scripts/reset_groundwater_registry_records.py` 通过；临时合并单元格写入测试通过
+  - 本次未操作正式环境文件
+
+- 人事考勤助手调休统计渠道筛选已接入：
+  - `调休统计（2026年度累计）` 筛选区新增渠道：全部/OA/钉钉
+  - 筛选栏改为单行横向展示，不换行；窄屏可横向滚动
+  - 后端 `/api/wecom-attendance/compensatory-leave-stats` 支持 `channel` 参数，并同步过滤调休与加班来源
+  - 已验证：`conda run -n smart python -m py_compile app/api/endpoints/wecom_attendance.py`、`cd frontend && ./build.sh`
+
+- 人事考勤助手调休统计排序已接入：
+  - `调休统计（2026年度累计）` 表头支持渠道、部门、姓名、调休总天数、加班总天数、余额天数升序/降序
+  - 样式复用公共 `SortableTh`，与其他 tab 排序样式一致
+  - 已验证：`cd frontend && ./build.sh`
+
+- 钉钉调休余额复查：
+  - 孙健：钉钉实时余额 `6483.7` 天，系统统计应为 `0.5` 天，当前不正确
+  - 高振兴：钉钉实时余额 `1620.8` 天，系统统计为 `-0.2` 天，当前不正确；脚本按规则跳过负数余额，不自动修正
+
+- 新增钉钉调休余额批量修复脚本：
+  - 文件：`backend/scripts/sync_dingtalk_compensatory_balance_from_system_stats.py`
+  - 作用：按系统 `调休统计` 计算出的余额批量修正钉钉 `调休` 假期余额
+  - 支持 `--apply`、`--department`、`--keyword`、`--include-zero`、`--max-balance-days`
+  - 正式环境已执行一次批量修正，合理范围内更新 `4` 人：
+    - 张杰：`1.1 -> 3.6` 天
+    - 李海涛：`4.3 -> 6.3` 天
+    - 史延明：`1.5 -> 4.0` 天
+    - 王帅：`0.0 -> 0.5` 天
+  - 已跳过负数余额和超过 `100` 天的明显脏统计；史延明复查钉钉余额当前为 `4.0 天 / 32 小时`
+  - 调休余额换算口径已修正为 `1 天 = 8 小时`，`COMPENSATORY_BALANCE_HOURS_PER_DAY=8`
+  - 已验证：`cd backend && /opt/anaconda3/envs/smart/bin/python -m py_compile scripts/sync_dingtalk_compensatory_balance_from_system_stats.py`
+
+- 正式环境孙健/高振兴钉钉加班 2026 天脏数据已修复：
+  - 根因：钉钉审批外层组件名为“加班”，代码把外层 JSON 里的年份 `2026` 误当时长，并因文本里含“天”乘以 8，入库为 `16208` 小时
+  - 已修 `backend/app/services/dingtalk_attendance.py`：递归解析 DDBizSuite 内层组件，只从“时长/小时”字段取时长，异常大时长回退到开始/结束时间差
+  - 正式库已修复 `wecom_attendance_oa_approved_records`：孙健 4 条、高振兴 1 条，均改为审批单内 `1.0` 小时，结束时间同步修正
+  - 正式库已修复 `dingtalk_approval_event_logs.raw_duration` 为 `1.00` 并标记历史修正说明
+  - 孙健钉钉调休余额已按系统统计从 `0.5` 天修正为 `0.9` 天；高振兴钉钉余额复查为 `0.0` 天
+  - 复查正式库 2026 年 `record_type='加班' AND duration>=100` 已为 `0` 条
+
+- 调休统计部门下拉重复已修复：
+  - 后端 `normalize_attendance_department_name` 新增归一化：`研发中心-给排水部 -> 给排水部`、`研发中心-自控部 -> 自控部`
+  - 前端考勤页下拉展示同样归一化，并将已有选项按展示名重建去重
+  - `1小时=0.12天` 展示口径按用户确认保持不变
+  - 验证：后端 `py_compile` 通过，前端 `cd frontend && ./build.sh` 通过
+
+- 史延明调休余额差异排查：
+  - 钉钉当前 `调休` 假期余额为 `1.5 天 / 15 小时`
+  - 系统页面 `调休统计` 显示 `4.0 天`，来源是本地统计：加班 `6.5 天` - 调休 `2.5 天`
+  - 正式库 `wecom_attendance_oa_approved_records` 中史延明 2026 年本地加班为钉钉历史同步数据，部分记录无审批编号；`dingtalk_approval_event_logs` 中史延明无事件日志
+  - 差异原因：页面展示的是本地历史统计余额，不是实时读取钉钉假期余额；这些历史加班同步到本地后没有触发钉钉余额更新事件
+
+- 税务助手已新增税务局批量开票模板导出：
+  - 模板文件已放入 `backend/static/tax-invoice-import-template.xlsx`
+  - 新增接口 `GET /api/tax-assistant/invoices/export-template`
+  - 发票管理筛选区新增 `导出` 按钮，按当前筛选条件导出全部匹配数据
+  - 只填模板 `1-发票基本信息`、`2-发票明细信息`
+  - 基本信息只填：发票流水号、发票类型、是否含税、购买方名称、购买方纳税人识别号
+  - 明细信息只填：发票流水号、项目名称、商品和服务税收编码、单位、数量、单价、金额、税率
+  - 商品和服务税收编码逻辑：优先明细字段，明细为空时按项目名称中的 `*分类*` 匹配 `tax_oa_project_categories.service_tax_code`
+  - 列表在发票类型后新增 `能否导出`，按“有明细、明细有项目名称、能取到商品和服务税收编码”判断；已审核/未审核均可导出
+  - 导出时会跳过缺少项目名称或商品和服务税收编码的明细；若最终没有符合条件的数据，则提示 `暂无导出数据`
+  - 已用测试库 `现代服务` 样例 `1174205 / CTSH-X2025063008` 验证：项目名称 `*现代服务*水箱清洗`，税收编码 `3079900000000000000`
+  - 已验证：后端 `py_compile` 通过，前端 `npm run build` 通过；空结果会返回 `400 暂无导出数据`
+  - 最新调整：导出按钮不再携带页面筛选条件，后端固定导出全部 `audit_status='未审核'` 的可导出数据；列表展示和当前筛选不影响导出范围；已验证 `cd frontend && ./build.sh`
+  - 最新调整：导出明细 `项目名称` 按 `tax_oa_project_items.raw_name` 匹配后台项目，再用 `tax_oa_project_categories.project_name` + `tax_oa_project_items.oa_project_name` 生成 `*税务项目分类项目名称*OA项目名称`；测试库未审核样例 `1171829` 导出为 `*生产生活服务*水箱清洗`
+  - 最新调整：导出 `1-发票基本信息` 增加购买方地址、购买方电话，来源为开票申请购货单位地址/电话同步字段 `buyer_address`、`buyer_phone`；测试库未审核样例 `1174829` 已写入地址和电话
+
+- 税务助手发票管理筛选已去掉关键字：
+  - `frontend/src/pages/tax_assistant/index.tsx`
+  - 发票管理筛选区只保留 `发票类型`、`审核状态`、`合同编号`、搜索、重置
+  - 请求参数不再传 `keyword`
+  - 已验证：`cd frontend && source ~/.nvm/nvm.sh && nvm use >/dev/null && npm run build`
+
+- 地下水登记台账独立页面已新增：
+  - 独立公开前端地址：`/dengji`；编辑：`/dengji/{id}/edit`
+  - 不配置权限、不要求登录；接口模块独立为 `/api/dengji`
+  - 新增表 `groundwater_registry_records`，保留 Excel 40 列字段；前端基础台账只展示 `行政区`、`许可证编号`、`取水权人`
+  - 列表只展示 `行政区`、`许可证编号`、`取水权人`、`是否已填` 和最后操作列；无关键字、无新增、无公共头部导航
+  - 首页筛选支持 `行政区`、`镇(街)`、`许可证编号`、`取水权人`、`是否已填`；`镇(街)` 使用可输入下拉，并同步影响列表与导出
+  - 首页新增 `导出` 按钮，按当前筛选条件基于项目内原始模板导出最新数据库数据
+  - 导出 Excel 已修正为保留原模板样式和原 sheet 名：不再先删除模板数据行，只在模板原单元格上覆盖最新数据，并删除多余尾行
+  - 首页新增管理员模板导入：已登录且具备 `admin:access`、`*` 或 `super_admin` 时显示“导入模板”；上传 xlsx 后替换当前模板、清空并按新模板重置数据库，所有记录恢复未填，并清理本地站点照片
+  - 模板导入/恢复脚本已支持合并单元格：读取时把合并区域左上角值补齐到每一行再入库
+  - 模板导入/恢复脚本已支持提取 Excel 内嵌图片：按图片锚定行保存到本地 `groundwater_registry` 图片目录，并写入对应行 `site_photos/site_photo_url/site_photo_name`
+  - 导出也会把记录照片嵌入 Excel；多张照片从“站点照片”列开始向右依次放置，图片文件缺失时回退写名称/地址
+  - 项目内模板已替换为 `/Users/sunday/Downloads/2026年天津市地下水登记造册台账排查汇总表_优化版.xlsx` 最新版本；已验证可解析 `1793` 行，识别 `68` 张图片，合并单元格值可拆分补齐
+  - 编辑页顶部只展示三项基础信息；取水权人下方“其他信息”默认收起，点击小箭头展开历史台账字段
+  - 排查登记字段支持填写；有候选值的字段使用“可搜索、可清空、可输入新值”的下拉；输入文字无需点确认
+  - 编辑页保存按钮固定在底部；经度旁有一个“定位”按钮，调用手机浏览器 `navigator.geolocation` 同步回填经纬度，定位结果使用原表 `117°21.450′` 这种度+十进制分格式
+  - 保存成功会弹出全局提示；从编辑页返回列表会恢复上次筛选条件、页码和每页条数
+  - 站点照片支持多张；选择图片后立即上传到本地独立目录 `backend/data/uploads/groundwater_registry`，静态访问 `/api/dengji/site-photos/*`
+  - 照片右上角有删除按钮；点击后立即删除服务器本地图片并同步记录
+  - 备注说明已放到最后，单独在照片后面
+  - 原始 Excel 已保存到 `data/groundwater_registry/2026年天津市地下水登记造册台账排查汇总表_优化版.xlsx`
+  - 新增恢复脚本：`backend/scripts/reset_groundwater_registry_records.py`，可按项目内原始 Excel 清空并重建台账数据，重置为未填并清理本地照片
+  - 已按用户要求执行正式环境重置：prod 当前 `1793` 条、已填 `0`，本地站点照片清理 `4` 个
+  - 已从 `/Users/sunday/Downloads/2026年天津市地下水登记造册台账排查汇总表_优化版.xlsx` 导入 test/prod 两套库：各 `1793` 条
+  - 已同步 test/prod 工作台卡片 `groundwater_registry`，权限为空，所有人可见
+  - Alembic revision cycle 已修复；test/prod 已执行到 `i2j3k4l5m6n7`，`site_photos` 字段已同步，`is_filled` 索引存在
+  - `is_filled` 只有进入编辑页提交保存后才为已填；历史导入数据默认未填，test/prod 当前均 `1793` 条、已填 `0`
+  - 已验证：后端 `py_compile` 通过，前端 `npm run build` 通过，`git diff --check` 通过；导出/导入修正已单独验证 `cd backend && /opt/anaconda3/envs/smart/bin/python -m py_compile app/api/endpoints/groundwater_registry.py scripts/reset_groundwater_registry_records.py`、`cd backend && docker compose config`、`cd frontend && ./build.sh`
+
+- 税务助手发票号为空问题已修复：
+  - 原因：OA 主表 `fphxx` 为空，但明细表 `fph` 已有发票号，列表只展示主表字段
+  - 同步逻辑已改为主表发票号为空时，用明细发票号汇总回填 `invoice_no_info`
+  - 发票列表和详情接口增加明细发票号兜底
+  - test/prod 已回填历史数据：test `32` 条，prod `33` 条
+  - 截图前三条已核对：`1174267=26122000000990951676`、`1174248=26122000000987900601`、`1174234=26122000000992741416`
+  - 已验证：后端 `py_compile` 通过，`git diff --check` 通过
+
+- 企微&钉钉考勤同步任务频率已调整：
+  - 任务 `wecom_dingtalk_attendance_sync` 从每天 `03:50` 改为每月 `26 日 03:50`
+  - 对应减少 `/attendance/listRecord` 和人员同步链路中的 `/topapi/v2/department/listsub` 日常调用频率
+  - 已更新代码默认触发器、后台任务描述、`backend/sql/upsert_wecom_dingtalk_attendance_scheduler_meta.sql`
+  - 已直接更新 test/prod 两套库 `scheduler_job_meta.cron_expr='50 3 26 * *'`
+  - 已验证：`cd backend && /opt/anaconda3/envs/smart/bin/python -m py_compile app/tasks/scheduler.py app/api/endpoints/admin/scheduler.py`
+
+- 税务助手发票号与审核状态回填已补完整：
+  - `tax_invoice_basic_info` 新增 `audit_status`、`audit_status_changed_at`，test/prod 已直接执行新增字段和索引
+  - 审核通过规则改为：OA 日志存在 `6.财务会计 / 刘羽丰 / log_type=0`，并且主表 `fphxx` 或明细 `fph` 有发票号，才为 `已审核`
+  - 每 3 分钟同步会继续跟踪已同步过的历史单据，回填当前节点、流程状态、审批日志、主/明细发票号、审核状态
+  - 发票管理列表、详情、明细表已展示发票号
+  - 样例 `1174205`：明细发票号 `26122000000985924261`，当前 `8.归档`，状态 `已审核`；`1171829` 仍在 `6.财务会计 / 刘羽丰`，状态 `未审核`
+  - 已验证：后端 `py_compile` 通过，前端 `npm run build` 通过
+
+- 钉钉数据同步接口排查：
+  - 打卡同步 `/attendance/listRecord`：按日期 7 天一段、人员 50 人一批，属于批量
+  - 调休余额查询 `/topapi/attendance/vacation/quota/list`：按 50 人一批，属于批量
+  - 调休余额初始化/更新 `/topapi/attendance/vacation/quota/init`、`/topapi/attendance/vacation/quota/update`：批量修正方法按 50 人一批；审批事件单人触发时只传 1 人
+  - 钉钉人员同步 `/topapi/v2/user/list`：按部门分页 `size=100`
+  - 非批量/逐条调用：部门遍历 `/topapi/v2/department/listsub`、审批详情 `/topapi/processinstance/get`、加班列值 `/topapi/attendance/getcolumnval`
+  - 当前计划任务 `wecom_dingtalk_attendance_sync` 不再轮询钉钉请假/加班审批，审批由 Stream worker 监听处理
+  - 频率：打卡同步默认每月 `26 日 03:50` 一次，也可后台手动执行；钉钉人员同步仅手动或打卡同步发现本地无启用人员时触发；审批详情按 Stream 事件实时逐条触发；调休余额更新仅加班审批首次入库时触发；旧调休余额计划任务已停用并从 APScheduler 移除
+
+- 税务助手发票管理已增加筛选区和审核状态：
+  - 发票列表新增 `发票类型`、`审核状态`、`合同编号`、关键字筛选和 `搜索/重置` 按钮
+  - 已去掉“仅看刘羽丰当前节点”开关，默认筛选改为 `未审核`
+  - 审核状态按 `invoice_no_info` 是否为空显示为 `未审核 / 已审核`
+  - 列表与详情均已显示审核状态
+  - 已验证：`cd backend && /opt/anaconda3/envs/smart/bin/python -m py_compile app/api/endpoints/tax_assistant.py app/services/tax_assistant.py app/models/tax_assistant.py`、`cd frontend && source ~/.nvm/nvm.sh && nvm use >/dev/null && npm run build`
+
+- 税务助手页头按钮已调整：
+  - `frontend/src/pages/tax_assistant/index.tsx`
+  - 只保留 `刷新` 和 `同步 OA`
+  - 去掉了前面的当前节点勾选和搜索框
+  - 已验证：`cd frontend && source ~/.nvm/nvm.sh && nvm use >/dev/null && npm run build`
+
+- 已更新 `doc/hr-attendance-assistant-business-flow.md`：
+  - 将 Mermaid 图全部改成更兼容 `mermaid 9.1.3` 的写法，节点统一加引号，去掉容易炸解析的旧格式
+  - 业务链路同步到最新：打卡走 `wecom_dingtalk_attendance_sync` 定时同步，请假/调休/加班改为钉钉 Stream `bpms_instance_change` 监听
+  - 补充了审批事件日志表 `dingtalk_approval_event_logs` 和加班触发调休余额更新流程
+  - 已做文本检查，`git diff --check` 通过
+
+- 税务助手发票类型 `0` 显示问题已修复：
+  - 原因：历史同步数据里 `invoice_type='0'` 未转义，页面直接展示为 `0`
+  - 已在接口层增加兜底：`0 -> 普通发票`，`1 -> 增值税专用发票`
+  - 已直接修正 test/prod 历史数据：两套环境各更新 `5` 条 `0 -> 普通发票`
+  - 样例 `1174205` 当前 test/prod 均为 `普通发票`
+  - 已验证：`cd backend && /opt/anaconda3/envs/smart/bin/python -m py_compile app/api/endpoints/tax_assistant.py`
+  - 本次未新增依赖
+
+- 税务助手 `发票项目管理` 已去掉状态展示：
+  - 列表不再展示“状态”列
+  - 详情不再展示状态
+  - 编辑弹窗不再展示启用勾选，保存时默认 `is_active=1`
+  - 已验证：`cd frontend && source ~/.nvm/nvm.sh && nvm use >/dev/null && npm run build`
+  - 本次未新增依赖
+
+- 税务助手前端已新增 `发票项目管理` tab：
+  - 展示 `tax_oa_project_categories` 分类列表
+  - 操作栏支持 `详情`、`编辑`
+  - 详情展示分类税务信息及关联 OA 项目
+  - 编辑支持维护服务税收编码、税率、项目名称、备注、启用状态
+  - 新增后端接口：`GET /api/tax-assistant/project-categories`、`GET /api/tax-assistant/project-categories/{id}`、`PATCH /api/tax-assistant/project-categories/{id}`
+  - 已验证：
+    - `cd backend && /opt/anaconda3/envs/smart/bin/python -m py_compile app/api/endpoints/tax_assistant.py app/models/tax_assistant.py app/services/tax_assistant.py`
+    - `cd frontend && source ~/.nvm/nvm.sh && nvm use >/dev/null && npm run build`
+  - 本次未新增依赖
+
+- 税务助手项目同步表已补充：
+  - 新增 `tax_oa_project_items`：从 OA `ecology.uf_hwhyslwmc` 同步 OA 项目分类、项目名称、税率，任务 `tax_oa_project_items_sync` 每 10 分钟执行
+  - 解析规则：如 `*其他机械设备*中区供水设备`，两个 `*` 中间为 OA 项目分类名称，第二个 `*` 后为 OA 项目名称
+  - `tax_project_sync_items` 已取消，两套环境已删除
+  - 新增 `tax_oa_project_categories`：OA分类税务信息表，字段含 OA项目分类名称、服务税收编码、税率、项目名称、是否有效、备注及公共字段
+  - `tax_oa_project_items` 已新增 `oa_project_category_id`，关联 `tax_oa_project_categories.id`
+  - OA 分类为空时归入 `默认`
+  - test/prod 已直接执行 SQL：
+    - `tax_oa_project_items` 当前均为 `78` 条有效数据，样例 `source_id=1` 为 `建筑服务 / 工程款 / 0.0900`
+    - `tax_oa_project_categories` 当前均为 `13` 条，含 `默认`
+    - `tax_oa_project_items` 两套环境 `78` 条均已回填分类ID
+  - 已更新 `doc/database_dictionary.md`
+  - 已验证：`cd backend && /opt/anaconda3/envs/smart/bin/python -m py_compile app/models/tax_assistant.py app/models/__init__.py app/services/tax_assistant.py migrations/versions/ad24ef68b901_create_tax_oa_project_categories.py migrations/versions/ac13de45fa67_create_tax_oa_project_items.py`
+  - 本次未新增依赖
+
+- 税务助手 OA 发票同步频率已调整：
+  - 计划任务 `tax_invoice_oa_sync` 从每 10 分钟改为每 3 分钟
+  - 已同步更新代码默认 trigger、迁移 SQL、初始化 SQL
+  - 已直接更新 test/prod 两套环境 `scheduler_job_meta.interval_minutes=3`
+  - 已验证：`cd backend && /opt/anaconda3/envs/smart/bin/python -m py_compile app/tasks/scheduler.py migrations/versions/44c00cd6e9b5_add_tax_assistant_invoice_tables.py`
+  - 本次未新增依赖
+
+- Dockerfile 构建 gpg 无 tty 问题已修复：
+  - Microsoft 源 key 导入命令改为 `gpg --batch --yes --dearmor`
+  - 解决 `gpg: cannot open '/dev/tty'`
+
+- 后端镜像已增加系统 CA 证书依赖：
+  - `backend/Dockerfile` 基础依赖安装加入 `ca-certificates`
+  - 用于修复钉钉 Stream worker websocket SSL 证书链校验失败
+  - 这是系统依赖变更，正式/测试环境重新 build 镜像后生效
+
+- 钉钉 Stream worker 证书校验失败已修复：
+  - 日志报错为 `SSLCertVerificationError: unable to get local issuer certificate`
+  - 仅设置 `SSL_CERT_FILE` 不够，`websockets.connect()` 不会自动吃该环境变量
+  - 已 monkey patch 钉钉 SDK 内部 `websockets.connect`，显式传入 certifi SSLContext
+  - 预留 `DINGTALK_STREAM_SSL_VERIFY=false` 用于现场代理证书异常时临时关闭校验
+  - 已验证 `py_compile`，并确认 SDK websocket 连接参数包含 `ssl`，`verify_mode=2`
+
+- 钉钉审批监听已增加独立日志表 `dingtalk_approval_event_logs`：
+  - 记录姓名、用户ID、事件日期、事件类型、原始时长、调休前后余额、原始事件 JSON
+  - 加班审批通过且更新余额后会写入余额前/后；请假类只记事件，不改余额
+  - 已补 ORM、迁移和数据库字典
+  - 已直接执行 test/prod 建表 SQL，确认两套环境表存在，字段数均为 `22`
+  - 数据库执行规则已写入 `AGENTS.md`：新增表/新增字段可直接执行；修改/删除/重命名等需先确认
+
+- 钉钉请假/调休/加班审批已切到 Stream 监听：
+  - `sync-records` 只同步钉钉打卡和合并考勤，不再轮询请假/调休/加班审批
+  - `sync_wecom_and_dingtalk_attendance_job` 已移除钉钉审批轮询，只保留 OA、企微打卡、钉钉打卡与合并
+  - `backend/scripts/sync_attendance_leave_overtime_current_year.py` 也不再轮询钉钉审批
+  - 审批入库仍沿用 `wecom_attendance_oa_approved_records`，由 Stream worker / 回调触发写库
+  - 已验证：`cd backend && /opt/anaconda3/envs/smart/bin/python -m py_compile app/services/dingtalk_attendance.py app/api/endpoints/dingtalk_attendance.py app/tasks/scheduler.py scripts/sync_attendance_leave_overtime_current_year.py scripts/dingtalk_stream_approval_worker.py app/api/endpoints/admin/scheduler.py`
+
+- 人事考勤助手部门筛选修复：
+  - `软件研发部` 现在能正常出人
+  - test/prod 数据库 `wecom_attendance_daily_records` 在 `2026-06-25 -> 2026-07-23` 均有 `软件研发部` 数据：`284` 条、`10` 人
+  - 原因是前端汇总还在用花名册强过滤，导致部门筛选时把接口已返回的人再次过滤掉
+  - 已取消“部门/姓名筛选时强制按花名册过滤人员”的逻辑，花名册只用于无筛选时补人员和应出勤
+  - 钉钉调休详情已改为优先显示有原因/有单号的审批记录，兼容 `调休/调休（旧）/调休(旧)`；调休统计同样按三种类型都算调休
+  - 考勤汇总里“加班时长”详情增加汇总数据兜底，明细接口没命中时不再空白
+  - 继续修复于涛、史延明详情：
+    - 加班详情改为展开后端 `details` 真明细，不再展示外层人员汇总行，避免出现 `2000年1月1日`
+    - 钉钉调休应用到日汇总前先按同一用户、同一时间段去重，优先保留有原因/单号的审批记录，避免史延明同一天调休重复叠加
+    - 日汇总缓存版本提升到 `9`
+  - 已验证：
+    - `cd backend && /opt/anaconda3/envs/smart/bin/python -m py_compile app/api/endpoints/wecom_attendance.py`
+    - `cd frontend && source ~/.nvm/nvm.sh && nvm use >/dev/null && npm run build`
+  - 本次未新增依赖
+
+- 人事考勤汇总表头排序已接入：
+  - 新增公共组件 `frontend/src/components/ui/sortable-th.tsx`
+  - 考勤汇总表头按给排水助手上下箭头样式支持升序/降序
+  - 支持部门、姓名和所有数值列本地排序；点击当前方向箭头可取消排序并回到默认部门/姓名排序
+  - 已验证：`cd frontend && source ~/.nvm/nvm.sh && nvm use >/dev/null && npm run build`
+  - 本次未新增依赖
+
+- 调休统计重复计算已修复：
+  - `compensatory-leave-stats` 去重规则不再把 `request_id` 放入唯一 key
+  - 同一渠道、同一用户、同一请假类型字段、同一开始/结束时间段、同一时长只算一条
+  - 同时存在无单号 `调休` 和有单号 `调休（旧）` 时，优先保留有原因/单号的记录
+  - 调休统计现在只纳入当前有效人员：
+    - 钉钉人员需在 `dingtalk_attendance_users` 中 `is_enabled=1`
+    - 企微/OA 人员需在 `users` 中 `is_active=1` 且未离职
+    - 罗汉两套环境均不在 `users`、`dingtalk_attendance_users`、日汇总人员中，只剩历史钉钉审批记录，已被过滤
+  - 已验证：`cd backend && /opt/anaconda3/envs/smart/bin/python -m py_compile app/api/endpoints/wecom_attendance.py`
+
+- 人事考勤部门名已统一为 `软件研发部`：
+  - 后续企微/钉钉考勤、OA请假/加班/考勤修正写库时，`研发中心-软件开发部`、`软件开发部` 都归一为 `软件研发部`
+  - 查询筛选保留旧口径兼容，页面传旧部门名也能匹配归一后的数据
+  - 前端部门下拉/展示同步显示 `软件研发部`
+  - 新增脚本：`backend/scripts/normalize_attendance_department_names.py`
+  - 已执行两套环境历史数据清理：
+    - test：`wecom_attendance_daily_records=524`、`wecom_attendance_oa_approved_records=192`、`attendance_checkin_records=855`、`dingtalk_attendance_users=9`
+    - prod：`wecom_attendance_daily_records=524`、`wecom_attendance_oa_approved_records=183`、`attendance_checkin_records=855`、`dingtalk_attendance_users=9`
+  - 已复查 test/prod 上述 4 张表中 `研发中心-软件开发部` 和 `软件开发部` 均为 `0`
+  - 已验证：
+    - `cd backend && /opt/anaconda3/envs/smart/bin/python -m py_compile app/services/wecom_attendance.py app/services/dingtalk_attendance.py app/api/endpoints/wecom_attendance.py scripts/normalize_attendance_department_names.py`
+    - `cd backend && /opt/anaconda3/envs/smart/bin/python - <<'PY' ... import app.services.dingtalk_attendance ...`
+    - `cd frontend && source ~/.nvm/nvm.sh && nvm use >/dev/null && npm run build`
+  - 本次未新增依赖
+
+- 钉钉审批事件回调已接入：
+  - 新增公开回调入口：`POST /api/dingtalk-attendance/callbacks/approval`
+  - 支持钉钉审批事件 `bpms_instance_change`，从回调里提取 `processInstanceId`
+  - 后端收到事件后主动调用 `/topapi/processinstance/get` 查询审批详情
+  - 已复用现有本地表 `wecom_attendance_oa_approved_records` 保存钉钉请假/加班记录
+  - 加班审批按小时保存到 `duration`，并清理 `wecom:attendance:daily-records:*` 缓存
+  - 文件：`backend/app/api/endpoints/dingtalk_attendance.py`、`backend/app/services/dingtalk_attendance.py`
+  - 已验证：`cd backend && /opt/anaconda3/envs/smart/bin/python -m py_compile app/services/dingtalk_attendance.py app/api/endpoints/dingtalk_attendance.py`
+  - 本次未新增依赖；当前实现支持明文 JSON 回调，若钉钉后台启用加密回调，需补 token/aes_key 解密配置
+
+- 钉钉审批事件 Stream 模式已接入：
+  - 新增依赖：`dingtalk-stream==0.24.2`
+  - 依赖文件：`backend/requirements.txt`、`backend/requirements-win.txt`
+  - 新增常驻 worker：`backend/scripts/dingtalk_stream_approval_worker.py`
+  - 新增 compose 服务：`dingtalk-stream-worker`，容器名 `zhidao-dingtalk-stream-worker`
+  - Stream 监听 `bpms_instance_change`，收到事件后复用 `handle_approval_event_callback` 同步钉钉加班/请假审批到本地表
+  - 启动命令：`cd backend && docker compose up -d dingtalk-stream-worker`
+  - 本地直接执行：`cd backend && /opt/anaconda3/envs/smart/bin/python scripts/dingtalk_stream_approval_worker.py`
+  - 已验证：
+    - `cd backend && /opt/anaconda3/envs/smart/bin/python -m py_compile app/services/dingtalk_attendance.py app/api/endpoints/dingtalk_attendance.py scripts/dingtalk_stream_approval_worker.py`
+    - 实际 import `dingtalk_stream` 与 worker 成功
+    - `cd backend && docker compose config`
+
+- 调休余额同步已改为钉钉加班审批事件触发：
+  - 旧计划任务 `wecom_attendance_compensatory_balance_sync` 不再注册到 APScheduler
+  - 后台手动执行该任务会返回：调休余额已改为钉钉加班审批事件触发同步
+  - 两套环境 `scheduler_job_meta` 已更新为“已停用”
+  - 钉钉审批 Stream 收到加班审批后：
+    - 先保存本地加班审批记录
+    - 查本地 `source_key` 防重复，只有首次处理才更新调休余额
+    - 调用钉钉接口查询该员工当前调休余额
+    - 当前余额小时数 + 本次加班小时数
+    - 按 `8小时=1天` 统一换算成天，并调用钉钉余额更新接口
+  - 文件：`backend/app/services/dingtalk_attendance.py`、`backend/app/tasks/scheduler.py`、`backend/app/api/endpoints/admin/scheduler.py`
+  - 已验证：
+    - `cd backend && /opt/anaconda3/envs/smart/bin/python -m py_compile app/services/dingtalk_attendance.py app/api/endpoints/dingtalk_attendance.py app/api/endpoints/admin/scheduler.py app/tasks/scheduler.py scripts/dingtalk_stream_approval_worker.py`
+    - 本地加班审批解析用例通过
+  - 本次未新增额外依赖
+
+- OA 加班明细重复已修复：
+  - 重复原因：正式库里同一条 OA 加班因两次同步生成了不同 `source_key`
+  - 已将 OA/请假/加班的 `source_key` 改成更稳定的主键组合
+  - 已清理正式库 OA 加班历史重复 `196` 条
+  - 现在 OA 加班明细已按请求编号/日期去重展示
+
+- 人事考勤助手部门下拉已改为展示名去重：
+  - `软件开发部` / `研发中心-软件开发部` 现在合并为一个选项 `软件开发部`
+  - 这是汇总接口带了两种部门口径，不是单纯前端录入问题
+  - 文件：`frontend/src/pages/wecom_attendance/index.tsx`
+  - 已验证：`cd frontend && source ~/.nvm/nvm.sh && nvm use >/dev/null && npm run build`
+  - 本次未新增依赖
+
+- 钉钉新调休余额已按系统统计批量回灌：
+  - 统计范围：`2026-01-01 -> 2026-07-23`
+  - 命中并更新 `17` 人
+  - `29` 人无对应钉钉账号，`9` 人为负余额未更新
+  - 于涛当前新调休余额为 `0.8` 天
+
+- 人事考勤助手“考勤汇总-加班时长详情”空/错误兜底已修复：
+  - 前端加班详情不再用每日汇总 `overtime_duration` 伪造明细，避免出现 `2000年1月1日`、内容为 `-` 的错误详情
+  - 人员与加班明细匹配时部门支持 `软件开发部` 与 `研发中心-软件开发部` 这种包含/后缀匹配
+  - 加班记录接口输出部门名同步走展示归一
+  - 文件：`frontend/src/pages/wecom_attendance/index.tsx`、`backend/app/api/endpoints/wecom_attendance.py`
+  - 已验证：
+    - `cd backend && /opt/anaconda3/envs/smart/bin/python -m py_compile app/api/endpoints/wecom_attendance.py`
+    - `cd frontend && source ~/.nvm/nvm.sh && nvm use >/dev/null && npm run build`
+  - 本次未新增依赖
+
+- 钉钉新规则 `调休` 已调整适用范围为研发中心：
+  - 当前 leave_code：`4c0fb991-5a92-495d-bc6d-1357633a634a`
+  - 调用 `PUT /v1.0/attendance/leaves/types` 成功
+  - 确认 `visibility_rules=[{"type":"dept","visible":["1001032160"]}]`
+
+- 人事考勤助手调休统计部门显示已归一：
+  - `研发中心-软件开发部` 在调休统计输出中统一显示为 `软件开发部`
+  - 仅处理接口展示结果，不改原始钉钉/OA/考勤入库数据
+  - 文件：`backend/app/api/endpoints/wecom_attendance.py`
+  - 已验证：`cd backend && /opt/anaconda3/envs/smart/bin/python -m py_compile app/api/endpoints/wecom_attendance.py`
+  - 本次未新增依赖
+
+- 于涛调休统计漏算已修复：
+  - 原因：旧钉钉调休历史落库存在 `调休`，但统计旧规则时间段只认 `调休（旧）/调休(旧)`，导致 2/25、4/11、5/15 等历史调休没被计入
+  - 现在 `2026-07-24` 前的钉钉调休统计同时认可 `调休（旧）/调休(旧)/调休`
+  - 正式环境重算后：于涛调休总天数 `4.0`，加班总天数 `4.8`，余额 `0.8`
+  - 已按新统计结果重新同步正式环境钉钉余额：于涛从 `4.8` 天修正为 `0.8` 天
+
+- 招标信息公示历史数据导出执行窗口已调整：
+  - 16:00-17:00 之间提交的历史导出任务保持 `pending`
+  - 后台等待到 17:00 之后，并追加 1-300 秒随机延迟再进入 `running`
+  - 等待期间任务 `error_message` 显示预计执行时间提示
+  - 其他时间提交仍按原逻辑立即后台执行
+  - 文件：`backend/app/api/endpoints/okcis_notices.py`
+  - 已验证：
+    - `cd backend && /opt/anaconda3/envs/smart/bin/python -m py_compile app/api/endpoints/okcis_notices.py`
+    - 本地边界检查：15:59:59/17:00:00 不延迟，16:00-16:59:59 延迟到 17:00 后
+  - 本次未新增依赖
+
+- 正式环境于涛 `2026-07-21` 的调休审批已补采入库：
+  - 钉钉请假审批详情接口已开通 `qyapi_aflow`
+  - 新增钉钉请假审批实例同步逻辑：按请假流程 `process_code` 拉取审批实例，再解析 `DDHolidayField`
+  - `2026-07-21 -> 2026-07-23` 重新同步后共写入 `8` 条，请假里已包含于涛这条 `调休（旧）`
+  - 于涛记录已按旧规则落库：`202607231039000142527`，`2026-07-21`，`调休（旧）`，`1.0` 天
+
+- 正式环境于涛 `2026-07-23` 通过的调休审批未进入本地同步原因已排查：
+  - 审批编号：`202607231039000142527`
+  - 审批内容：于涛，研发中心-软件开发部，请假类型 `调休`，请假日期 `2026-07-21`，时长 `1` 天，审批通过时间 `2026-07-23 10:39`
+  - 当前钉钉同步逻辑调用 `/topapi/attendance/getleavestatus`
+  - 按于涛钉钉 userId `1603103307651469` 查询 `2026-07-21 -> 2026-07-23`，钉钉返回 `leave_status=[]`
+  - 本地 `wecom_attendance_oa_approved_records` 按于涛 7 月、审批编号均查不到记录
+  - 尝试调用审批详情 `/topapi/processinstance/get` 查询该审批编号，钉钉返回应用缺权限：`qyapi_aflow`
+  - 结论：这条数据存在于钉钉审批，但未进入“考勤请假状态”接口；后续要同步这类记录，需要给应用开通 `qyapi_aflow` 并补充审批实例采集
+
+- 线上办公助手继续修正：
+  - 分享框再次缩小到约 `500px`，整体字号、头像、输入框、按钮继续压小
+  - 分享编辑器页单独下发 CSP，允许 OnlyOffice 所需 `unsafe-eval`，不改全站
+  - `ooRaE0q9XIdiwR4mPAUhu2wByoYs` 在 test/prod 均为孤立用户，无 OA 资源、无部门、无角色，已两套环境软删除 `is_active=0`
+  - 历史文件列表交互改为：点击右侧铅笔图标打开文档，点击标题重命名
+  - 文件：`backend/app/api/endpoints/onlyoffice.py`、`frontend/src/pages/online_office/index.tsx`
+  - 已验证：
+    - `cd backend && /opt/anaconda3/envs/smart/bin/python -m py_compile app/api/endpoints/onlyoffice.py`
+    - `cd frontend && source ~/.nvm/nvm.sh && nvm use >/dev/null && npm run build`
+  - 本次未新增依赖
+
+- 线上办公助手分享样式继续细化：
+  - 顶部分享按钮改为用户提供的上传箭头 SVG 图标，不再显示文字
+  - 分享弹窗继续缩小宽度、字号、头像、输入框和按钮尺寸
+  - 分享弹窗定位在分享按钮下方
+  - 无权限访问分享短链时弹出：`文档暂无权限，请联系作者开通`
+  - 文件：`backend/app/api/endpoints/onlyoffice.py`、`frontend/src/App.tsx`
+  - 已验证：
+    - `cd backend && /opt/anaconda3/envs/smart/bin/python -m py_compile app/api/endpoints/onlyoffice.py`
+    - `cd frontend && source ~/.nvm/nvm.sh && nvm use >/dev/null && npm run build`
+  - 本次未新增依赖
+
+- 钉钉调休余额同步已改为批量调用并在正式环境重跑：
+  - `backend/app/services/dingtalk_attendance.py`
+    - 新增批量查询余额 `query_compensatory_leave_balances`
+    - 新增批量修正余额 `correct_compensatory_leave_balances`
+    - 单人查询余额保留，但内部复用批量查询
+  - `backend/app/tasks/scheduler.py`
+    - `wecom_attendance_compensatory_balance_sync` 先汇总待同步人员，再按批量接口同步余额，避免逐人频繁调用钉钉接口
+  - 正式环境已手动执行 `wecom_attendance_compensatory_balance_sync`
+    - 范围：`2026-01-01 -> 2026-07-22`
+    - 结果：同步 `26` 人，跳过 `29` 人
+    - 任务日志状态：`success`
+  - 已补同步正式环境 `2026-07-23` 当天钉钉数据：
+    - 钉钉请假/调休：`2` 条
+    - 钉钉加班：`0` 条
+    - 随后按 `2026-01-01 -> 2026-07-23` 重新批量同步调休余额：同步 `26` 人，跳过 `29` 人
+  - 正式环境钉钉请假/调休本地同步也已按 30 天拆分重跑：
+    - 范围：`2026-01-01 -> 2026-07-23`
+    - 结果：累计同步 `39` 条
+  - 已验证：`cd backend && /opt/anaconda3/envs/smart/bin/python -m py_compile app/services/dingtalk_attendance.py app/tasks/scheduler.py app/api/endpoints/wecom_attendance.py scripts/debug_dingtalk_compensatory_balance.py`
+  - 本次未新增依赖
+
+- 钉钉调休假期规则与系统统计口径已调整：
+  - 正式环境钉钉规则 `bc88d408-8cf3-4fda-94fc-266f25cf7cc5` 已从 `调休（新）` 改为 `调休`
+  - 适用范围已改为根部门 `dept=1`，用于覆盖全部人员
+  - 系统查钉钉调休余额时优先使用新 `调休`，兜底时排除 `调休（旧）`
+  - 人事助手“调休统计”读取规则：
+    - `2026-07-23` 及以前的钉钉请假只统计 `调休（旧）/调休(旧)`
+    - `2026-07-24` 起的钉钉请假只统计 `调休`
+    - OA 调休仍按原 `调休`
+  - 钉钉请假同步到系统本地表本身不删除旧记录；历史旧调休数据只追加/更新，不做减量清理
+  - 钉钉余额同步仍保持“系统统计多少就同步多少”
+  - 已验证：`cd backend && /opt/anaconda3/envs/smart/bin/python -m py_compile app/services/dingtalk_attendance.py app/api/endpoints/wecom_attendance.py scripts/debug_dingtalk_compensatory_balance.py`
+  - 本次未新增依赖
+
+- 线上办公助手分享弹层已改为类微信文档分享样式：
+  - 左侧显示当前文档已选协作成员
+  - 右侧支持人员搜索、部门筛选、添加当前筛选结果
+  - 点击链接按钮弹出权限选择，默认只读，可切换可编辑；确定后保存分享、复制短链到剪切板并关闭弹层
+  - 点击二维码按钮弹出权限选择，确认后保存分享并打开二维码弹窗
+  - 文件：`backend/app/api/endpoints/onlyoffice.py`
+  - 已验证：`cd backend && /opt/anaconda3/envs/smart/bin/python -m py_compile app/api/endpoints/onlyoffice.py app/services/onlyoffice.py app/main.py`
+  - 本次未新增依赖
+
+- 线上办公助手历史、分享和回收站已调整：
+  - 自动保存回调、手动文件名保存都会把文件标记为 `is_saved=True`，进入历史文件列表
+  - 分享保存生成短链后，弹层底部不再显示“取消/保存分享”，改为只保留“关闭”
+  - 删除在线文档改为进入回收站，不再直接物理删除
+  - 回收站支持列表查看和恢复；回收站文件 30 天后自动清理
+  - 文件：`backend/app/services/onlyoffice.py`、`backend/app/api/endpoints/onlyoffice.py`、`frontend/src/pages/online_office/index.tsx`
+  - 已验证：
+    - `cd backend && /opt/anaconda3/envs/smart/bin/python -m py_compile app/services/onlyoffice.py app/api/endpoints/onlyoffice.py app/main.py`
+    - `cd frontend && source ~/.nvm/nvm.sh && nvm use >/dev/null && npm run build`
+  - 本次未新增依赖
+
+- 线上办公助手文件名保存后不进历史的问题已修复：
+  - 文件：`backend/app/services/onlyoffice.py`
+  - 原因：历史列表过滤 `is_saved=False`，但文件名保存只更新标题，没有把文件标记为已保存
+  - 修复：`rename_file` 成功保存文件名时同步设置 `is_saved=True`
+  - 已验证：`cd backend && /opt/anaconda3/envs/smart/bin/python -m py_compile app/services/onlyoffice.py`
+  - 本次未新增依赖
+
+- 线上办公助手短链跳转已修复：
+  - 问题：短链生成到前端域名 `/s/{code}`，但之前只在后端根路由处理，开发环境 `:5173/s/...` 无法命中后端跳转
+  - 后端新增：`GET /api/onlyoffice/short-links/{code}`，按当前登录用户校验分享权限并返回 OnlyOffice 编辑入口
+  - 前端新增：`/s/:code` 路由，登录后调用短链解析接口并自动进入对应文档
+  - 已验证：
+    - `cd backend && /opt/anaconda3/envs/smart/bin/python -m py_compile app/main.py app/api/endpoints/onlyoffice.py app/services/onlyoffice.py`
+    - `cd frontend && source ~/.nvm/nvm.sh && nvm use >/dev/null && npm run build`
+  - 本次未新增依赖
+
+- 线上办公助手文件名保存交互已修复：
+  - 文件：`backend/app/api/endpoints/onlyoffice.py`
+  - 文件名输入框恢复失焦自动保存
+  - 标题栏“保存”按钮点击时不再先触发失焦
+  - 非编辑状态点击保存会提示先点击文件名编辑
+  - 已验证：`cd backend && /opt/anaconda3/envs/smart/bin/python -m py_compile app/api/endpoints/onlyoffice.py`
+  - 本次未新增依赖
+
+- 线上办公助手分享地址已改为短链：
+  - 文件：`backend/app/services/onlyoffice.py`、`backend/app/api/endpoints/onlyoffice.py`、`backend/app/main.py`
+  - 分享保存时生成本地短码 `share_code`
+  - 分享弹层展示短地址：`/s/{share_code}`
+  - 后端新增 `/s/{code}`，自动跳转到 `/apps/online-office?open_file_id=...`
+  - 已验证：`cd backend && /opt/anaconda3/envs/smart/bin/python -m py_compile app/main.py app/api/endpoints/onlyoffice.py app/services/onlyoffice.py`
+  - 本次未新增依赖
+
+- 线上办公助手已增加分享协同编辑和文件导入：
+  - 后端：
+    - `backend/app/services/onlyoffice.py`
+    - `backend/app/api/endpoints/onlyoffice.py`
+    - metadata 增加 `shared_with` 分享人员和 `is_saved` 未保存过滤
+    - 历史列表按所有者/被分享人过滤
+    - 所有者可重命名、删除、分享；被分享人员可打开协同编辑
+    - 编辑页内提供分享弹层，支持搜索人员、按部门筛选，并自动勾选部门及子部门人员
+    - 文件导入接口：`POST /api/onlyoffice/files/import`，支持 `docx/xlsx/pptx`
+  - 前端：
+    - `frontend/src/pages/online_office/index.tsx`
+    - 文件列表页增加“导入文件”按钮
+    - 历史列表显示分享给我的文件，并禁用分享文件的改名/删除
+  - 已验证：
+    - `cd backend && /opt/anaconda3/envs/smart/bin/python -m py_compile app/api/endpoints/onlyoffice.py app/services/onlyoffice.py`
+    - `cd frontend && source ~/.nvm/nvm.sh && nvm use >/dev/null && npm run build`
+  - 本次未新增依赖
+
+- 线上办公助手分享继续增强：
+  - 编辑页分享保存后展示可转发分享地址：`/apps/online-office?open_file_id=...`
+  - 文件列表页识别 `open_file_id` 参数，登录用户有权限时自动打开文件
+  - 分享时支持选择权限：`可编辑` / `只读`
+  - 只读分享会以 OnlyOffice `view` 模式打开，不能编辑
+  - 被分享用户不能改名、删除、分享文件
+  - 已验证：
+    - `cd backend && /opt/anaconda3/envs/smart/bin/python -m py_compile app/api/endpoints/onlyoffice.py app/services/onlyoffice.py`
+    - `cd frontend && source ~/.nvm/nvm.sh && nvm use >/dev/null && npm run build`
+  - 本次未新增依赖
+
+- 线上办公助手新建未操作就进入历史的问题已修复：
+  - 文件：`backend/app/services/onlyoffice.py`
+  - 新建文件时 metadata 标记 `is_saved=False`
+  - 历史列表只显示 `is_saved=True` 或老数据缺省的文件
+  - OnlyOffice 回调真正保存文件后，`_touch_file` 将 `is_saved=True`
+  - 文件名保存按钮和倒计时逻辑保持不变
+  - 已验证：
+    - `cd backend && /opt/anaconda3/envs/smart/bin/python -m py_compile app/api/endpoints/onlyoffice.py app/services/onlyoffice.py`
+    - 本地模拟新建后列表不显示，触发保存标记后列表显示
+  - 本次未新增依赖
+
+- 税务助手发票管理已新增并完成双环境初始化：
+  - 新增卡片：`税务助手`，独立权限 `app:tax_assistant:access`，角色 `tax_assistant_member`
+  - 新增本地表：`tax_invoice_basic_info`、`tax_invoice_detail_info`
+  - 数据来源：OA `开票申请`，`workflowid=390`，主表 `formtable_main_33`，明细表 `formtable_main_33_dt1`
+  - 同步口径：仅同步未完结，且 `workflow_requestbase.currentnodeid = workflow_currentoperator.nodeid`、当前处理人为 `刘羽丰` 的单据
+  - 新增计划任务：`tax_invoice_oa_sync`，每 3 分钟同步一次
+  - 已执行 test/prod 两套环境建表/权限/卡片/计划任务 SQL，并手动同步初始数据
+  - 当前同步结果：test/prod 均为基本信息 `24` 条、明细 `25` 条、当前目标 `24` 条
+  - 相关文件：`backend/app/services/tax_assistant.py`、`backend/app/api/endpoints/tax_assistant.py`、`backend/app/models/tax_assistant.py`、`backend/migrations/versions/44c00cd6e9b5_add_tax_assistant_invoice_tables.py`、`backend/sql/create_tax_assistant_invoice_tables.sql`、`frontend/src/pages/tax_assistant/index.tsx`、`doc/database_dictionary.md`
+  - 已验证：
+    - `cd backend && /opt/anaconda3/envs/smart/bin/python -m py_compile app/services/tax_assistant.py app/api/endpoints/tax_assistant.py app/models/tax_assistant.py app/tasks/scheduler.py app/api/api.py app/db_init.py migrations/versions/44c00cd6e9b5_add_tax_assistant_invoice_tables.py`
+    - `cd frontend && source ~/.nvm/nvm.sh && nvm use >/dev/null && npm run build`
+  - 本次未新增依赖
+
+- 线上办公助手 PPT 新建和自动保存体验已修复：
+  - 文件：`backend/app/api/endpoints/onlyoffice.py`、`backend/app/services/onlyoffice.py`
+  - PPTX 空白模板补齐 presentation、slide master、layout、theme、props 等必需结构，避免新建 PPT 打开报错
+  - 文件名自动保存改为 60 秒倒计时，进入页面后不再立即触发自动保存
+  - 页面显示 `xx秒后自动保存`
+  - 文件名保存成功后，后端返回最新编辑器配置，前端调用 OnlyOffice `refreshFile` 同步刷新编辑器内显示的文件名
+  - 已验证：
+    - `cd backend && /opt/anaconda3/envs/smart/bin/python -m py_compile app/api/endpoints/onlyoffice.py app/services/onlyoffice.py`
+    - 本地生成临时 PPTX 并通过 `zipfile.testzip()`，必需文件无缺失
+  - 本次未新增依赖
+
+- 线上办公助手新建 Word 已改成真正空白：
+  - 文件：`backend/app/services/onlyoffice.py`
+  - `docx` 默认模板去掉了标题和说明文字，只保留空段落
+  - 已验证：`cd backend && /opt/anaconda3/envs/smart/bin/python -m py_compile app/services/onlyoffice.py`
+  - 本次未新增依赖
+
+- 线上办公助手 OnlyOffice 表格编辑页继续优化：
+  - 文件：`backend/app/api/endpoints/onlyoffice.py`、`backend/app/services/onlyoffice.py`
+  - 标题前缀改为 `文件名：`
+  - 点击标题后的输入框宽度按文件名长度自适应，不再撑满整条头部
+  - 表格模板补了第二个 sheet，并改成 flex 布局占满剩余高度，避免底部 sheet 栏被裁掉
+  - 已验证：`cd backend && /opt/anaconda3/envs/smart/bin/python -m py_compile app/api/endpoints/onlyoffice.py app/services/onlyoffice.py`
+  - 本次未新增依赖
+
+- 线上办公助手 OnlyOffice 编辑页头部已调整：
+  - 文件：`backend/app/api/endpoints/onlyoffice.py`
+  - 去掉原来的大输入框和“保存文件名”按钮
+  - 标题改为文本展示，点击标题进入编辑
+  - 回车保存，Esc 取消，点击其他位置失焦自动保存
+  - 编辑状态下每 1 分钟自动保存一次文件名
+  - 已验证：`cd backend && /opt/anaconda3/envs/smart/bin/python -m py_compile app/api/endpoints/onlyoffice.py`
+  - 本次未新增依赖
+
+- 计划任务管理保存时间后已强制同步 APScheduler：
+  - 文件：`backend/app/api/endpoints/admin/scheduler.py`
+  - 计划任务编辑保存后，不再只依赖局部 `reschedule_job`，统一调用 `apply_scheduler_meta_overrides({job_id})`
+  - 保证任务管理里 cron/interval 时间变更后，运行中的 APScheduler 立即按数据库最新配置生效
+  - 爬虫类计划任务仍继续走 `sync_single_crawler_scheduler_job`
+  - 已验证：`cd backend && /opt/anaconda3/envs/smart/bin/python -m py_compile app/tasks/scheduler.py app/api/endpoints/admin/scheduler.py`
+  - 本次未新增依赖
+
+- 人事助手“调休统计余额同步”已配置为计划任务：
+  - 任务 ID：`wecom_attendance_compensatory_balance_sync`
+  - 执行时间：每天 `05:20`
+  - 逻辑：按当前年度 1 月 1 日到昨日，读取“调休统计”余额，按企微 `userid` 匹配钉钉用户后修正钉钉调休余额
+  - 测试环境默认暂停，正式环境正常执行
+  - 已接入后台任务中心，可手动执行
+  - 复用人事助手调休统计口径，零余额和负余额会跳过
+  - 已验证：`cd backend && /opt/anaconda3/envs/smart/bin/python -m py_compile app/tasks/scheduler.py app/api/endpoints/admin/scheduler.py`
+  - 本次未新增依赖
+
+- 采购部助手供应商管理已新增企业信用编码主表字段并回填历史数据：
+  - 新增 `procurement_suppliers.credit_code`
+  - 供应商注册 `/login/supplier/register` 后会同步写入 `procurement_suppliers.credit_code`
+  - 供应商风险/工商信息刷新时会从 `basic_info` 提取统一社会信用代码写入主表
+  - 供应商管理列表已在“供应商名称”后展示“企业信用编码”
+  - 列表关键词查询已支持按企业信用编码匹配
+  - 历史回填来源：`suppliers.tax_no` 按供应商名称匹配、`risk_basic_info` 中的“统一社会信用代码”
+  - 已执行 test/prod 迁移；回填结果：test `635/2220` 条，prod `720/2220` 条
+  - 北京中天金维科技有限公司两套环境已回填：`91110109MA01G92P71`
+  - 文件：`backend/app/models/procurement_dept.py`、`backend/app/api/endpoints/auth.py`、`backend/app/api/endpoints/procurement_dept/procurement_dept.py`、`backend/app/schemas/procurement_dept.py`、`frontend/src/pages/procurement_dept/index.tsx`、`backend/migrations/versions/u1v2w3x4y5z6_add_procurement_supplier_credit_code.py`、`doc/database_dictionary.md`
+  - 已验证：Python `py_compile`、`cd frontend && source ~/.nvm/nvm.sh && nvm use >/dev/null && npm run build`
+  - 本次未新增依赖
+
+- 采购部助手供应商“北京中天金维科技有限公司”企业信用代码缺失已排查并修复：
+  - U8 `Vendor.cVenRegCode` 本身为空，本地 `procurement_suppliers.risk_basic_info` 曾缓存为空对象 `{}`
+  - 原逻辑只要有 `risk_updated_at` 就复用缓存，导致后续即使企业查询服务可查，也不会自动刷新
+  - 企业查询服务当前可查到统一社会信用代码：`91110109MA01G92P71`
+  - 已修复 `backend/app/api/endpoints/procurement_dept/procurement_dept.py`：空工商/风险缓存不再阻止刷新
+  - 已同步补齐 test/prod 两套环境该供应商风险工商缓存
+  - 已验证：`cd backend && /opt/anaconda3/envs/smart/bin/python -m py_compile app/api/endpoints/procurement_dept/procurement_dept.py`
+  - 本次未新增依赖
+
+- 公共日历组件星期显示已汉化：
+  - 文件：`frontend/src/components/ui/calendar.tsx`
+  - 默认使用 `date-fns` 的 `zhCN` locale
+  - 日历星期从 `Su/Mo/Tu...` 改为中文显示
+  - 本次未新增依赖，使用项目已存在的 `date-fns`
+
+- 软件部任务工具新建工作记录切换日期清空内容问题已修复：
+  - 文件：`frontend/src/pages/software_task/index.tsx`
+  - 原因：新建弹窗按 `recordDate` 监听加载草稿，切换日期后如果目标日期没有草稿，会重置项目、工时、工作内容和定时提交设置
+  - 修复：草稿只在弹窗打开时按初始日期加载一次；用户后续切换日期不再联动或清空下面内容
+  - 已验证：`cd frontend && source ~/.nvm/nvm.sh && nvm use >/dev/null && npm run build`
+  - 本次未新增依赖
+
+- 软件部日报提醒正式环境报错已修复：
+  - 错误：`cannot access local variable 'text' where it is not associated with a value`
+  - 原因：`backend/app/tasks/scheduler.py` 已从 SQLAlchemy 导入 `text`，但日报提醒函数内又定义局部变量 `text`，导致函数内前面执行 `text(...)` SQL 构造时触发 `UnboundLocalError`
+  - 修复：将日报提醒 markdown 局部变量改名为 `reminder_text`
+  - 已验证：`cd backend && /opt/anaconda3/envs/smart/bin/python -m py_compile app/tasks/scheduler.py`
+  - 已用正式环境配置 `backend/config/env_prod` 手动执行 `software_work_record_reminder`，任务状态 `success`
+  - 本次正式执行已发送提醒，企微机器人返回 `errcode=0`，提醒对象：薛张波
+  - 本次未新增依赖
+
+- OA 开票申请页面 `requestid=1173190` 数据表定位：
+  - OA 地址：`/spa/workflow/static4form/index.html#/main/workflow/req?requestid=1173190`
+  - 流程：`workflow_requestbase.workflowid=390`，流程名 `开票申请`
+  - 表单映射：`workflow_base.formid=-33` -> `workflow_bill.tablename=formtable_main_33`
+  - 主表：`ecology.formtable_main_33`，本条 `id=14464`，包含项目编号、合同编号、项目名称、申请人、申请部门、取票/回款等主信息
+  - 明细表：`ecology.formtable_main_33_dt1`，通过 `mainid=14464` 关联，包含货物或应税劳务名称、规格型号、单价、数量、单位、开票金额等行项目
+  - 图片/附件字段在主表：`tp`（图片）、`tsyqfj`（特殊要求附件）；本条记录两个字段当前均为空
+  - 审批流记录：`workflow_requestlog`，按 `REQUESTID=1173190` 查；当前日志未关联 `ANNEXDOCIDS` / `SIGNDOCIDS`
+  - 人员/部门显示来自 `hrmresource`、`hrmdepartment`
+  - 附件/图片如有值，通常再查 `docdetail`、`docimagefile`、底层 `imagefile`，但本条没有附件文档 ID
+  - 已整理通用说明文档：`doc/oa-workflow-database-map.md`
+  - 流程节点定义表：`workflow_flownode` + `workflow_nodebase`，节点连线表：`workflow_nodelink`
+  - 开票申请 `workflowid=390` 节点：`2515/1.发起人`、`2516/2.直接上级`、`2520/3.部门总监`、`2522/4.分管副总`、`2517/5.财务经理`、`2518/6.财务会计`、`2521/7.抄送`、`2519/8.归档`
+
+- 计划任务 `wecom_dingtalk_attendance_sync` 钉钉接口超时已加重试：
+  - 错误来源：`/topapi/attendance/getcolumnval` 偶发 `httpx.ConnectTimeout`
+  - 文件：`backend/app/tasks/scheduler.py`
+  - 已在计划任务层对钉钉临时连接失败、超时、限流/QPS 等错误增加最多 5 次重试
+  - 覆盖：同步钉钉考勤人员、钉钉请假/调休、钉钉加班、钉钉考勤打卡
+  - 非临时业务错误仍会直接抛出，避免掩盖真实配置/数据问题
+  - 已验证：`cd backend && /opt/anaconda3/envs/smart/bin/python -m py_compile app/tasks/scheduler.py app/services/dingtalk_attendance.py`
+  - 本次未新增依赖
+
+- 正式环境调休余额批量同步：
+  - 数据来源：人事考勤助手 `/compensatory-leave-stats` 页面接口，范围 `2026-01-01` 至 `2026-07-22`
+  - 共取到 `55` 人
+  - 已同步成功 `18` 人，失败 `0` 人
+  - 已同步人员：岳哿丞、徐皓、朱文波、沈孟男、孙健、张杰、张瑞新、李海涛、田旭、诸金龙、于涛、史延明、娄新颜、康鹏、王业龙、王帅、薛张波、辛军
+  - 同步口径：调休统计余额天数保持一致，`0.1 天 = 1 小时`
+  - 未同步 `37` 人：
+    - 多数为未匹配到钉钉用户
+    - `王奇伟` 无企微ID
+    - 余额为负数人员不写钉钉额度：刘雁鹏、贠丹丹、赵本德、郭丽霞、孔德明、张永勋、程金雨、高振兴
+  - 本次未新增依赖
+
+- 人事考勤助手筛选区与康鹏调休余额排查：
+  - `frontend/src/pages/wecom_attendance/index.tsx` 已将考勤汇总、缺卡提醒、异常考勤、考勤修正、加班统计、调休统计、钉钉考勤人员管理的筛选/搜索/重置调整为同一行布局
+  - 宽屏强制一行，窄屏自动换行
+  - 排查发现 `backend/scripts/debug_dingtalk_compensatory_balance.py` 把钉钉加班 `duration` 小时误当成天，已修为 `/8` 折算天
+  - 用户截图确认康鹏调休统计余额为 `0.10` 天，已将正式环境康鹏钉钉 `调休（新）` 余额从 `1.0` 天修正为 `0.1` 天
+  - 业务口径已更正为调休余额换算按 `1 天 = 8 小时`
+  - 当前康鹏钉钉余额回查：`balance_days=0.1`，`balance_hours=1.0`
+  - `backend/app/services/dingtalk_attendance.py` 已将调休余额换算改为 `COMPENSATORY_BALANCE_HOURS_PER_DAY=8`
+  - 已验证：
+    - `cd frontend && source ~/.nvm/nvm.sh && nvm use >/dev/null && npm run build`
+    - `cd backend && /opt/anaconda3/envs/smart/bin/python -m py_compile app/services/dingtalk_attendance.py scripts/debug_dingtalk_compensatory_balance.py`
+  - 本次未新增依赖
+
+- 已通过开放接口重新创建 `调休（新）` 并验证余额可写：
+  - 删除后台创建的旧 `调休（新）`：leaveCode=`6f0d4abe-73d1-425e-8bd1-58ac31018f13`
+  - 通过 `/topapi/attendance/vacation/type/create` 新建 `调休（新）`
+  - 新 leaveCode=`bc88d408-8cf3-4fda-94fc-266f25cf7cc5`
+  - `biz_type=general_leave`，`source=external`，`paid_leave=true`
+  - 适用部门：研发中心 `visibility_rules=[{"type":"dept","visible":["1001032160"]}]`
+  - 已用康鹏 `032607495340527` 测试写入余额成功
+  - 写入目标：`1.0` 天 / `8.3` 小时，请求 day quota=`100`、hour quota=`830`
+  - `quota/init` 和 `quota/update` 均返回 `errcode=0`
+  - 回查康鹏余额：`quota_id=66bfa057-f24b-4f75-ad6d-507f87088243`，`balance_days=1.0`
+  - 注意：钉钉回查只返回 day quota，`balance_hours` 按 8 小时显示
+  - 已验证：`cd backend && /opt/anaconda3/envs/smart/bin/python -m py_compile app/services/dingtalk_attendance.py`
+  - 本次未新增依赖
+
+- 钉钉新版假期余额接口尝试：
+  - 按用户提供接口调用 `POST https://api.dingtalk.com/v1.0/attendance/leaves/quotas`
+  - Header 使用 `x-acs-dingtalk-access-token`
+  - 请求康鹏 `032607495340527`、`调休（新）` leaveCode=`6f0d4abe-73d1-425e-8bd1-58ac31018f13`、`quotaNumPerDay=1.0`
+  - 返回 HTTP `404`
+  - 返回体：`{"code":"InvalidAction.NotFound","message":"Specified api is not found, please check your url and method."}`
+  - 结论：该 URL/Method 当前不可用，需确认新版接口真实路径或应用是否开通对应新 OpenAPI
+
+- 钉钉简化参数版 `quota/init` 已尝试：
+  - 接口：`/topapi/attendance/vacation/quota/init`
+  - 请求参数：`op_userid`、`leave_code`、`user_id`、`quota_num`、`reason`
+  - 返回：`Missing required arguments:leave_quotas (errcode: 40)`
+  - 结论：当前钉钉接口仍要求使用 `leave_quotas` 数组格式
+
+- 钉钉后台新建 `调休（新）` 规则已排查：
+  - `调休（新）` leave_code=`6f0d4abe-73d1-425e-8bd1-58ac31018f13`
+  - 规则来源 `source=inner`，`biz_type=general_leave`，`leave_view_unit=day`，`paid_leave=false`
+  - 康鹏钉钉 user_id=`032607495340527`，企微 user_id=`kangpeng`
+  - 系统今年累计统计康鹏：加班 `1.04` 天、调休 `0.00` 天、剩余 `1.04` 天
+  - 尝试给康鹏写入 `1.0` 天 / `8.3` 小时失败，钉钉返回 `880015：批量leaveCode或userId都不存在`
+  - 直接调用 `quota/update` 和 `quota/init` 均同样返回 `880015`
+  - 初步结论：后台创建的 `source=inner` 规则无法通过当前开放额度接口给康鹏写余额，或该规则未对康鹏生效
+  - `backend/app/services/dingtalk_attendance.py` 已补充无历史 quota 时默认写入当年 `start_time/end_time`
+  - 已验证：`cd backend && /opt/anaconda3/envs/smart/bin/python -m py_compile app/services/dingtalk_attendance.py`
+  - 本次未新增依赖
+
+- 钉钉刚创建的 `调休（研发中心）` 已按要求删除：
+  - 已删除 leave_code：`a77c152b-a841-4d50-bb7e-3cb96fe801d1`
+  - 删除接口返回 `errcode=0`
+  - 当前钉钉只剩系统内置 `调休`，leave_code=`031fc328-ea2c-47e0-87f3-7c95a590d0c5`
+  - `backend/app/services/dingtalk_attendance.py` 仍按名称优先找 `调休（研发中心）`，找不到会回退到内置 `调休`
+  - 本次未新增依赖
+
+- 招投标信息公示历史数据导出 tab 权限已开放成和其它 tab 一样：
+  - 文件：`frontend/src/pages/OkcisNoticesPage.tsx`
+  - 前端 `canViewHistoryExport` 从 `app:admin_panel:access` 改为 `APP_OKCIS_NOTICES_ACCESS`
+  - 后端历史导出接口已确认本来就是 `APP_OKCIS_NOTICES_ACCESS`
+  - 已验证：`cd frontend && source ~/.nvm/nvm.sh && nvm use >/dev/null && npm run build`
+  - 本次未新增依赖
+
+- 已调整“人事考勤助手-调休统计”累计口径：
+  - 调休和加班统一按当前年度累计统计，从 `2026-01-01` 到当前日期结束
+  - 调休统计 tab 去掉开始日期、结束日期筛选，不再受页面其他列表时间筛选影响
+  - 页面标题显示当前年度累计
+  - 已验证：`cd frontend && source ~/.nvm/nvm.sh && nvm use >/dev/null && npm run build`
+  - 本次未新增依赖
+
+- 已调整加班明细展示：
+  - 加班类型无有效值时隐藏整列
+  - 开始时间、结束时间统一仅显示年月日，不显示时分秒
+  - 加班明细仍保留原始时长（小时）和折算时长（天）
+  - 已验证：`cd frontend && source ~/.nvm/nvm.sh && nvm use >/dev/null && npm run build`
+  - 本次未新增依赖
+
+- 已修正钉钉加班时长单位和重复数据：
+  - 钉钉接口返回的加班总时长单位为“天”，同步入库统一转换为小时：`1 天 = 8 小时`
+  - 数据库 `wecom_attendance_oa_approved_records.duration` 保持小时单位
+  - 钉钉加班同步前按日期范围清理旧加班记录，避免旧的 0.1 天记录和新的 1.0 小时记录重复
+  - 去重键不再包含时长，避免时长变化生成重复记录
+  - 钉钉接口临时连接失败时同步脚本自动重试
+  - 已执行双环境历史回填：
+    - test：2026-01-01 至 2026-07-22，OA请假/调休 1330，OA加班 196，钉钉请假/调休 167，钉钉加班 312
+    - prod：2026-01-01 至 2026-07-22，OA请假/调休 1330，OA加班 196，钉钉请假/调休 167，钉钉加班 312
+  - 抽查徐皓 2026-07-21：test/prod 均为 1.0 小时，仅一条记录
+  - 已验证相关 Python 文件 `py_compile` 通过
+
+- 已把“加班明细”补回原始小时：
+  - 文件：`backend/app/api/endpoints/wecom_attendance.py`、`frontend/src/pages/wecom_attendance/index.tsx`
+  - 调整：
+    - 汇总仍显示折算后的“天”
+    - 明细里新增“原始时长（小时）”列
+    - 开始/结束时间统一展示到秒
+    - 钉钉“加班总时长”源字段单位为天，按 `0.1 天 = 1 小时` 换算为原始小时；OA 记录仍使用原小时
+    - 已核对钉钉接口示例：徐皓 2026-07-21 返回 `value=0.13`
+  - 已验证：
+    - `cd backend && /opt/anaconda3/envs/smart/bin/python -m py_compile app/api/endpoints/wecom_attendance.py`
+    - `cd frontend && source ~/.nvm/nvm.sh && nvm use >/dev/null && npm run build`
+  - 本次未新增依赖
+
+- 已完成今年以来调休/加班数据双环境同步：
+  - 文件：`backend/scripts/sync_attendance_leave_overtime_current_year.py`
+  - 调整：
+    - 同步脚本支持 `--both` 依次读取 `backend/config/env_test` 和 `backend/config/env_prod`
+    - 钉钉接口触发 QPS 限流时自动等待重试
+    - test/prod 两套环境之间增加错峰等待，避免连续调用撞限流
+  - 已执行：
+    - `/opt/anaconda3/envs/smart/bin/python backend/scripts/sync_attendance_leave_overtime_current_year.py --both`
+  - 结果：
+    - test：2026-01-01 至 2026-07-22，OA请假/调休 1328，OA加班 196，钉钉请假/调休 166，钉钉加班 312
+    - prod：2026-01-01 至 2026-07-22，OA请假/调休 1328，OA加班 196，钉钉请假/调休 166，钉钉加班 312
+  - 已验证：
+    - `cd backend && /opt/anaconda3/envs/smart/bin/python -m py_compile scripts/sync_attendance_leave_overtime_current_year.py`
+  - 本次未新增依赖
+
+- 已调整“人事考勤助手-加班统计”：
+  - 文件：
+    - `backend/app/api/endpoints/wecom_attendance.py`
+    - `frontend/src/pages/wecom_attendance/index.tsx`
+    - `frontend/dist/`
+  - 调整：
+    - 后端 `/wecom-attendance/overtime-records` 改为按人员聚合，每个人一行
+    - 页面只展示部门、姓名、加班总时长（天）、明细条数、详情
+    - 开始时间、结束时间、加班类型、原因等放入详情弹窗
+    - 数据库存储仍保持小时不变，仅接口展示时按 `小时 / 8` 折算成天
+    - 汇总和明细的时长（天）均保留两位小数
+  - 已验证：
+    - `cd backend && /opt/anaconda3/envs/smart/bin/python -m py_compile app/api/endpoints/wecom_attendance.py`
+    - `cd frontend && source ~/.nvm/nvm.sh && nvm use && npm run build`
+  - 本次未新增依赖，前端使用 Node `v20.20.2`
+
+- 已调整软件部门日报推送缺失名单规则：
+  - 文件：`backend/app/tasks/scheduler.py`
+  - 逻辑：
+    - 检查昨天未提交软件日报人员时，同步检查 `attendance_checkin_records`
+    - 如果该人员昨天没有任何 `checkin_time IS NOT NULL` 的实际打卡记录，认为可能请假或旷工，不加入日报未提交推送名单
+    - 只有“昨天有实际打卡，但没写日报”的人员才推送提醒
+    - 日志会输出被跳过的全天无实际打卡人员
+  - 已验证：`cd backend && /opt/anaconda3/envs/smart/bin/python -m py_compile app/tasks/scheduler.py`
+  - 本次未新增依赖
+
+- 已调整“编辑业务团队管理看板”人员范围：
+  - 文件：`backend/app/api/endpoints/after_sales_dept/after_sales_dept.py`
+  - 编辑弹窗 `/management-dashboard/members` 改为只返回客户无忧跟进爬取人员列表
+  - 当前口径为 10 个人，其他看板人员不在编辑弹窗展示、不参与编辑保存
+  - 已验证：`cd backend && /opt/anaconda3/envs/smart/bin/python -m py_compile app/api/endpoints/after_sales_dept/after_sales_dept.py`
+  - 本次未新增依赖
+
+- 已调整“招投标数据爬取任务”详情页抓取头信息：
+  - 文件：`backend/app/services/crawler_handlers/okcis.py`
+  - 调整：
+    - 新增 `OKCIS_LIST_PAGE_REFERER_URL=https://www.okcis.cn/suppliers/`
+    - 移动端 JSON 详情抓取统一带 `Referer` 为列表页地址
+    - PC 详情兜底抓取统一带 `Referer` 为列表页地址
+    - 补充 `Sec-Fetch-Dest`、`Sec-Fetch-Mode`、`Sec-Fetch-Site`，降低详情页直连风控风险
+  - 覆盖位置：
+    - 列表预览阶段详情抓取
+    - 入库补抓详情缓存阶段
+  - 已验证：`cd backend && /opt/anaconda3/envs/smart/bin/python -m py_compile app/services/crawler_handlers/okcis.py`
+  - 本次未新增依赖
+
+- OKCIS 售前营销正式环境重爬排查：
+  - 最近一次正式环境 `okcis_notice_manual`，`run_id=873`，`dzid=187653`，页码 `1-6`，执行成功但大量详情返回“当前浏览信息已超出权限范围”
+  - 用户关注的公告 `uniseq=20260721155347222238` 对应地址：`https://www.okcis.cn/20260721-n2-20260721155347222238-b10cfc8e8905baf4f618f88a48ee1e4b.html`
+  - 已修改 `backend/app/services/crawler_handlers/okcis.py`，后续权限不足跳过日志会直接输出 `url=...`
+  - 已验证：`cd backend && /opt/anaconda3/envs/smart/bin/python -m py_compile app/services/crawler_handlers/okcis.py`
+  - 本次未新增依赖
+
+- 已将“编辑业务团队管理看板--待签约(万)”接入金山文档抓取数据：
+  - 文件：
+    - `backend/app/api/endpoints/after_sales_dept/after_sales_dept.py`
+    - `backend/scripts/sync_kdocs_pending_sign_to_dashboard.py`
+    - `backend/scripts/kdocs_browser_server.js`
+    - `backend/Dockerfile.kdocs-browser`
+    - `backend/docker-compose.yml`
+  - 逻辑：
+    - 根据当前季度自动选择列名：一季度/二季度/三季度/四季度待签约
+    - 当前日期 `2026-07-21` 为第三季度，默认抓取 `三季度待签约`
+    - 仅当前年度会同步待签约数据；其他年份不触发抓取、不更新
+    - 待签约值按“当前季度 + 下一季度”两列求和后写回；其他季度数据不更新
+    - 调用 `http://kdocs-browser:3010/extract-column`
+    - 按姓名匹配写回 `after_sales_management_dashboard_members.pending_sign_amount`
+    - Redis 缓存 600 秒，避免频繁启动浏览器抓取
+    - 浏览器服务失败时不阻断页面，继续使用数据库已有值
+    - 已挂到 `after_sales_business_dashboard_push` 任务前，推送前会先同步当前年度当前季度的待签约数据
+    - 正式环境验证命令：`cd backend && docker compose exec api /anaconda3/envs/smart/bin/python scripts/sync_kdocs_pending_sign_to_dashboard.py`
+  - 可配置环境变量：
+    - `KDOCS_BROWSER_BASE_URL`
+    - `KDOCS_PENDING_SIGN_CACHE_TTL_SECONDS`
+    - `KDOCS_PENDING_SIGN_SHEET_NAME`
+    - `KDOCS_PENDING_SIGN_URL`
+  - 已验证：
+    - `cd backend && /opt/anaconda3/envs/smart/bin/python -m py_compile app/api/endpoints/after_sales_dept/after_sales_dept.py scripts/sync_kdocs_pending_sign_to_dashboard.py`
+    - `node --check backend/scripts/kdocs_browser_server.js && node --check backend/scripts/kdocs_browser_test.js`
+    - `docker compose -f backend/docker-compose.yml config`
+  - 本次未新增项目安装包依赖；浏览器容器镜像内安装 `playwright@1.61.1`
+
+- 已将人事考勤助手中的“缺卡考勤”文案统一改为“缺卡提醒”：
+  - 文件：`frontend/src/pages/wecom_attendance/index.tsx`
+  - 导出 sheet 名和文件名已同步修改
+  - `daily-records` 缓存已在考勤配置保存/删除后失效，避免保存后刷新又回旧值
+  - `cd frontend && ./build.sh` 已通过
+
+- 已补上软件部任务工具“定时提交工作记录”独立调度任务：
+  - 文件：
+    - `backend/app/tasks/scheduler.py`
+    - `backend/app/api/endpoints/admin/scheduler.py`
+  - 调整：
+    - 新增 `software_work_record_auto_submit`
+    - 每分钟扫描一次到点草稿并自动提交
+    - 后台计划任务列表可手动执行该任务
+  - 已验证：
+    - `cd backend && /opt/anaconda3/envs/smart/bin/python -m py_compile app/tasks/scheduler.py app/api/endpoints/admin/scheduler.py app/api/endpoints/software_task/software_task.py`
+
+- 已新增钉钉调休余额对账脚本：
+  - 文件：`backend/scripts/debug_dingtalk_compensatory_balance.py`
+  - 默认按本月范围输出钉钉加班天数、调休请假天数和余额差值
+  - 可选参数：`--start-date`、`--end-date`、`--department`、`--keyword`
+  - 已验证：`cd backend && /opt/anaconda3/envs/smart/bin/python -m py_compile scripts/debug_dingtalk_compensatory_balance.py`
+
+- 已在 `backend/docker-compose.yml` 新增 `kdocs-browser` 服务：
+  - 镜像：`zhidao-kdocs-browser:latest`
+  - Dockerfile：`backend/Dockerfile.kdocs-browser`
+  - 基础镜像：`mcr.microsoft.com/playwright:v1.61.1-jammy`
+  - 容器：`zhidao-kdocs-browser`
+  - 用途：服务器无 Chrome 时，提供内置 Chromium 的 Playwright 浏览器抓取 HTTP 服务
+  - 网络：`smart-backend`
+  - 别名：`kdocs-browser`、`kdocs-browser-service`
+  - API 容器可调用：`http://kdocs-browser:3010`
+  - 已修复官方镜像内 `/app` 无法 `require('playwright')` 的问题：自定义镜像安装 `playwright@1.61.1`，并设置 `NODE_PATH=/opt/kdocs-browser/node_modules`
+  - 新增测试脚本：`backend/scripts/kdocs_browser_test.js`
+  - 新增服务脚本：`backend/scripts/kdocs_browser_server.js`
+  - 默认抓取：`润达全年业绩分析表` / `三季度待签约`
+  - 测试命令：`cd backend && docker compose up -d kdocs-browser && docker compose exec api curl -s http://kdocs-browser:3010/health`
+  - 抓取命令：`cd backend && docker compose exec api curl -s -X POST http://kdocs-browser:3010/extract-column -H 'Content-Type: application/json' -d '{"sheet":"润达全年业绩分析表","column":"三季度待签约"}'`
+  - 已验证：`node --check backend/scripts/kdocs_browser_server.js && node --check backend/scripts/kdocs_browser_test.js`、`docker compose -f backend/docker-compose.yml config`
+  - 本次未新增项目安装包依赖；新增运行时 Docker 镜像依赖
+
+- 已验证金山文档公开表格可通过 Playwright + 本机 Chrome 自动跟随 302 打开：
+  - 链接：`https://www.kdocs.cn/l/ckdETwM915GE`
+  - 页面标题：`2026年-售后-周报表`
+  - 已通过浏览器名称框选择 `润达全年业绩分析表!A1:Z300` 并复制为 TSV
+  - 已提取 `三季度待签约` 列：薄再峥 105.65、崔凯 13.61、王贺 11.57、王太鼎 47.69、卢迪 59.72、缴志健 14.09、范运成 29.90、李秋雷 9.71、马超 158.00、闫治国 16.00
+  - 临时文件：`/tmp/kdocs-summary.tsv`
+  - 本次未修改业务代码，未新增项目依赖
+
+- 已将“线上办公助手”改为独立 OnlyOffice 编辑器页跳转，不再在中台页面内嵌：
+  - 文件：
+    - `backend/app/core/config.py`
+    - `backend/app/services/onlyoffice.py`
+    - `backend/app/api/endpoints/onlyoffice.py`
+    - `backend/config/env_test`
+    - `backend/config/env_prod`
+    - `frontend/src/pages/online_office/index.tsx`
+    - `frontend/dist.zip`
+  - 调整：
+    - 新增后端 `/api/onlyoffice/editor?token=...` 独立编辑器 HTML 页
+    - 工作台卡片仍走 `/apps/online-office` 鉴权，随后自动跳到独立编辑器页
+    - test 入口域名：`http://172.18.6.140:5173`
+    - test 文档下载/保存回调地址：`http://172.18.6.140:5173/api`
+    - prod 入口域名：`https://zhidao.tjchentian.com:9091`
+    - 新增 `ONLYOFFICE_ENTRY_BASE_URL`、`ONLYOFFICE_CALLBACK_BASE_URL`
+    - OnlyOffice 文档地址和保存回调地址固定走后端 API；测试环境走 Vite `/api` 代理，避免 DocumentServer 拉不到 `127.0.0.1`
+  - 已验证：
+    - `cd backend && /opt/anaconda3/envs/smart/bin/python -m py_compile app/core/config.py app/services/onlyoffice.py app/api/endpoints/onlyoffice.py`
+    - `cd frontend && source ~/.nvm/nvm.sh && nvm use && npm run build`
+    - `cd frontend && source ~/.nvm/nvm.sh && nvm use && ./build.sh`
+  - 本次未新增依赖，前端使用 Node `v20.20.2`
+
+- 已修复测试环境 OnlyOffice 仍“下载失败”的运行配置问题：
+  - 原因：
+    - 后端进程未重新加载最新 `backend/.env`，编辑器页实际仍生成 `https://zhidao.tjchentian.com:9091/api/onlyoffice/document`
+  - 处理：
+    - 已重启本地后端
+    - 现在编辑器页实际生成：
+      - `document.url=http://172.18.6.140:5173/api/onlyoffice/document`
+      - `callbackUrl=http://172.18.6.140:5173/api/onlyoffice/callback`
+  - 已验证：
+    - `GET http://172.18.6.140:5173/api/onlyoffice/document` 返回 `200`
+    - OnlyOffice `ConvertService.ashx` 转换测试返回 `EndConvert=True`
+  - 结论：
+    - 需重新从卡片打开，旧页面/旧 token 仍会用旧配置
+
+- 已继续完善“线上办公助手”为文件首页：
+  - 文件：
+    - `backend/app/services/onlyoffice.py`
+    - `backend/app/api/endpoints/onlyoffice.py`
+    - `backend/app/core/config.py`
+    - `backend/config/env_test`
+    - `backend/config/env_prod`
+    - `frontend/src/pages/online_office/index.tsx`
+    - `frontend/dist.zip`
+  - 调整：
+    - `/apps/online-office` 先进入新建/历史文件列表页
+    - 支持新建 `docx/xlsx/pptx`
+    - 支持历史文件列表与按文件打开
+    - OnlyOffice 保存开启 `customization.forcesave=true`
+    - 新增独立 env：`ONLYOFFICE_INTERNAL_CALLBACK_HOST`
+    - test 配置：`ONLYOFFICE_INTERNAL_CALLBACK_HOST=172.18.6.140`
+    - prod 保持 `ONLYOFFICE_CALLBACK_BASE_URL=https://zhidao.tjchentian.com:9091/api`
+  - 已验证：
+    - `cd backend && /opt/anaconda3/envs/smart/bin/python -m py_compile app/core/config.py app/services/onlyoffice.py app/api/endpoints/onlyoffice.py`
+    - `cd frontend && source ~/.nvm/nvm.sh && nvm use && npm run build`
+    - `cd frontend && source ~/.nvm/nvm.sh && nvm use && ./build.sh`
+    - test 派生回调地址：`http://172.18.6.140:5173/api/onlyoffice/callback/{file_id}`
+  - 本次未新增依赖
+
+- 已补充 OnlyOffice 编辑器页内文件名修改：
+  - 文件：
+    - `backend/app/api/endpoints/onlyoffice.py`
+    - `backend/app/services/onlyoffice.py`
+    - `frontend/src/pages/online_office/index.tsx`
+    - `frontend/dist.zip`
+  - 调整：
+    - 历史文件列表支持改名和删除
+    - 编辑器页顶部新增文件名输入框与“保存文件名”按钮
+    - 新增 `/api/onlyoffice/editor/rename`，用编辑器 token 校验后改名
+  - 已验证：
+    - `cd backend && /opt/anaconda3/envs/smart/bin/python -m py_compile app/api/endpoints/onlyoffice.py app/services/onlyoffice.py`
+    - `cd frontend && source ~/.nvm/nvm.sh && nvm use && npm run build`
+    - `cd frontend && source ~/.nvm/nvm.sh && nvm use && ./build.sh`
+    - 编辑器 HTML 已包含 `smart-office-title` 和 `/api/onlyoffice/editor/rename`
+  - 本次未新增依赖
+
+- 已确认 OnlyOffice 历史文件支持多人共同编辑：
+  - 同一个历史文件使用同一个 `file_id` 生成编辑器 `document.key`
+  - 多人打开同一个历史文件时进入同一协同编辑会话
+  - 不同用户点击“新建”会生成不同文件，不会进入同一协同会话
+  - 保存落盘依赖 OnlyOffice 回调，当前已开启 `forcesave=true`
+
+- 已修复“线上办公助手”卡片移动端路径缺失导致点击进入异常：
+  - 文件：
+    - `backend/migrations/versions/s9t0u1v2w3x4_seed_online_office_card.py`
+    - `backend/app/services/onlyoffice.py`
+    - `backend/app/api/endpoints/onlyoffice.py`
+    - `frontend/src/pages/online_office/index.tsx`
+    - `frontend/dist.zip`
+  - 调整：
+    - test / prod 两套库 `dashboard_app_cards.online_office.mobile_path` 已补为 `/apps/online-office`
+    - OnlyOffice 页面改为加载 Docs API 编辑器配置，传入当前企微登录用户身份
+  - 已验证：
+    - `cd backend && /opt/anaconda3/envs/smart/bin/python -m py_compile app/services/onlyoffice.py app/api/endpoints/onlyoffice.py`
+    - `cd frontend && ./build.sh`
+  - 本次未新增依赖
+
+- 已接入 OnlyOffice 线上办公助手基础入口：
+  - 文件：
+    - `backend/app/core/config.py`
+    - `backend/app/permissions.py`
+    - `backend/app/services/onlyoffice.py`
+    - `backend/app/api/endpoints/onlyoffice.py`
+    - `backend/app/api/api.py`
+    - `backend/migrations/versions/s9t0u1v2w3x4_seed_online_office_card.py`
+    - `backend/migrations/versions/t0u1v2w3x4y5_grant_online_office_to_standard_user.py`
+    - `frontend/src/constants/appPermissions.ts`
+    - `frontend/src/components/dashboard/appCatalog.ts`
+    - `frontend/src/pages/online_office/index.tsx`
+    - `frontend/src/App.tsx`
+  - 调整：
+    - 新增 `/api/onlyoffice/entry`，按当前登录用户生成企微用户身份 payload 与 HS256 JWT
+    - 新增前端 `/apps/online-office` 页面，支持 iframe 内嵌与新窗口打开 OnlyOffice
+    - 新增权限 `app:online_office:access`
+    - 新增工作台卡片 `online_office`，分类 `办公协同`
+    - 默认授权给 `standard_user`
+  - 已验证：
+    - `cd backend && /opt/anaconda3/envs/smart/bin/python -m py_compile app/core/config.py app/permissions.py app/services/onlyoffice.py app/api/endpoints/onlyoffice.py app/api/api.py migrations/versions/s9t0u1v2w3x4_seed_online_office_card.py`
+    - `cd backend && /opt/anaconda3/envs/smart/bin/alembic upgrade head`
+    - `cd frontend && ./build.sh`
+    - test / prod 均确认 `permission=1, card=1, standard_user_grant=1`
+  - 备注：
+    - 已修复 prod `alembic_version` 多头旧记录问题，将 test / prod 版本统一到 `t0u1v2w3x4y5`
+    - 当前两套环境均确认 `alembic current` 为 `t0u1v2w3x4y5 (head)`
+  - 本次未新增依赖
+
+- 已为 OnlyOffice 线上办公助手补齐 test / prod 两套环境配置：
+  - 文件：
+    - `backend/config/env_test`
+    - `backend/config/env_prod`
+  - 新增变量：
+    - `ONLYOFFICE_ENABLED`
+    - `ONLYOFFICE_BASE_URL`
+    - `ONLYOFFICE_JWT_SECRET`
+  - 配置地址：`http://172.18.2.31:8088`
+  - 本次仅改环境配置，未新增依赖，未改业务代码
+
+- 已修复“考勤汇总”旷工 / 未打卡排重规则并回填本地表：
+  - 文件：
+    - `backend/app/services/wecom_attendance.py`
+    - `backend/app/api/endpoints/wecom_attendance.py`
+    - `frontend/src/pages/wecom_attendance/index.tsx`
+  - 调整：
+    - 同一天两次未打卡，统一按旷工处理并写入本地日汇总表
+    - 已记旷工的日期，不再重复累计未打卡次数
+    - 前端缺勤类型展示中，双缺卡对应显示为 `旷工`
+  - 已验证：
+    - `cd backend && /opt/anaconda3/envs/smart/bin/python -m py_compile backend/app/services/wecom_attendance.py backend/app/api/endpoints/wecom_attendance.py`
+    - 已执行本地重算：`2026-06-25` 到 `2026-07-20`
+    - 重算结果：`updated_daily_count=7161`、`absenteeism_count=441.0`、`missing_punch_count=416`
+    - `cd frontend && ./build.sh`
+  - 本次未新增依赖
+
+- 已修复“考勤汇总 /daily-records”在排除部门加载时依赖企业微信部门接口导致的 500：
+  - 文件：
+    - `backend/app/api/endpoints/wecom_attendance.py`
+  - 调整：
+    - `_load_attendance_scope_exclusions` 现在优先尝试企业微信部门树；失败时自动回退到本地 `departments` 表补全排除部门及子部门
+    - 避免本地接口因为企业微信部门接口连不上而直接报错
+  - 已验证：
+    - `cd backend && /opt/anaconda3/envs/smart/bin/python -m py_compile backend/app/api/endpoints/wecom_attendance.py`
+    - 本地 `/api/wecom-attendance/daily-records?start_date=2026-06-25&end_date=2026-07-20` 返回 `200`
+  - 本次未新增依赖
+
+- 已修复“考勤汇总”按部门筛选时人数仍显示整张花名册的问题：
+  - 文件：
+    - `frontend/src/pages/wecom_attendance/index.tsx`
+  - 调整：
+    - 当选择具体部门时，不再用整张花名册补全空白人员行
+    - 避免研发中心筛选后仍把其他部门人员补进列表
+  - 已验证：
+    - `cd frontend && ./build.sh`
+  - 本次未新增依赖
+
+- 已修复“考勤汇总”部门筛选后仍混入其他部门 OA 补算数据的问题：
+  - 文件：
+    - `backend/app/services/wecom_attendance.py`
+    - `backend/app/api/endpoints/wecom_attendance.py`
+  - 调整：
+    - `apply_local_oa_attendance_adjustments` 新增 `allowed_userids` 限制
+    - `daily-records` 在部门筛选 / 单人筛选时，仅允许当前命中的 userid 参与 OA 补算补行
+    - `daily-records` 缓存版本升级到 `v5`
+  - 已验证：
+    - `cd backend && /opt/anaconda3/envs/smart/bin/python -m py_compile backend/app/api/endpoints/wecom_attendance.py backend/app/services/wecom_attendance.py`
+    - 清理缓存后，本地 `department_name=研发中心` 返回 `878` 条，仅含 `研发中心/软件开发部/自控部/给排水部/测试部`
+  - 本次未新增依赖
+
+- 已将“考勤汇总”部门筛选切换为先取公共 `userid` 集合再查数据：
+  - 文件：
+    - `backend/app/api/endpoints/wecom_attendance.py`
+    - `backend/app/services/wecom_attendance.py`
+    - `backend/app/services/dingtalk_attendance.py`
+  - 调整：
+    - `wecom_attendance_service.list_department_userids` 现按部门自动分流
+    - `研发中心` 及其子部门走钉钉 `list_department_user_ids`
+    - 其他部门走企微 `list_department_userids`
+    - `考勤汇总 /daily-records` 改为先取 `userid` 集合，再按 `userid IN (...)` 查询
+  - 已验证：
+    - `cd backend && /opt/anaconda3/envs/smart/bin/python -m py_compile app/api/endpoints/wecom_attendance.py app/services/wecom_attendance.py app/services/dingtalk_attendance.py`
+    - `研发中心` 当前返回 `34` 人，`软件开发部` 当前返回 `9` 人
+  - 本次未新增依赖
+
+- 已新增企微按部门查询全部用户 `userid` 公共方法：
+  - 文件：
+    - `backend/app/services/wecom_attendance.py`
+  - 调整：
+    - 新增 `list_department_userids`
+    - 支持按部门名查询，默认包含子部门
+    - 支持传入排除 `userid` 集合
+  - 已验证：
+    - `cd backend && /opt/anaconda3/envs/smart/bin/python -m py_compile app/services/wecom_attendance.py`
+    - 实际调用 `department_name='研发中心'` 返回 `40` 个 `userid`
+  - 本次未新增依赖
+
+- 已新增钉钉研发中心员工 `userId` 公共查询方法：
+  - 文件：
+    - `backend/app/services/dingtalk_attendance.py`
+  - 调整：
+    - 新增 `list_department_user_ids`
+    - 默认返回 `研发中心` 及其子部门全部员工 `userId`
+    - 默认过滤钉钉配置排除人员
+  - 已验证：
+    - `cd backend && /opt/anaconda3/envs/smart/bin/python -m py_compile app/services/dingtalk_attendance.py`
+    - 实际执行返回 `34` 个 `userId`
+  - 本次未新增依赖
+
+- 已修复“考勤汇总”里钉钉调休重复叠加为 2 天的问题：
+  - 文件：
+    - `backend/app/services/wecom_attendance.py`
+    - `backend/app/api/endpoints/wecom_attendance.py`
+  - 调整：
+    - 本地镜像补算 `apply_local_oa_attendance_adjustments` 仅再处理 `channel=OA` 记录，避免钉钉请假先被本地镜像补算一次、后又被钉钉补算一次
+    - 钉钉请假补算改为按 `start_date/end_date + duration + start_time/end_time` 拆分到每天，不再把整段调休时长整笔加到开始日期
+  - 已验证：
+    - `cd backend && /opt/anaconda3/envs/smart/bin/python -m py_compile app/services/wecom_attendance.py app/api/endpoints/wecom_attendance.py`
+  - 本次未新增依赖
+
+- 已修复“考勤汇总”里钉钉休假/加班数据仍为空的问题：
+  - 文件：
+    - `backend/app/services/redis_cache.py`
+    - `backend/app/api/endpoints/wecom_attendance.py`
+    - `backend/app/api/endpoints/dingtalk_attendance.py`
+  - 调整：
+    - `daily-records` 缓存版本升级到 `v2`
+    - 同步企业微信/钉钉考勤后会清理 `wecom:attendance:daily-records:*` 旧缓存
+    - 避免页面继续命中旧汇总结果
+  - 已验证：
+    - `cd backend && /opt/anaconda3/envs/smart/bin/python -m py_compile app/services/redis_cache.py app/api/endpoints/wecom_attendance.py app/api/endpoints/dingtalk_attendance.py`
+  - 本次未新增依赖
+
+- 已在正式环境补同步钉钉休假数据：
+  - 时间范围：`2026-06-01` 至 `2026-07-21`
+  - 方式：执行 `dingtalk_attendance_service.sync_leave_status_records_to_local`
+  - 结果：写入/刷新本地镜像 `wecom_attendance_oa_approved_records` 共 `48` 条钉钉请假记录
+  - 备注：脚本结束时出现 `Event loop is closed` 的 aiomysql 连接回收告警，但本次 SQL 已 `COMMIT`
+
+- 已将人事考勤助手中的钉钉请假/加班查询改为优先读本地镜像，不再页面实时直连钉钉：
+  - 文件：
+    - `backend/app/services/wecom_attendance.py`
+    - `backend/app/services/dingtalk_attendance.py`
+    - `backend/app/api/endpoints/wecom_attendance.py`
+    - `backend/app/api/endpoints/dingtalk_attendance.py`
+    - `backend/app/tasks/scheduler.py`
+    - `.gitignore`
+  - 调整：
+    - 新增本地镜像复用方法 `save_local_approved_attendance_records`
+    - `企微&钉钉考勤同步` 任务现会同步钉钉请假、钉钉加班到 `wecom_attendance_oa_approved_records`
+    - `/api/wecom-attendance/oa-approved-records` 改为只查本地镜像
+    - 日汇总中的钉钉请假、钉钉加班补算改为读取本地镜像
+    - `/api/dingtalk-attendance/sync-records` 手动同步时也会同步钉钉请假和加班镜像
+    - 新增 `logs/` 运行日志目录到忽略列表
+  - 已验证：
+    - `cd backend && /opt/anaconda3/envs/smart/bin/python -m py_compile app/services/wecom_attendance.py app/services/dingtalk_attendance.py app/api/endpoints/wecom_attendance.py app/api/endpoints/dingtalk_attendance.py app/tasks/scheduler.py`
+  - 本次未新增依赖
+
+- 已补充“招标信息公示 -> 历史数据导出”预览内容列：
+  - 文件：
+    - `backend/app/services/okcis_history_export.py`
+    - `backend/app/api/endpoints/okcis_notices.py`
+    - `backend/migrations/versions/r8s9t0u1v2w3_add_preview_content_to_okcis_history_exports.py`
+    - `doc/database_dictionary.md`
+  - 调整：
+    - 历史导出结果表 `crawler_okcis_notice_history_exports` 新增 `preview_content`
+    - 抓取历史数据时，自动从 OKCIS 详情返回的移动端 JSON/内容字段提取纯文本预览内容并入库
+    - 下载 Excel 新增 `预览内容` 列，位置在 `跟进人` 前
+  - 已验证：
+    - `cd backend && /opt/anaconda3/envs/smart/bin/python -m py_compile app/services/okcis_history_export.py app/api/endpoints/okcis_notices.py migrations/versions/r8s9t0u1v2w3_add_preview_content_to_okcis_history_exports.py`
+    - `cd backend && /opt/anaconda3/envs/smart/bin/alembic heads`
+    - `cd backend && /opt/anaconda3/envs/smart/bin/alembic upgrade head`
+  - 本次未新增依赖
+
+- 已清理 Alembic 迁移树并重置当前库版本到单头：
+  - 文件：
+    - `backend/migrations/versions/*.py`
+    - `CURRENT_CONTEXT.md`
+    - `PROJECT_HISTORY.md`
+  - 调整：
+    - 修复了多组重复 revision id，当前迁移树已无重复、无环
+    - `p7q8r9s0t1u2_add_attendance_query_indexes.py` 现作为总合并头
+    - 将当前库 `alembic_version` 重置为 `p7q8r9s0t1u2`
+    - 已确认 `alembic upgrade head` 现在可正常执行
+  - 已验证：
+    - `cd backend && /opt/anaconda3/envs/smart/bin/alembic heads`
+    - `cd backend && /opt/anaconda3/envs/smart/bin/alembic upgrade head`
+    - `cd backend && /opt/anaconda3/envs/smart/bin/python -m py_compile migrations/versions/*.py`
+  - 本次未新增依赖
+
+- 人事考勤助手“考勤汇总”列表查询已做一轮性能优化：
+  - 文件：
+    - `backend/app/api/endpoints/wecom_attendance.py`
+    - `backend/app/services/wecom_attendance.py`
+    - `backend/app/models/wecom_attendance.py`
+    - `backend/app/models/attendance_checkin.py`
+    - `backend/migrations/versions/p7q8r9s0t1u2_add_attendance_query_indexes.py`
+  - 调整：
+    - `/api/wecom-attendance/daily-records` 增加 180 秒 Redis 缓存
+    - 页面查询不再实时直连 OA 表补算，改为读取本地镜像表 `wecom_attendance_oa_approved_records`
+    - 打卡明细查询改为仅按当前结果集中的 `userid` 回查，不再整段时间全员扫描
+    - 关键词筛选改为直接命中当前行 `employee_name/userid`
+    - 新增索引：
+      - `idx_wecom_attendance_daily_query_order`
+      - `idx_wecom_attendance_daily_user_query`
+      - `idx_attendance_checkin_user_date_time`
+  - 已验证：
+    - `cd backend && /opt/anaconda3/envs/smart/bin/python -m py_compile app/api/endpoints/wecom_attendance.py app/services/wecom_attendance.py app/models/wecom_attendance.py app/models/attendance_checkin.py migrations/versions/p7q8r9s0t1u2_add_attendance_query_indexes.py`
+  - 本次未新增依赖
+
+- 已整理全库数据库字典并补齐 test/prod 缺失注释：
+  - 文件：
+    - `doc/database_dictionary.md`
+    - `backend/sql/fill_database_comments_20260721.sql`
+    - `scripts/generate_database_dictionary.py`
+    - `AGENTS.md`
+  - 调整：
+    - 基于 `smart-cs-ai-test` / `smart-cs-ai` 两套库生成全量数据库表字典，覆盖 98 张表
+    - 文档包含：表说明、功能模块、环境范围、字段类型、字段说明
+    - 已将两套库缺失的表注释、字段注释全部补齐，回查结果均为 `0`
+    - `AGENTS.md` 已增加规则：以后新增/删除/重命名数据表，或新增/删除关键字段时，必须同步更新 `doc/database_dictionary.md`
+  - 已验证：
+    - `cd backend && /opt/anaconda3/envs/smart/bin/python ../scripts/generate_database_dictionary.py --apply`
+    - `cd backend && /opt/anaconda3/envs/smart/bin/python -m py_compile ../scripts/generate_database_dictionary.py`
+  - 本次未新增依赖
+
+- 人事考勤助手“考勤汇总”已增加汇总项点击明细：
+  - 文件：`frontend/src/pages/wecom_attendance/index.tsx`
+  - 规则：
+    - `年假/带薪病假/事假/调休/产假/婚假/陪产假/丧假/哺乳假/加班时长/迟到早退/旷工/未打卡` 有值时可点击查看详情
+    - 请假类详情优先显示 OA 源数据里的 `请假事由`
+    - OA 返回的 `<br>` 等 HTML 标签会清洗后展示
+    - 迟到/早退详情会把具体问题项如 `上班迟到`、`下班早退` 用红色突出显示
+  - 已验证：`cd frontend && ./build.sh`
+  - 本次未新增依赖；前端构建使用 Node `v20.20.2`
+
+- `software_work_record_reminder` 已增加周末钉钉实时打卡判断：
+  - 文件：
+    - `backend/app/tasks/scheduler.py`
+    - `backend/app/services/dingtalk_attendance.py`
+  - 规则：
+    - 当任务执行日为周六/周日时，不再直接推送
+    - 先实时调用钉钉接口，按“软件开发部”部门拉人并查询当天打卡
+    - 若当天无人打卡，则整条日报提醒任务跳过，不发送企微推送
+  - 本次未读取本地考勤库作为判断依据
+  - 已验证：`cd backend && /opt/anaconda3/envs/smart/bin/python -m py_compile app/tasks/scheduler.py app/services/dingtalk_attendance.py`
+  - 本次未新增依赖
+
+- 人事考勤助手已继续细化 OA 考勤修正与每日明细展示：
+  - 文件：
+    - `backend/app/services/wecom_attendance.py`
+    - `backend/app/api/endpoints/wecom_attendance.py`
+    - `frontend/src/pages/wecom_attendance/index.tsx`
+  - 调整：
+    - OA 考勤修正改为读取 `formtable_main_21_dt1` 明细日期与上下班方向
+    - `上班补卡/下班补卡` 仅抵扣对应方向缺卡，不再整天一刀切
+    - 外出打卡用于抵扣缺卡时，会按命中的上班/下班方向重算迟到早退分钟
+    - 每日考勤详情表第一列日期改为横向滚动时固定显示，且左上角日期表头层级高于左侧浮动列
+  - 已验证：
+    - `cd backend && /opt/anaconda3/envs/smart/bin/python -m py_compile app/services/wecom_attendance.py app/api/endpoints/wecom_attendance.py`
+    - `cd frontend && ./build.sh`
+  - 本次未新增依赖；前端构建使用 Node `v20.20.2`
+
+- 软件部任务工具“新建工作记录”已支持康鹏定时提交草稿：
+  - 文件：
+    - `backend/app/api/endpoints/software_task/software_task.py`
+    - `backend/app/schemas/software_task.py`
+    - `backend/app/tasks/scheduler.py`
+    - `frontend/src/pages/software_task/index.tsx`
+  - 调整：
+    - 工作记录草稿 Redis 新增 `scheduled_submit_enabled`、`scheduled_submit_at`
+    - 草稿额外保存 `user_id`、`record_date`，并按定时提交时间动态延长 TTL，避免跨天失效
+    - 前端仅对康鹏账号（`tangpeng/kangpeng`）在“新建工作记录”弹窗显示定时自动提交区域
+    - 不新增独立计划任务，复用 `knowledge_sync` 执行周期扫描 Redis 草稿，到点后自动提交正式工作记录
+    - 自动提交会校验康鹏身份、项目存在、必填字段完整，并对同用户同日期同项目同工时同内容做幂等去重
+  - 已验证：
+    - `cd backend && /opt/anaconda3/envs/smart/bin/python -m py_compile app/api/endpoints/software_task/software_task.py app/schemas/software_task.py app/tasks/scheduler.py`
+    - `cd frontend && ./build.sh`
+  - 本次未新增依赖；前端构建使用 Node `v20.20.2`
+
+- 人事考勤助手已修正 OA 补卡方向抵扣口径：
+  - 文件：`backend/app/services/wecom_attendance.py`
+  - 文件：`backend/app/api/endpoints/wecom_attendance.py`
+  - OA 考勤修正读取 `formtable_main_21_dt1.detail_signdate` 作为考勤影响日期，不再用主表申请日期
+  - `detail_signtype=0` 显示 `上班补卡`，`detail_signtype=1` 显示 `下班补卡`
+  - 补卡时长固定 `0.5`，只作为考勤修正记录，不参与 `实际出勤` 累加
+  - 缺卡抵扣按方向执行：上班补卡只抵扣上班缺卡，下班补卡只抵扣下班缺卡
+  - 已验证张辉样例：`2026-07-09/10/11` 均为 `下班补卡 0.5`
+  - 已验证：`cd backend && /opt/anaconda3/envs/smart/bin/python -m py_compile app/services/wecom_attendance.py app/api/endpoints/wecom_attendance.py`
+  - 本次未新增依赖
+
+- 已修复栗洪涛年假在考勤汇总列表翻倍问题：
+  - 文件：`backend/app/services/wecom_attendance.py`
+  - 原因：考勤汇总列表先读取 `wecom_attendance_daily_records`，而日表里 `oa_leave_json/annual_leave` 已经落库；接口返回前又执行一次 `apply_oa_attendance_adjustments`，导致同一条 OA 年假再次叠加
+  - 修复：OA 请假 / OA 考勤修正合并改为幂等；若 `oa_leave_json` 或 `oa_correction_json` 已包含同一 `requestId/id`，则跳过重复叠加
+  - 已验证：栗洪涛 `2026-07-06` 至 `2026-07-10` 每天 `annual_leave=1.0`，7 月合计 `annual_sum=5.0`
+  - 已验证：`cd backend && /opt/anaconda3/envs/smart/bin/python -m py_compile app/services/wecom_attendance.py app/api/endpoints/wecom_attendance.py`
+  - 本次未新增依赖
+
+- 正式环境已修复王慧君 `2026-07-03` 外出补缺卡后未计入迟到问题：
+  - 文件：`backend/app/services/wecom_attendance.py`
+  - 原因 1：补算缺卡基准时间时新增读取 `raw_json.sch_checkin_time`，但服务类缺少 `_parse_json_dict`
+  - 原因 2：正式库 `attendance_checkin_records.checkin_time` 查询结果为 `datetime`，旧迟到计算只兼容整数时间戳，导致分钟差始终为空
+  - 修复：
+    - 新增 `_parse_json_dict`
+    - 新增 `_timestamp_seconds`，统一兼容 `datetime` 与时间戳
+    - `_late_or_early_minutes`、`_item_record_date`、`_item_checkin_datetime`、`_infer_out_attendance_slot` 改为走统一时间解析
+  - 已重算正式库 `2026-07-02` 至 `2026-07-03`
+  - 验证结果：
+    - `2026-07-02`：`missing_punch_count=0`、`late_early_within_20=0`
+    - `2026-07-03`：`missing_punch_count=0`、`late_early_within_20=1`
+  - 已验证：`cd backend && /opt/anaconda3/envs/smart/bin/python -m py_compile app/services/wecom_attendance.py app/api/endpoints/wecom_attendance.py`
+  - 本次未新增依赖
+
+- 人事考勤助手“考勤汇总 -> 详情 -> 每日考勤”已固定日期列：
+  - 文件：`frontend/src/pages/wecom_attendance/index.tsx`
+  - 每日考勤弹窗宽表横向右滑时，日期列保持在左侧可见
+  - 横向滚回左侧时仍显示原日期列，不额外遮挡
+  - 已验证：`cd frontend && ./build.sh`
+  - 本次未新增依赖；构建使用 Node `v20.20.2`
+
+- 正式环境已修复王慧君 `2026-07-02`、`2026-07-03` 外出未抵消缺卡问题：
+  - 原因：外出记录 `checkin_type=外出打卡`，未直接带上班/下班方向，旧规则无法判断归属
+  - 现规则：按外出打卡时间靠近上班还是下班时点判定方向，再抵消对应缺卡
+  - 已重算正式库 `2026-07-02` 至 `2026-07-03`
+  - 重算后：
+    - `2026-07-02`：`missing_punch_count=0`、`absenteeism_count=0.0`
+    - `2026-07-03`：`missing_punch_count=0`、`absenteeism_count=0.0`
+  - 已验证：`cd backend && /opt/anaconda3/envs/smart/bin/python -m py_compile app/services/wecom_attendance.py app/api/endpoints/wecom_attendance.py`
+  - 本次未新增依赖
+
+- 人事考勤助手已增加“外出打卡抵消未打卡”规则：
+  - 文件：
+    - `backend/app/services/wecom_attendance.py`
+    - `backend/app/api/endpoints/wecom_attendance.py`
+  - 规则：
+    - 未打卡当日如存在同方向外出打卡（上班/下班），优先抵消对应未打卡
+    - 外出打卡抵消后，如时间落入迟到/早退 60 分钟内区间，计入对应档位
+  - 已接入：
+    - 原始企微明细构建日汇总
+    - 日汇总缺卡/旷工重算
+    - 页面接口实时展示口径
+  - 已验证：`cd backend && /opt/anaconda3/envs/smart/bin/python -m py_compile app/services/wecom_attendance.py app/api/endpoints/wecom_attendance.py`
+  - 本次未新增依赖
+
+- 招标信息公示自动清理已保护有跟进人的数据：
+  - 文件：
+    - `backend/app/api/endpoints/admin/crawler_tasks.py`
+    - `backend/app/services/crawler_handlers/okcis.py`
+  - OKCIS 自动清理过期数据时，新增 `NOT EXISTS crawler_okcis_notice_follow_records` 条件
+  - 单条数据因详情权限不足、截止时间格式无效、截止时间少于等于未来 4 天而准备删除旧记录时，也会跳过已有跟进人的公告
+  - OKCIS 爬取新数据并命中旧公告更新时，若旧公告存在跟进记录，会强制保留 `is_followed=1`，避免跟进状态被覆盖为空
+  - 规则：只要 `crawler_okcis_notice_follow_records.notice_id` 指向该公告，就不自动清除
+  - 已验证：`cd backend && /opt/anaconda3/envs/smart/bin/python -m py_compile app/api/endpoints/admin/crawler_tasks.py app/services/crawler_handlers/okcis.py`
+  - 本次未新增依赖
+
+- 正式环境排查刘艳 `2026-06-28` 休息日问题：
+  - 表 `attendance_special_date_configs` 已存在当天默认考勤组休息日配置：`config_date=2026-06-28`、`attendance_group_key=default`、`is_rest_day=1`
+  - 表 `wecom_attendance_daily_records` 中刘艳（`userid=LiuYan`，部门 `档案室`）当天记录已被正确压平：
+    - `expected_attendance=1`
+    - `actual_attendance=0.0`
+    - `absenteeism_count=0.0`
+    - `missing_punch_count=0`
+  - 当前如果页面里仍看到“上班打卡/下班打卡 未打卡”，那是原始企微 `raw_json` 明细内容；统计口径上的旷工/未打卡已经被休息日规则清零
+  - 本次为正式库排查，未改代码、未新增依赖
+
+- 人事考勤助手“考勤汇总 / 详情”已接入钉钉请假抵扣旷工：
+  - 文件：`backend/app/api/endpoints/wecom_attendance.py`
+  - 在 `/api/wecom-attendance/daily-records` 返回前，新增按钉钉请假记录补充请假字段与旷工抵扣
+  - 当前已接入的钉钉请假类型映射包括：`调休/年假/病假/带薪病假/事假/产假/陪产假/婚假/丧假/哺乳假`
+  - 已验证刘雁鹏在以下日期会自动计入 `调休`，并把 `旷工/未打卡` 抵扣为 `0`：
+    - `2026-06-27`
+    - `2026-07-01`
+    - `2026-07-03`
+    - `2026-07-10`
+  - 已验证：
+    - `cd backend && /opt/anaconda3/envs/smart/bin/python -m py_compile app/api/endpoints/wecom_attendance.py app/services/dingtalk_attendance.py app/services/wecom_attendance.py`
+  - 本次未新增依赖
+
+- 钉钉请假类型已增加本地兜底映射：
+  - 文件：`backend/app/services/dingtalk_attendance.py`
+  - 已根据用户提供的钉钉页面确认：
+    - `031fc328-ea2c-47e0-87f3-7c95a590d0c5 -> 调休`
+  - 当前钉钉类型列表接口虽已无权限报错，但仍返回空数组
+  - 因此先用本地映射兜底显示中文类型，避免页面继续展示编码
+  - 已验证：
+    - `cd backend && /opt/anaconda3/envs/smart/bin/python -m py_compile app/services/dingtalk_attendance.py app/api/endpoints/wecom_attendance.py`
+  - 本次未新增依赖
+
+- 人事考勤助手“已通过记录”已接入钉钉请假数据：
+  - 文件：
+    - `backend/app/services/dingtalk_attendance.py`
+    - `backend/app/api/endpoints/wecom_attendance.py`
+  - 已通过记录接口现会合并：
+    - OA 请假 / 考勤修正
+    - 钉钉请假状态 `topapi/attendance/getleavestatus`
+  - 已实测 `刘雁鹏` 可查到 3 条钉钉请假：
+    - `2026-07-01`
+    - `2026-07-03`
+    - `2026-07-10`
+  - 当前钉钉返回只有 `leave_code`，未直接返回请假类型名称
+  - 已验证请假类型查询接口存在，但当前应用缺少权限：
+    - 权限：`qyapi_holiday_readonly`
+    - 接口：
+      - `POST https://oapi.dingtalk.com/topapi/attendance/vacation/type/list`
+      - `GET https://api.dingtalk.com/v1.0/attendance/leaves/types`
+  - 权限未开通前，列表先展示 `leave_code`
+  - 已验证：
+    - `cd backend && /opt/anaconda3/envs/smart/bin/python -m py_compile app/services/dingtalk_attendance.py app/api/endpoints/wecom_attendance.py app/services/wecom_attendance.py`
+  - 本次未新增依赖
+
+- 正式环境技术项目看板姓名重复已修复：
+  - 问题：后端按原始昵称分组，工作记录里为 `程金雨`，部门成员兜底里为 `程金雨VIP1`，导致看板出现两行，其中 `程金雨VIP1` 为空行
+  - 修复：`backend/app/api/endpoints/tech_project_staff_board.py` 增加员工姓名归一化，统一去掉末尾 `VIP*` 后缀后再分组和兜底补人员
+  - 已用正式库 2026-07-14 至 2026-07-20 验证：自控部 `程金雨` 只返回一行，7/14、7/15、7/16、7/17 数据均保留并合并
+  - 已验证：`cd backend && /opt/anaconda3/envs/smart/bin/python -m py_compile app/api/endpoints/tech_project_staff_board.py`
+  - 本次未新增依赖
+
+- 人事考勤助手详情页已补齐 OA 考勤修正合并：
+  - 修复接口：`backend/app/api/endpoints/wecom_attendance.py`
+  - `考勤汇总 -> 详情` 查询日明细时，原先只读 `wecom_attendance_daily_records`，未把 OA 已通过的请假/考勤修正再合并一次
+  - 现已在 `/api/wecom-attendance/daily-records` 内补调用 `apply_oa_attendance_adjustments`
+  - 修复后，像“只有 OA 考勤修正、但没有原始日汇总”的日期，也会出现在详情里
+  - 本次确认口径：考勤修正按补卡日期统计，提交日期不作为考勤归属日期
+  - 同步修复：考勤修正生效后，`未打卡` 与 `旷工` 会被抵消归零，不再只增加 `实际出勤/考勤修正`
+  - 详情中的打卡明细已补一条 OA 修正补卡记录：
+    - 根据修正单时间生成 `上班打卡 / 下班打卡`
+    - 备注显示 `考勤修正（OA申请ID）`
+    - 链接改为系统内页：`/apps/wecom-attendance?tab=attendance-correction&request_id=...`
+    - 考勤修正列表搜索已支持 `request_id`
+  - 已验证：
+    - `cd backend && /opt/anaconda3/envs/smart/bin/python -m py_compile app/api/endpoints/wecom_attendance.py app/services/wecom_attendance.py`
+    - `cd frontend && ./build.sh`
+  - 本次未新增依赖
+
+- 人事考勤助手“考勤汇总”列表已对齐最新版花名册口径：
+  - 列表去掉 `企微ID`
+  - 搜索框改为仅按姓名搜索
+  - 汇总表去掉 `应有年假`
+  - 上传花名册时记录上传时间，并保存花名册里的 `部门 + 姓名 + 应出勤`
+  - 考勤汇总标题本月有花名册时显示：`（花名册：YYYY年M月D日）`
+  - 列表和导出都以本月最新花名册人员为基础，读取花名册应出勤，再合并系统统计的实际出勤、年假、带薪病假、事假、调休、产假、婚假、陪产假、丧假、哺乳假、迟到/早退三档、旷工、未打卡
+  - 没有本月花名册时不显示上传日期，列表应出勤展示为 `-`
+  - 部门列按当前页连续部门使用 `rowSpan` 合并单元格
+  - 汇总表列宽改为按内容收缩，同时表格整体撑满容器
+  - 汇总表字段单位独立换行展示；迟到/早退三档表头显示 `20 / 分钟内 / （次）`、`20-40 / 分钟 / （次）`、`40-60 / 分钟 / （次）`，鼠标悬浮显示完整说明
+  - 所有数字 `0 / 0.0` 展示为 `-`
+  - 考勤汇总表开启模拟浮动表头，表头滚出页面顶部后固定展示
+  - 新增表：`wecom_attendance_roster_uploads`、`wecom_attendance_roster_expected_days`
+  - 新增 SQL：`backend/sql/create_wecom_attendance_roster_uploads.sql`
+  - 新增迁移：`backend/migrations/versions/g7h8i9j0k1l2_create_wecom_attendance_roster_uploads.py`
+  - 已执行到 test / prod 两套环境，并确认两张花名册上传记录表都存在
+  - 汇总表新增分页，默认每页 50 条，支持 50 / 100 / 200
+  - 已验证：
+    - `cd backend && /opt/anaconda3/envs/smart/bin/python -m py_compile app/api/endpoints/wecom_attendance.py app/models/wecom_attendance.py app/models/__init__.py migrations/versions/g7h8i9j0k1l2_create_wecom_attendance_roster_uploads.py`
+    - `cd frontend && ./build.sh`
+  - 本次未新增依赖
+
+- OKCIS 招投标数据爬取已改为使用手机版 JSON 获取截止时间：
+  - 不再为了截止时间访问 PC 详情页
+  - 爬取阶段访问 `https://m.okcis.cn/...json`
+  - 优先读取手机版 JSON `data.bid_time_new`，其次 `data.bid_time`
+  - 同时解析 `data.content` 里的 `截止时间 / 投标截止时间 / 开标时间 / 响应截止时间` 等字段
+  - 对 `content` 中的“`YYYY年M月D日H时M分前提交/递交响应文件或投标文件`”也会识别为 `投标截止时间`
+  - 多个候选时间优先选择包含具体时分的时间；同为具体时间或同为日期时，再取最早有效时间作为入库截止时间
+  - 手机版 JSON 出现 `登录后查看`、`*****招标公司` 等脱敏内容时，会触发重新登录刷新凭证后重试
+  - 详情缓存 `_fetch_okcis_detail_cache` 也去掉了 PC 详情预访问，直接使用移动端 JSON 构建详情 HTML
+  - 旧任务路径的截止时间提取同步补充 `bid_time_new / bid_time / deadline_at / deadline / bmjzsj` 候选字段
+  - 已验证：`cd backend && /opt/anaconda3/envs/smart/bin/python -m py_compile app/services/crawler_handlers/okcis.py app/api/endpoints/admin/crawler_tasks.py`
+  - 已验证样例：`https://m.okcis.cn/m/pages/index/TenderDetails?link=/20260717-n2-20260717161259340744-b75ca552d0b48158f58fce529425ac23.json`
+    - 刷新凭证前：JSON 脱敏，`bid_time_new/bid_time` 为空，无法获得截止时间
+    - 刷新凭证后：`deadline_fields={'报名截止时间': '2026-07-23', '投标截止时间': '2026年7月28日15时00分'}`，最终取 `2026年7月28日15时00分`
+  - 本次未新增依赖
+
+- 2026 年 4 月考勤与用户提供 `2026.4月考勤-汇总表.xlsx` 复核：
+  - 已修复页面 / 导出口径里迟到早退二次计算问题：只统计企微明细明确为 `迟到` / `早退` / `时间异常` 的记录，不再把 `地点异常` 按时间差算成迟到早退
+  - 服务层同步修复，后续重新同步 / 重算也使用同一口径
+  - 周六休息日判断补充：手工配置为休息日仍优先；未配置时如果日汇总 `expected_attendance > 0`，按工作日统计，避免漏掉 2026-04-25 这类企微本身应出勤的周六
+  - 正式库按 2026-04-01 至 2026-04-26 复核：迟到早退差异已归零
+  - 剩余未打卡差异 2 人：季鹏源表 1 / 系统 0、刘洪泽源表 2 / 系统 0；原因是系统按请假覆盖和休息日过滤规则扣掉，属于口径差异，不是漏抓
+  - 已验证：`cd backend && /opt/anaconda3/envs/smart/bin/python -m py_compile app/api/endpoints/wecom_attendance.py app/services/wecom_attendance.py`
+  - 本次未新增依赖
+
+- 正式环境 `okcis_notice_manual` 已重新跑数据：
+  - 执行任务：`crawler_tasks.id=3`，运行记录 `crawler_task_runs.id=719`
+  - 结果：`success`，开始 `2026-07-17 16:06:00`，结束 `2026-07-17 16:16:02`
+  - 本次共请求 9 个订阅组，成功 9 个，失败 0 个
+  - 正式库 `crawler_okcis_notices` 今日有效数据：39 条，覆盖 5 个订阅组
+  - 分组数量：订阅条件组一 4 条、订阅条件组三 4 条、订阅条件组七 14 条、订阅条件组八 7 条、售前营销 10 条
+  - 跳过项主要为截止时间格式无效或截止时间小于等于未来 4 天，属于当前业务过滤规则
+  - 已给爬虫 HTTP 请求增加 502/503/504 瞬时错误重试，降低 OKCIS 临时网关错误导致任务失败的概率
+  - 已验证：`cd backend && /opt/anaconda3/envs/smart/bin/python -m py_compile app/services/crawler.py app/services/oa_sync.py app/tasks/scheduler.py`
+  - 本次未新增依赖
+
+- 正式环境 `oa_user_department_sync` 报错已修复并验证：
+  - 报错原因：别名账号合并时，`oa_resource_id=759` 已被旧账号占用，给另一个用户写入同一 OA ID 时触发唯一索引冲突
+  - 修复：写入主账号 OA ID 前，先释放其他用户占用的同一 `oa_resource_id` 并停用旧账号
+  - 已用正式库跑通同步：部门 64 个、用户 277 个、新增 0、更新 0、停用 0、账号冲突 0
+  - 计划任务列表最近结果显示也已改为中文摘要，不再显示 Python dict 原始 key
+  - 已验证：`cd backend && /opt/anaconda3/envs/smart/bin/python -m py_compile app/services/oa_sync.py app/tasks/scheduler.py`
+  - 本次未新增依赖
+
+- 人事考勤休息日与周六工作日规则已补齐：
+  - 新增/执行 SQL：`backend/sql/upsert_attendance_2026_national_holidays.sql`
+  - 已写入 test / prod：2026 年国家法定节假日默认作为默认考勤组休息日
+  - 考勤页面汇总、每日列表、花名册导出和缺卡/旷工重算统一规则：
+    - 独立日期配置为休息日时优先按休息处理
+    - 独立日期配置了上下班时间时优先使用该时间
+    - 周六如果配置为非休息日且没填上下班时间，默认按 `09:00-15:00`
+    - 周六 / 周日未配置为非休息日时默认休息
+  - 已重算 test / prod 2026-04-01 至 2026-04-26 缺卡/旷工
+  - 正式库复查：刘凯 2026-04-06 旷工/未打卡/迟到早退均为 0
+  - 重新生成对比：`data/attendance_compare_20260401_20260426_key_fields.xlsx`
+  - 最新对比结果：源表异常 25 人，18 人存在差异，39 条字段差异；旷工差异降为 1 人、系统多 5 天
+  - 已验证：`cd backend && /opt/anaconda3/envs/smart/bin/python -m py_compile app/services/wecom_attendance.py app/api/endpoints/wecom_attendance.py app/models/wecom_attendance.py`
+  - 本次未新增依赖
+
+- 人事考勤苗会亮旷工误记已修复：
+  - 正式库排查：苗会亮 2026 年 4 月年假共 6 天，日期为 4/1、4/2、4/3、4/8、4/9、4/10
+  - 旧逻辑只用事假、带薪病假/病假、调休抵扣旷工，漏掉年假，导致 4/1、4/2、4/3、4/9、4/10 被误记旷工
+  - 已修复：年假同样抵扣旷工；服务层重算和接口展示/导出扣减口径保持一致
+  - 已重算正式库 2026-04-01 至 2026-04-26：苗会亮年假保留 6 天，旷工为 0；剩余 4/7、4/13 为未打卡各 1 次
+  - 重新生成 `data/attendance_compare_20260401_20260426_key_fields.xlsx`
+  - 最新对比：源表异常 25 人，18 人存在差异，38 条字段差异；旷工差异已消除
+  - 已验证：`cd backend && /opt/anaconda3/envs/smart/bin/python -m py_compile app/services/wecom_attendance.py app/api/endpoints/wecom_attendance.py`
+  - 本次未新增依赖
+
+- 人事考勤入职/离职日期已落到员工基础信息表：
+  - `users` 表新增/确认字段：`hire_date` 入职日期、`leave_date` 离职日期
+  - OA 用户部门同步任务 `sync_oa_departments_and_users` 已同步 `hrmresource.STARTDATE / companystartdate / workstartdate / ENDDATE`
+  - 入职日期优先级：`STARTDATE`、`companystartdate`、`workstartdate`
+  - 离职日期：`ENDDATE`
+  - 已修复别名账号匹配：OA 登录名命中别名时优先更新主账号，重复别名账号释放 `oa_resource_id` 并停用
+  - 已处理康鹏：主账号 `tangpeng` 写入 `oa_resource_id=759`、`hire_date=2026-04-20`；重复账号 `kangpeng` 已停用
+  - 已在 test / prod 执行字段 SQL 并跑 OA 用户同步；活跃用户中两套环境均有 166 人写入入职日期
+  - 已重算 test / prod 2026-01-01 至 2026-07-16 缺卡/旷工
+  - 复查康鹏 2026-04-01 至 2026-04-26：test/prod 主账号 `tangpeng` 旷工均为 0
+  - 用户确认：无入职日期的员工按 `2026-01-01` 作为入职日期；已补到代码和两套环境历史数据
+  - 已重新生成 2026 年 4 月考勤对比：`data/attendance_compare_20260401_20260426_default_hire_20260101.xlsx`
+  - 新版对比：源表 249 人，源表应出勤不等于实际出勤 25 人，存在字段差异 20 人，字段差异 54 条
+  - 已修复 OA 同步大小写误报：`LiZhaoMin/lizhaomin`、`TianXu/tianxu` 不再计入 `sso_conflict_count`
+  - 复查 test/prod：`sso_conflict_count=0`
+  - 请假统计已改为严格按 OA `newLeaveType` 类型码，不再按请假原因判断；已确认主要映射：`2=年假`、`4=带薪病假`、`5=调休`、`6=事假`、`8=产假`、`9=陪产假`、`10=婚假`、`11=丧假`、`12=哺乳假`
+  - 入职当天及之前 / 离职后：旷工、未打卡、迟到早退均不计
+  - 重新统计 2026 年 4 月关键字段：先排除源表“应出勤=实际出勤”的人员，只看事假、迟到早退三档、旷工、未打卡；源表异常 25 人，其中 18 人存在差异，49 条字段差异
+  - 未打卡口径已修正：只统计企微/钉钉明细里明确返回的“未打卡/缺卡”，不再根据“当天只有上班或下班一条打卡”反推未打卡
+  - 刘洪泽原先系统 3 次未打卡来自 4/7、4/15、4/21 的反推；修正后按当前规则有效未打卡为 4/23 这 1 次，4/10 被事假覆盖，4/11、4/12、4/26 为休息日不计
+  - 旷工字段已改为小数天数 `DECIMAL(6,1)`；旷工当天如有事假、带薪病假/病假、调休，会按时长扣减旷工，最低为 0
+  - 已执行 SQL：`backend/sql/alter_wecom_attendance_absenteeism_decimal.sql`
+  - 已重算 test / prod 2026-04-01 至 2026-04-26；正式库复查：当前仍有旷工的记录当天均无事假/病假/调休可抵扣
+  - 重新生成关键字段对比后：源表异常 25 人，18 人存在差异，48 条字段差异；旷工差异为 12 人、系统多 16 天
+  - 新文件：`data/attendance_compare_20260401_20260426_key_fields.xlsx`
+  - 已验证：`cd backend && /opt/anaconda3/envs/smart/bin/python -m py_compile app/services/oa_sync.py app/services/wecom_attendance.py app/services/wecom.py app/models/base.py`
+  - 本次未新增依赖
+
+- 售前营销月度回款看板已补数据落表和读取：
+  - 新增本地镜像表：`presales_payment_dashboard_rows`
+  - 数据源：OA 回款通知主表 `formtable_main_117`
+  - 提交用户 ID 已保存：`submitter_oa_user_id = formtable_main_117.sqr`，`creator_oa_user_id = workflow_requestbase.CREATER`
+  - 新增同步脚本：`backend/scripts/sync_presales_payment_dashboard_rows.py`
+  - 新增接口：`/api/presales-payment-dashboard/summary`、`/api/presales-payment-dashboard/rows`、`/api/presales-payment-dashboard/sync`
+  - 员工查询按当前用户 `oa_resource_id` 匹配 `submitter_oa_user_id`；管理员权限可看全部
+  - 已在 test / prod 执行建表 SQL：`backend/sql/create_presales_payment_dashboard_rows.sql`
+  - 已同步 test / prod：各写入/更新 `12105` 行，`submitter_oa_user_id` 和 `creator_oa_user_id` 均有值
+  - 已验证：
+    - `cd backend && /opt/anaconda3/envs/smart/bin/python -m py_compile app/models/presales_payment_dashboard.py app/models/__init__.py app/api/api.py app/api/endpoints/presales_payment_dashboard.py scripts/sync_presales_payment_dashboard_rows.py migrations/versions/n6o7p8q9r0s1_create_presales_payment_dashboard_rows.py`
+    - `cd frontend && ./build.sh`
+  - 本次未新增依赖
+
+- 2026 年 4 月考勤差异已按“排除实际出勤”重新统计：
+  - 统计字段：年假、带薪病假、事假、调休、婚假、陪产假、丧假、哺乳假、迟到早退 20 / 20-40 / 40-60 分钟、旷工、未打卡
+  - 结果显示差异主要集中在旷工、未打卡，其次是迟到分段和调休
+  - 典型人员：李家熠、韩新宇、徐桥、张辉、刘培、张永勋、李秋杰、程金雨、于海飞、刘超、赵久堂、焦安宝、田新玲、王雨馨、刘健、郭连发、穆雅萌、苏健、郑泽玺
+  - 新对比文件仍沿用：`data/attendance_compare_20260401_20260426_prod_restday.xlsx`
+
+- 新增“售前营销月度回款看板”工作台卡片与页面骨架：
+  - 新增独立权限：
+    - 员工：`app:presales_payment_dashboard:access`
+    - 管理员：`app:presales_payment_dashboard:admin`
+  - 新增前端页面 `/apps/presales-payment-dashboard`
+  - 页面默认展示“回款看板”，管理员可点击“管理后台”切换；看板内容暂未绘制
+  - 员工权限口径：只看本人提交的数据；管理员权限口径：可看全部数据
+  - 后续数据抓取来源：OA 回款通知流程 `formtable_main_117`，提交人字段可取 `sqr` 或 `workflow_requestbase.CREATER`
+  - 已写入 test / prod 两套环境权限和工作台卡片：`backend/sql/upsert_presales_payment_dashboard_card.sql`
+  - 已验证：
+    - `cd backend && /opt/anaconda3/envs/smart/bin/python -m py_compile app/permissions.py app/db_init.py`
+    - `cd frontend && ./build.sh`
+  - 本次未新增依赖
+
+- 2026 年 4 月考勤历史按 prod 休息日重试：
+  - prod 4 月默认休息日已配置为 6 天：4/4、4/5、4/12、4/18、4/19、4/26
+  - 仅 prod 重新生成按休息日过滤后的对比文件：`data/attendance_compare_20260401_20260426_prod_restday.xlsx`
+  - 按休息日过滤后，系统应出勤合计为 4766，源文件为 6022；实际出勤系统 4038.5，源文件 5852.5
+  - 结论：系统数据可以入库做历史记录，但和这份人工月表仍不是同一口径，不能直接替代
+
+- 2026 年 4 月 1 日至 4 月 26 日考勤历史数据已补同步并和用户提供的 `202604.xlsx` 对比：
+  - 已按当前系统同步逻辑拉取并入库：企微考勤、钉钉启用人员覆盖合并、OA 请假/考勤修正、缺卡/旷工重算
+  - test：日汇总 6636 条、256 人；明细 13192 条、236 人；钉钉 1076 条、27 人
+  - prod：日汇总 6194 条、239 人；明细 12412 条、221 人；钉钉 1076 条、27 人
+  - 对比文件：`data/attendance_compare_20260401_20260426_v2.xlsx`
+  - 按“唯一姓名优先，重名用部门+姓名”匹配：源文件 249 人、系统 237 人、匹配 216 人、仅源文件 33 人、仅系统 21 人
+  - 主要差异：正式库 4 月没有休息日配置，系统按 26 天统计，应出勤比源文件多 172；实际出勤比源文件少 1462；系统旷工 319、未打卡 338，源文件旷工 0、未打卡 83；OA 请假/调休/迟到分段和人工表口径也不一致
+  - 发现重复用户示例：李旭晴在 prod 有 `15692250985` 与 `lixuqing` 两个 userid，同部门同名汇总后应出勤变 52
+  - 本次未新增依赖
+
+- 正式环境 OA“回款通知-常兵阳VIP3-2026-07-07”流程表定位：
+  - `workflow_requestbase.requestid=1169903`
+  - `workflowid=396`
+  - `workflow_base.FORMID=-117`
+  - `workflow_bill.TABLENAME=formtable_main_117`
+  - 主数据行在 `ecology.formtable_main_117`，主键 `id=12159`，`requestid=1169903`
+  - 关键字段：`xmbh` 项目编号、`xmmc` 项目名称、`htbh` 合同编号、`htmc` 合同名称、`hkje` 回款金额、`sjhkrq` 实际回款日期、`htje` 合同额、`yhke` 已回款额
+
+- 人事考勤汇总请假对冲旷工口径已补齐：
+  - 汇总考勤统计里，当天有年假或调休时，旷工 / 未打卡不计
+  - 当天其他请假合计满 1 天时，也视为请假覆盖当天，旷工 / 未打卡不计
+  - 缺卡提醒、缺卡详情、缺卡导出、花名册导出和列表汇总使用同一口径
+  - 缺卡/旷工重算任务读取请假字段后再计算，避免同步后把 OA 请假覆盖日期重新算成旷工
+  - 已验证：
+    - `cd backend && /opt/anaconda3/envs/smart/bin/python -m py_compile app/api/endpoints/wecom_attendance.py app/models/wecom_attendance.py app/models/__init__.py app/services/wecom_attendance.py`
+    - `cd frontend && ./build.sh`
+  - 本次未新增依赖
+
+- 人事考勤 OA 请假/考勤修正按天展开已修复：
+  - OA 请假时长大于 1 天时，按起止日期逐日写入日汇总明细，例如 2026-07-06 至 2026-07-10 年假 5 天会写成每天年假 1 天
+  - 年假、调休会补实际出勤，同一天实际出勤最高仍为 1 天
+  - 事假、带薪病假仍扣实际出勤，其他假别只记录字段
+  - OA 人员当天没有企微日记录时，会创建基础日汇总记录，避免请假日期漏写
+  - “考勤修正 / OA已通过记录”按日期展开展示，避免一条跨多天流程只显示一天
+  - 导出文件名改为 `考勤汇总_YYYYMMDD-YYYYMMDD.xlsx`
+  - 已验证：
+    - `cd backend && /opt/anaconda3/envs/smart/bin/python -m py_compile app/api/endpoints/wecom_attendance.py app/models/wecom_attendance.py app/models/__init__.py app/services/wecom_attendance.py`
+    - `cd frontend && ./build.sh`
+  - 本次未新增依赖
+
+- 人事考勤助手花名册导出口径已对齐列表汇总：
+  - 修复导出“实际出勤”等字段与页面列表不一致的问题
+  - 导出不再使用一段独立 SQL 粗聚合，改为按列表同源口径处理日汇总明细
+  - 同步套用考勤排除范围、考勤组休息日、白名单、钉钉优先覆盖、实际出勤每日上限、事假/带薪病假扣减
+  - 迟到/早退 20 分钟内、20-40 分钟、40-60 分钟改为和列表一样根据打卡明细及考勤配置实时计算
+  - 花名册模板如果存在应出勤、外出、旷工、未打卡列，也会按同一数据源填充；前端隐藏不影响导出
+  - 已验证：`cd backend && /opt/anaconda3/envs/smart/bin/python -m py_compile app/api/endpoints/wecom_attendance.py app/models/wecom_attendance.py app/models/__init__.py app/services/wecom_attendance.py`
+  - 本次未新增依赖
+
+- 人事考勤助手考勤汇总新增花名册格式导出：
+  - 后端新增 `GET /api/wecom-attendance/roster/export`
+  - 复用上传花名册填充逻辑，直接使用系统花名册模板生成已填充考勤数据的 Excel
+  - “考勤汇总”tab 右上角新增“导出考勤汇总”按钮
+  - “导出考勤汇总 / 下载模板 / 上传花名册 / 同步企微考勤”仅在“考勤汇总”页面显示
+  - 钉钉页保留自己的“同步钉钉人员”按钮
+  - 已验证：
+    - `cd backend && /opt/anaconda3/envs/smart/bin/python -m py_compile app/api/endpoints/wecom_attendance.py app/models/wecom_attendance.py app/models/__init__.py app/services/wecom_attendance.py`
+    - `cd frontend && ./build.sh`
+  - 本次未新增依赖
+
+- 人事考勤助手新增“考勤组管理”：
+  - 新增表 `attendance_groups`，SQL：`backend/sql/create_attendance_groups.sql`
+  - 已在 test / prod 执行 SQL：创建考勤组表，并给 `attendance_special_date_configs` 增加 `attendance_group_id`、`attendance_group_key`
+  - 旧休息日/特殊日期配置自动归入 `默认考勤组`
+  - 休息日配置支持选择考勤组；不选即默认考勤组
+  - 考勤组按部门多选保存，后端返回时会展开所选部门的全部子部门名称，用于员工部门匹配
+  - 休息日匹配规则：员工属于新建考勤组时只使用该组休息日；该组未选择休息日即没有休息日，不再套默认考勤组；未命中任何新建考勤组时才使用默认考勤组
+  - 考勤组删除规则：组内还有部门时不能删除；需先编辑清空部门，再删除
+  - 已验证：
+    - `cd backend && /opt/anaconda3/envs/smart/bin/python -m py_compile app/models/wecom_attendance.py app/models/__init__.py app/api/endpoints/wecom_attendance.py app/services/wecom_attendance.py`
+    - `cd frontend && ./build.sh`
+  - 本次未新增依赖
+
+- 人事考勤助手新增入离职考勤规则：
+  - 缺卡/旷工重算时读取 OA `hrmresource` 生命周期日期
+  - 入职日期优先取 `STARTDATE`，为空时用 `companystartdate`、`workstartdate` 兜底
+  - 离职日期取 `ENDDATE`
+  - 只有能获取到确定日期时才应用规则：入职当天及入职前、离职后的旷工/未打卡不计；取不到日期的不改变
+  - 已确认赵广文 `companystartdate/workstartdate=2026-07-10`
+  - 已重算 test / prod 2026-07-01 至 2026-07-31 缺卡/旷工数据：
+    - test 更新 4107 条，当前旷工合计 268，未打卡合计 314
+    - prod 更新 3964 条，当前旷工合计 189，未打卡合计 292
+  - 已验证：`cd backend && /opt/anaconda3/envs/smart/bin/python -m py_compile app/models/wecom_attendance.py app/models/__init__.py app/services/wecom_attendance.py app/api/endpoints/wecom_attendance.py`
+  - 本次未新增依赖
+
+- OKCIS 爬虫任务 3 已调整：
+  - `crawler_tasks.id=3` / `crawler_task_3` 定时改为每天 `15:05:00` 执行，cron 为 `0 5 15 * * *`
+  - 已同步更新 test / prod 两套环境的 `crawler_tasks` 和 `scheduler_job_meta`
+  - OKCIS 详情访问增加节流：每访问 10 个详情页，随机暂停 3 到 10 秒，降低触发风控概率
+  - 已验证：`cd backend && /opt/anaconda3/envs/smart/bin/python -m py_compile app/services/crawler_handlers/okcis.py app/api/endpoints/admin/crawler_tasks.py`
+  - 本次未新增依赖
+
+- 营销管理中心“招投标群发推送”空数据日志已增强：
+  - `push_okcis_daily_summary` 在当天数据为空时，会返回明确摘要并写入计划任务运行记录
+  - 摘要包含：日期、订阅组、数据为空原因、机器人 ID
+  - 公共任务包装器 `_execute_job_with_log_capture` 已支持使用 runner 返回值作为本次成功摘要，计划任务列表/详情可直接看到“未发送原因”
+  - 已验证：`cd backend && /opt/anaconda3/envs/smart/bin/python -m py_compile app/tasks/scheduler.py`
+  - 本次未新增依赖
+
+- OKCIS 招标数据爬取已支持指定订阅组 `dzid`：
+  - 手动执行接口新增参数 `dzid`；传入时只跑该订阅组，不传仍按原逻辑抓取全部订阅组
+  - 爬虫任务详情页 OKCIS 任务新增“订阅组 dzid”输入框
+  - multipart `raw_body` 内的 `page/pageSize/size` 会随分页参数更新，避免重复抓第一页
+  - 详情页返回“权限不够 / 登录后查看”时会先刷新登录凭证重试；重试仍不可见则跳过该条，并清理旧数据，不再写入权限不足记录
+  - 已在正式环境单独执行 `okcis_notice_manual`：`dzid=187653`（售前营销），`run_id=682`，执行成功
+  - 正式库复查：`crawler_okcis_notices` 中 `dzid=187653` 共 29 条，2026-07-16 当天 16 条，空截止时间 0 条，权限不足记录 0 条
+  - 已验证：
+    - `cd backend && /opt/anaconda3/envs/smart/bin/python -m py_compile app/services/crawler_handlers/okcis.py app/api/endpoints/admin/crawler_tasks.py`
+    - `cd frontend && ./build.sh`
+  - 本次未新增依赖
+
+- 已将正式环境系统基础数据同步到测试环境：
+  - 同步前已备份测试环境原数据：`/tmp/smart_cs_ai_test_base_data_backup_20260716_161408.json`
+  - 同步范围：组织用户、RBAC、工作台卡片、计划任务、爬虫任务配置、站点凭证、企微模板/机器人、各业务基础配置、考勤配置、钉钉人员、知识库配置等基础表
+  - 已覆盖同步到测试库并复查行数，所有同步表 test/prod 行数一致
+  - 未同步业务流水/明细类数据：爬虫结果、聊天消息、考勤明细、工单/合同/报价/任务记录等
+  - 本次未改代码，未新增依赖
+
+- 部门架构页面已改为只读：
+  - 移除组织架构树的新建、编辑、删除入口和弹窗
+  - 保留部门树展开 / 收起查看
+  - 鼠标移动到部门行和右上角“只读”标识时提示“同步OA部门架构数据”
+  - 页面说明改为“同步OA部门架构数据。”
+  - 已验证：`cd frontend && ./build.sh`
+  - 本次未新增依赖
+
+- 用户列表分配角色弹窗已支持角色搜索：
+  - 单用户“分配角色 / 修改角色”弹窗新增角色搜索框
+  - 输入时立即按角色名或角色标识过滤，不需要搜索按钮
+  - 输入框右侧新增清除按钮，可一键清空搜索词
+  - 已验证：`cd frontend && ./build.sh`
+  - 本次未新增依赖
+
+- 人事考勤助手考勤配置时间回显已修复：
+  - 兼容接口返回的 `PT14H40M` 这类 ISO duration 格式，统一转成时间输入框可识别的 `14:40`
+  - 时间设置列表里的上班 / 下班参照也统一展示为 `HH:mm`
+  - 考勤修正表头“时长”已改为“时长（天）”
+  - 已验证：`cd frontend && ./build.sh`
+  - 本次未新增依赖
+
+- 角色与权限列表已按角色名排序：
+  - `/admin/roles` 接口返回前按角色名称升序排序，同名时按 `slug` 稳定排序
+  - 角色与权限页面、用户角色选择等复用该接口的地方都会保持一致顺序
+  - 角色与权限页面“权限数量”支持悬浮查看权限列表
+  - 悬浮内容只显示权限名，每行一个；无权限名时兜底显示权限标识
+  - 已验证：`cd backend && /opt/anaconda3/envs/smart/bin/python -m py_compile app/api/endpoints/admin/roles.py`
+  - 已验证：`cd frontend && ./build.sh`
+  - 本次未新增依赖
+
+- 客户无忧客户列表同步计数裁剪已修复：
+  - 问题：正式环境王贺源站总数 14，但接口分页返回 50 条，任务按 50 条累计导致 `source_total=14, crawled_total=50` 校验失败
+  - 调整：`kehu51_customer_list` 任务在已知源站总数时，会按剩余条数裁剪当前页 `items`，再写业务表和累计抓取数量
+  - 最后一页若返回超过剩余总数，会记录 `[DATA-TRIM]` 日志，例如“源站剩余 14 条，已裁剪多余 36 条”
+  - 仅对 `kehu51_customer_list` 生效，不影响跟进记录、OKCIS 等其他任务
+  - 已验证：`cd backend && /opt/anaconda3/envs/smart/bin/python -m py_compile app/api/endpoints/admin/crawler_tasks.py`
+  - 本次未新增依赖
+
+- 人事考勤助手考勤修正不再重复增加实际出勤：
+  - 规则：如果当天实际出勤已经记 1 天，考勤修正不再增加实际出勤
+  - 实际出勤每天最高上限为 1 天
+  - OA 考勤修正只补当天实际出勤不足 1 天的差额，同时“考勤修正”列记录实际补入天数
+  - `actual_attendance` 已从 INT 改为 `DECIMAL(6,1)`，避免 0.5 天修正被截断
+  - 新增 SQL：`backend/sql/alter_wecom_attendance_actual_decimal.sql`
+  - 已在 test / prod 执行字段变更，并确认 `actual_attendance` 与 `attendance_correction_count` 均为 `decimal(6,1)`
+  - 已验证：
+    - `cd backend && /opt/anaconda3/envs/smart/bin/python -m py_compile app/models/wecom_attendance.py app/services/wecom_attendance.py app/api/endpoints/wecom_attendance.py`
+    - `cd frontend && ./build.sh`
+  - 本次未新增依赖
+
+- 人事考勤助手考勤修正字段已改为小数天：
+  - 问题：考勤修正已按天数累计，但 `wecom_attendance_daily_records.attendance_correction_count` 仍是 INT，0.5 天会被截断
+  - 已将模型、建表 SQL 和两套环境字段统一改为 `DECIMAL(6,1)`，注释为“考勤修正天数”
+  - 新增 SQL：`backend/sql/alter_wecom_attendance_correction_decimal.sql`
+  - 已在 test / prod 执行字段变更，并确认字段均为 `decimal(6,1)`
+  - 已验证：
+    - `cd backend && /opt/anaconda3/envs/smart/bin/python -m py_compile app/models/wecom_attendance.py app/services/wecom_attendance.py app/api/endpoints/wecom_attendance.py`
+    - `cd frontend && ./build.sh`
+  - 本次未新增依赖
+
+- 人事考勤助手考勤修正口径已调整：
+  - OA 考勤修正时长单位按“天”处理
+  - 考勤修正记录会累计到每日考勤的“考勤修正”列，支持 0.5 / 1.0 等小数天
+  - 实际出勤展示口径改为：原始实际出勤 + 考勤修正天数 - 事假 - 带薪病假
+  - OA 考勤修正表字段做兼容读取，存在 `duration/fromTime/toTime/sc/ts` 时使用，没有则按日期每天 1 天兜底
+  - 已验证：
+    - `cd backend && /opt/anaconda3/envs/smart/bin/python -m py_compile app/services/wecom_attendance.py app/api/endpoints/wecom_attendance.py`
+    - `cd frontend && ./build.sh`
+  - 本次未新增依赖
+
+- 人事考勤助手新增“考勤修正”tab：
+  - 前端新增 tab“考勤修正”，展示 OA 已提交通过的请假和考勤修正条目
+  - 展示字段：类型、部门、姓名、请假类型、开始时间、结束时间、时长、原因
+  - 复用页面日期范围、部门、姓名/类型/原因搜索和重置
+  - 后端新增接口：`GET /api/wecom-attendance/oa-approved-records`
+  - 数据源复用 OA 已通过流程：请假 `formtable_main_16`、考勤修正 `formtable_main_21`，仅取 `workflow_requestbase.CURRENTNODETYPE='3'`
+  - 已验证：
+    - `cd backend && /opt/anaconda3/envs/smart/bin/python -m py_compile app/services/wecom_attendance.py app/api/endpoints/wecom_attendance.py`
+    - `cd frontend && ./build.sh`
+  - 本次未新增依赖
+
+- 人事考勤助手考勤人员范围已调整：
+  - “人员白名单”不再作为正常考勤人员参与统计，而是从企微考勤同步、手动查询、日汇总列表、详情明细、缺卡重算范围中整体排除
+  - 排除部门查询也会按企微部门树展开，历史已保存数据在列表接口层过滤，不再展示
+  - 已确认 test / prod 均配置排除部门 `安徽营销中心`
+  - 历史库仍有旧数据：test 88 条、prod 42 条；按新接口过滤后可见数量均为 0
+  - 白名单历史行：test 44 条、prod 63 条；新逻辑已从考勤范围排除
+  - 已验证：`cd backend && /opt/anaconda3/envs/smart/bin/python -m py_compile app/services/wecom_attendance.py app/api/endpoints/wecom_attendance.py`
+  - 本次未新增依赖
+
+- 人事考勤助手“考勤配置”已新增排除部门：
+  - 新增表 `attendance_excluded_departments`，SQL：`backend/sql/create_attendance_excluded_departments.sql`
+  - 已在 test / prod 执行建表 SQL
+  - 考勤配置新增子 tab“排除部门”，支持搜索多选企微部门
+  - 可选择大部门；同步企微考勤时后端会自动展开其所有子部门，并排除部门下所有员工
+  - 排除部门列表只展示部门名和删除操作
+  - 企微考勤同步接口已按配置过滤排除部门人员；显式传入 userids 时也会与排除后的人员范围取交集
+  - 修复“时间设置”点击编辑后上班 / 下班时间没有回显到时间输入框的问题，`HH:mm:ss` 会转换为 `HH:mm`
+  - 已验证：
+    - `cd backend && /opt/anaconda3/envs/smart/bin/python -m py_compile app/models/wecom_attendance.py app/models/__init__.py app/services/wecom_attendance.py app/api/endpoints/wecom_attendance.py`
+    - `cd frontend && ./build.sh`
+  - 本次未新增依赖
+
+- 人事考勤助手缺卡统计和详情展示已修复：
+  - 问题：每日考勤详情里上下班状态显示“未打卡”，但汇总列仍显示旷工 0、未打卡 0
+  - 原因：缺卡重算查询 `attendance_checkin_records` 时漏取 `checkin_status`，导致“未打卡”的上班/下班明细被当成已打卡
+  - 已修复 `recalculate_missing_punch_counts`，按 `checkin_status` 正确排除“未打卡/缺卡”明细
+  - 前端缺卡详情判断同步排除“未打卡/缺卡”明细，避免只看“上班打卡/下班打卡”类型误判为已打卡
+  - 每日考勤详情弹窗已去掉“钉钉记录”列
+  - 已重算 test / prod 从 2026-01-01 到当前日期前一天的缺卡/旷工统计
+  - 已验证：
+    - `cd backend && /opt/anaconda3/envs/smart/bin/python -m py_compile app/services/wecom_attendance.py app/api/endpoints/wecom_attendance.py`
+    - `cd frontend && ./build.sh`
+  - 本次未新增依赖
+
+- 人事考勤助手“考勤汇总”口径已调整：
+  - 原“企微考勤汇总”tab 文案改为“考勤汇总”
+  - 已去掉考勤汇总 tab 的管理员特殊权限，和其他 tab 一样展示
+  - 汇总数据源统一先套用考勤配置
+  - 休息日整天不纳入考勤汇总，不计实际出勤、缺勤、缺卡、迟到
+  - 白名单人员不计缺勤、缺卡、迟到，实际出勤按正常出勤处理
+  - 时间设置会按配置的上班/下班参照时间重新计算迟到/早退分段
+  - 每日考勤详情去掉“应出勤”列
+  - 修复企微缺卡/未打卡明细错误写入计划打卡时间的问题：缺卡/未打卡记录不再写入实际打卡时间
+  - 缺卡重算时只把非缺卡明细计为已打卡，避免缺卡明细反向变成已打卡
+  - 新增 SQL：`backend/sql/fix_attendance_missing_punch_checkin_time.sql`
+  - 已在 test / prod 清洗历史数据，复查“缺卡/未打卡但有实际打卡时间”均为 0
+  - 已验证：`cd frontend && ./build.sh`
+  - 已验证：`cd backend && /opt/anaconda3/envs/smart/bin/python -m py_compile app/services/wecom_attendance.py`
+
+- 人事考勤助手“异常考勤”新增导出：
+  - 异常考勤 tab 增加“导出”按钮，导出当前已搜索筛选范围、当前异常类型和人员分类筛选下的数据
+  - 导出字段：部门、姓名、日期、异常打卡类型、状态、打卡时间、地点
+  - 同一天多条异常打卡按打卡明细逐行导出，不合并
+  - 复用现有 `xlsx` 依赖，未新增依赖
+  - 已验证：`cd frontend && ./build.sh`
+
+- 人事考勤助手“缺卡考勤”新增导出：
+  - 缺卡考勤 tab 增加“导出”按钮，导出当前已搜索筛选范围内的缺卡明细
+  - 导出字段：部门、姓名、日期、打卡类型缺卡
+  - 同一天上班、下班都缺卡时拆成两行
+  - 复用现有 `xlsx` 依赖，未新增依赖
+  - 已验证：`cd frontend && ./build.sh`
+
+- 售后部客户无忧导出预览客户表头短名问题已修复：
+  - 问题示例：马超的客户源站客户 ID `90901478`，预览表头显示“刘先生”，但跟进记录客户名为“河北清源水利工程有限公司-刘先生”
+  - 原因：导出汇总表按源站客户 ID 分组时保留同组第一条客户名；历史跟进第一条是联系人短名“刘先生”，后续记录才是完整客户名
+  - 调整：`sync_kehu51_follow_export_summary` 同组客户名改为优先选择更完整的客户名，优先公司/医院/学校/水厂/集团/中心/项目/工程等名称，或包含 `-` 的更长名称
+  - 已重新同步 test / prod 的 `after_sales_customer_follow_export_summary`
+  - 复查：
+    - test：`source_customer_id=90901478` 已为“河北清源水利工程有限公司-刘先生”，跟进数 39
+    - prod：`source_customer_id=90901478` 已为“河北清源水利工程有限公司-刘先生”，跟进数 41
+  - 已删除 2026 年 test / prod 的客户无忧导出缓存 key：`all / online / offline`
+  - 已验证：`cd backend && /opt/anaconda3/envs/smart/bin/python -m py_compile app/services/kehu51_follow_export_summary.py`
+  - 本次未新增依赖
+
+- 招标信息公示列表新增公告预览：
+  - “链接”列新增“预览 / 打开”，预览在弹窗内展示 OKCIS 详情
+  - “打开 / 打开原文”根据浏览器类型跳转：手机端拼接 `https://m.okcis.cn/m/pages/index/TenderDetails?link=/{path}.json`，电脑端拼接 `https://www.okcis.cn/{path}.html`
+  - 后端新增 `GET /api/okcis/notices/preview`
+  - 预览抓取改为移动端详情数据源：先用 OKCIS PC 登录态访问电脑版详情，再访问移动端页面，最后带同一套凭证 `POST https://m.okcis.cn/{path}.json`，表单参数 `return_json=1`
+  - 若接口返回“登录后查看”等脱敏内容，会自动刷新 OKCIS 登录凭证后重试；仍失败则返回登录失效错误，不展示脱敏内容
+  - 兼容移动端 JSON 返回和 HTML 返回，抽取 `data[0].content` 或 `#zb_body`，保留基础格式后在本系统弹窗展示，不使用 iframe
+  - 移动端 JSON 详情仅展示有值字段，支持：招标事项、所属地区、所属行业、招标关键词、招标类型、项目名称、办公地址、招标类别、计划工期、项目概述及规模、招标范围/内容、资质/要求、报名截止时间、联系人姓名、联系人电话、联系人邮箱
+  - 返回前清理脚本、事件属性、危险链接；纯文本正文自动转段落，弹窗保留表格、段落、列表、加粗、图片等基础展示
+  - 预览弹窗已适配手机端：小屏全屏展示，表格横向滚动，字段标签改为块级显示
+  - 招标信息公示页面已增加移动端适配：筛选区小屏单列/双列展示，当前数据列表小屏改为卡片列表，历史导出任务表小屏横向滚动，分页区小屏上下排列
+  - 公告正文若被源站压成整段文本，会按“一、二、三、”“1、2、”“2.1.”和常见公告字段自动切分成段落
+  - 新增详情缓存字段：`okcis_detail_title`、`okcis_detail_html`、`okcis_detail_crawled_at`，SQL：`backend/sql/add_okcis_notice_detail_cache.sql`
+  - 已在 test / prod 执行详情缓存字段 SQL
+  - `crawler_task id=3 / okcis_notice_manual` 已合并详情抓取：列表爬取写入公告时，同步调用 OKCIS 移动端详情接口并写入本地详情缓存
+  - 预览接口优先读取 `crawler_okcis_notices.okcis_detail_html`，没有缓存时才实时抓取并回写
+  - 新增一次性补抓脚本：`backend/scripts/prefetch_okcis_notice_details.py`
+  - 正式环境现有数据已补抓详情：`total=113`，已缓存 `111`，剩余 `2` 条源站暂时未返回可用详情：
+    - `id=295`：2026年农村公路南白滩(南白滩-南彭家庄)改造提升工程，源站返回脱敏详情
+    - `id=409`：保定废旧铝电缆一批，源站移动端详情接口返回 502
+  - 已验证：
+    - `cd backend && /opt/anaconda3/envs/smart/bin/python -m py_compile app/api/endpoints/okcis_notices.py`
+    - `cd frontend && ./build.sh`
+  - 本次未新增依赖
+
+- 人事考勤助手人员白名单新增删除：
+  - 白名单列表增加“操作 / 删除”
+  - 删除单个人员后会用剩余白名单覆盖保存，并刷新当前考勤数据
+  - 已验证：`cd frontend && ./build.sh`
+  - 本次未新增依赖
+
+- 人事考勤助手新增“考勤配置”：
+  - 新增特殊日期配置表 `attendance_special_date_configs` 和白名单表 `attendance_whitelist_employees`
+  - SQL：`backend/sql/create_attendance_special_date_configs.sql`
+  - 已在 test / prod 执行建表 SQL
+  - 考勤配置页拆成三个子 tab：时间设置、休息日、人员白名单
+  - 时间设置支持未来日期，按日期配置上班 / 下班参照时间，异常迟到早退判断按该时间覆盖
+  - 休息日支持未来月份，按月历多选日期后批量提交；休息日全员考勤正常
+  - 人员白名单支持搜索多选，白名单人员全局考勤正常
+  - 日汇总接口返回 `attendance_configs` 和 `attendance_whitelist`，缺卡 / 异常展示按配置过滤
+  - 已验证：
+    - `cd backend && /opt/anaconda3/envs/smart/bin/python -m py_compile app/models/wecom_attendance.py app/models/__init__.py app/api/endpoints/wecom_attendance.py`
+    - `cd frontend && ./build.sh`
+  - 本次未新增依赖
+
+- 用户列表部门筛选已支持大部门：
+  - 后端 `/admin/users` 接口收到 `department_id` 后，会读取该部门 `tree_path`
+  - 筛选范围改为当前部门 + 所有 `tree_path` 子部门
+  - 前端用户列表无需改动，继续传原 `department_id`
+  - 已验证：`cd backend && /opt/anaconda3/envs/smart/bin/python -m py_compile app/api/endpoints/admin/users.py`
+  - 本次未新增依赖
+
+- RBAC 角色 `yxzx` 已清理：
+  - test / prod 均确认 `roles.slug='yxzx'` 存在，名称为“营销中心”
+  - 两套环境 `user_roles` 绑定用户数均为 0
+  - 两套环境 `role_permissions`、`role_departments` 关联数均为 0
+  - 已删除 test / prod 的 `roles.slug='yxzx'`
+  - 复查结果：test / prod 的 `roles`、`user_roles`、`role_permissions`、`role_departments` 中 `yxzx` 均为 0
+  - 本次未改代码，未新增依赖
+
+- 招投标每日推送数量口径已修正：
+  - 问题：推送文案“今天最新释放招投标企业：1 家”，点击详情后列表有多条
+  - 原因：原逻辑按 `buyer` 去重计算企业数，很多 OKCIS 数据 `buyer` 为空或相同，导致数量被压成 1；详情链接展示的是当天公告列表
+  - 调整：`push_okcis_daily_summary` 的 `new_company_count` 改为当天匹配公告条数 `len(rows)`，与点击详情列表数量一致
+  - 已验证：`cd backend && /opt/anaconda3/envs/smart/bin/python -m py_compile app/tasks/scheduler.py`
+  - 本次未新增依赖
+
+- 人事考勤助手“钉钉覆盖企微”明细展示已修复：
+  - 原因：汇总层已按“钉钉启用人员走钉钉，忽略企微”计算，但异常考勤详情仍直接展示 `checkin_records` 全量明细，所以同一天会同时出现钉钉和企微两套打卡
+  - 前端新增统一有效打卡明细规则：同一日汇总存在钉钉记录时，只展示钉钉明细；否则展示企微明细
+  - 应用范围：异常考勤列表判断、异常考勤详情、缺卡详情、每日考勤打卡明细
+  - 人员详情记录按日期做钉钉优先归并，同一天有钉钉日汇总时不再带出企微日汇总
+  - 已验证：`cd frontend && source ~/.nvm/nvm.sh && nvm use 20 >/dev/null && npm run build`
+  - 本次未新增依赖
+
+- 招标信息公示“历史数据导出”补充调整：
+  - 历史导出任务操作栏新增“删除”按钮
+  - 删除会同时删除 `crawler_okcis_notice_history_export_tasks` 任务记录和同 `batch_key` 的 `crawler_okcis_notice_history_exports` 爬取结果数据
+  - 点击“历史数据导出”页签会在 URL 写入 `tab=history`，刷新页面后仍停留在历史导出页签；切回“当前数据”会移除该参数
+  - 历史数据导出 tab 临时仅管理员可见，使用前端 `app:admin_panel:access` 判断；后端权限未改变，仍为招标信息公示访问权限
+  - 提交历史导出任务会创建任务并通过 FastAPI `BackgroundTasks` 立即执行真实爬取，任务列表每 3 秒刷新等待中 / 执行中状态
+  - 若任务最终未爬取到任何数据，状态改为“执行失败”，原因显示“未爬取到数据”，不提供下载按钮；下载接口也增加空数据兜底拦截
+  - 排查 `2026-07-04 / 订阅条件组七` 历史导出误报“未爬取到数据”：源站实际返回 `请登录后查看 / isLogin=0`，已补充 OKCIS 未登录自动刷新凭证并重试；本地验证可抓到“维克冷风机组中央空调养护维保”
+  - 已验证：
+    - `cd backend && /opt/anaconda3/envs/smart/bin/python -m py_compile app/services/okcis_history_export.py app/api/endpoints/okcis_notices.py`
+    - `cd frontend && source ~/.nvm/nvm.sh && nvm use 20 >/dev/null && npm run build`
+  - 本次未新增依赖
+
+- 权限定义、角色与权限的部门搜索与筛选已调整：
+  - 新增 `frontend/src/components/admin/DepartmentSearchSelect.tsx`
+  - “权限定义”和“角色与权限”的编辑弹窗中，“所属部门”改为可搜索普通下拉，不再使用树形下拉；父级大部门也可直接选择
+  - 该部门字段仅作为列表归类和筛选字段，不参与实际权限判定逻辑
+  - 两个列表页均新增筛选：名称搜索、部门筛选
+  - 已验证：`cd frontend && ./build.sh`
+  - 本次未新增依赖
+
+- 招标信息公示新增“历史数据导出”tab：
+  - 页面新增“当前数据 / 历史数据导出”页签
+  - 历史数据导出支持选择发布日期开始、截止日期、订阅组多选；订阅组必选
+  - 新增后端接口：`POST /api/okcis/notices/history-export`
+  - 提交接口只创建异步任务，不刷新页面，不直接下载
+  - 新增任务列表接口：`GET /api/okcis/notices/history-export/tasks`
+  - 新增任务下载接口：`GET /api/okcis/notices/history-export/tasks/{task_id}/download`
+  - 任务状态展示为：等待执行、执行中、执行完成、执行失败
+  - 未执行完成不显示下载按钮；执行完成后才允许下载
+  - 原因列：成功显示“成功”，失败显示失败原因
+  - 历史数据翻页无固定页数限制，直到源站返回无数据才停止
+  - 导出字段与招标信息公示当前导出保持一致：标题、订阅组、地区、发布日期、截止时间、跟进人、链接地址、采集时间
+  - 新增独立表：`crawler_okcis_notice_history_exports`
+  - 新增任务表：`crawler_okcis_notice_history_export_tasks`
+  - 新增 SQL：`backend/sql/create_okcis_notice_history_export_table.sql`
+  - 新增 SQL：`backend/sql/create_okcis_notice_history_export_task_table.sql`
+  - 已在 test / prod 执行建表 SQL
+  - 新增服务：`backend/app/services/okcis_history_export.py`
+  - 复用 OKCIS 现有请求模板、凭证、订阅组缓存、详情页截止时间解析
+  - 已验证：
+    - `cd backend && /opt/anaconda3/envs/smart/bin/python -m py_compile app/services/okcis_history_export.py app/api/endpoints/okcis_notices.py`
+    - `cd frontend && source ~/.nvm/nvm.sh && nvm use 20 >/dev/null && npm run build`
+  - 本次未新增依赖
+
+- 权限定义、角色与权限已增加所属部门字段：
+  - `permissions.department_id`、`roles.department_id` 均为 nullable，默认空
+  - 已关联 `departments.id`，并添加索引和外键，SQL：`backend/sql/add_rbac_department_fields.sql`
+  - 已在 test / prod 执行字段变更
+  - 后端权限、角色接口支持创建 / 编辑时保存或清空所属部门，并返回 `department_name`
+  - 前端“权限定义”“角色与权限”列表新增所属部门列，编辑弹窗 / 抽屉新增部门下拉
+  - 角色原有 `department_ids` 仍只作为自定义数据范围部门使用，未改变原逻辑
+  - 已验证：
+    - `cd backend && /opt/anaconda3/envs/smart/bin/python -m py_compile app/models/rbac.py app/schemas/admin.py app/api/endpoints/admin/permissions.py app/api/endpoints/admin/roles.py`
+    - `cd frontend && source ~/.nvm/nvm.sh && nvm use 20 >/dev/null && npm run build`
+  - 本次未新增依赖
+
+- 客户无忧跟进记录客户名称与 `raw_json` 不一致问题已修复：
+  - 示例正式库 `crawler_kehu51_follow_records.id=44503` 原列字段为“河北清源水利工程有限公司-刘先生”，`raw_json` 为“智方能碳科技有限公司（张女士）”
+  - 原因：全量同步曾使用 `run_id + page + item_index` 作为 `source_dedupe_key`，同一运行页内位置变化时会触发 `ON DUPLICATE KEY UPDATE`，但旧 SQL 未更新 `customer_name`，导致列字段保留旧值、`raw_json` 更新为新值
+  - 已将客户跟进记录去重键统一改为业务稳定字段：源站客户ID、联系人ID、客户名、联系人、联系方式、跟进时间、录入时间、录入人、跟进内容
+  - `ON DUPLICATE KEY UPDATE` 已同步更新 `customer_name`、`page_no`
+  - 后台手动任务分支与 crawler handler 分支规则已统一
+  - 新增 SQL：`backend/sql/fix_kehu51_follow_records_raw_json_mismatch.sql`
+  - 已在 test / prod 执行清洗 SQL；正式库 `id=44503` 已修正为“智方能碳科技有限公司（张女士）”
+  - 新增历史修复脚本：`backend/scripts/fix_kehu51_follow_record_history.py`
+  - 已在 test / prod 执行历史修复：
+    - test：42252 条历史去重键已迁移，删除重复 0 条
+    - prod：42378 条历史去重键已迁移，删除重复 1 条
+  - 复查结果：test / prod 的旧 key、业务重复、客户名与 raw_json 错位均为 0
+  - 已验证：`cd backend && /opt/anaconda3/envs/smart/bin/python -m py_compile scripts/fix_kehu51_follow_record_history.py app/services/crawler_handlers/kehu51.py app/api/endpoints/admin/crawler_tasks.py`
+  - 本次未新增依赖
+
+- 前端新增统一构建脚本 `frontend/build.sh`：
+  - 自动加载 `nvm` 并读取 `frontend/.nvmrc`，当前使用 Node 20
+  - 执行 `npm run build` 后重新生成 `frontend/dist.zip`
+  - 压缩时排除 `.DS_Store` 和 `__MACOSX` 元数据
+  - 本次未新增依赖
+
+- 招标信息公示 URL 订阅组筛选重置已修复：
+  - URL 中的 `group_name`、`group`、`dzid` 只用于首次进入页面定位订阅组
+  - 点击“重置”会清空订阅组筛选并移除地址栏中的订阅组参数，可恢复查看全部数据
+  - 本次未新增依赖
+
+- 招标信息公示支持 URL 订阅组筛选，并新增售前招投标推送模板：
+  - 前端 `/apps/okcis-notices` 支持 URL 参数 `group_name`、`group`、`dzid` 初始化订阅组筛选；重置时保留 URL 初始订阅组和日期参数
+  - 售前计划任务 `okcis_daily_summary_presales_push` 详情链接增加 `group_name=售前营销`
+  - 售前推送统计也按 `dingzhi_group_name=售前营销` 或 `dzid=售前营销` 过滤，保证文案数量和点击列表一致
+  - 新增 SQL：`backend/sql/upsert_okcis_presales_push_template.sql`
+  - 已在 test / prod 创建 `售前招投标企业推送模板`，template_key=`okcis_notice_daily_presales_group_robot`
+  - 已在 test / prod 将机器人 ID=3 绑定到售前模板；prod 机器人 3 当前启用，test 机器人 3 当前停用但模板已绑定
+  - 已验证：
+    - `cd backend && /opt/anaconda3/envs/smart/bin/python scripts/run_sql_on_envs.py --both --sql-file sql/upsert_okcis_presales_push_template.sql`
+    - `cd backend && /opt/anaconda3/envs/smart/bin/python -m py_compile app/tasks/scheduler.py`
+    - `cd frontend && source ~/.nvm/nvm.sh && nvm use 20 >/dev/null && npm run build`
+  - 本次未新增依赖
+
+- OKCIS “响应截止时间”未解析导致目标公告未入库已修复并补数：
+  - 排查目标：`轻轨张贵庄站南侧地块(住宅)二供泵房新建工程`
+  - 正式环境最近一次 OKCIS 任务 `run_id=599` 状态为 success，成功 9、失败 0；页面提示失败可能来自此前 `run_id=596` partial 或前端旧状态
+  - 目标公告实际在源站 `dzid=18117 / 订阅条件组一 / page=1 / 第24条`，同批还有公建项目第25条
+  - 未入库原因：详情页字段为“响应截止时间: 2026-07-21 09:30:00”，解析器未覆盖该标签，被判定为“截止时间格式无效”并清理
+  - 已在 `backend/app/services/crawler_handlers/okcis.py` 和 `backend/app/api/endpoints/admin/crawler_tasks.py` 加入“响应截止时间”识别
+  - 已手动补入正式库两条：
+    - `20260714095644063753`，住宅，`deadline_at=2026-07-21 09:30:00`
+    - `20260714095644059239`，公建，`deadline_at=2026-07-21 09:30:00`
+  - 已验证：`cd backend && /opt/anaconda3/envs/smart/bin/python -m py_compile app/api/endpoints/admin/crawler_tasks.py app/services/crawler_handlers/okcis.py`
+  - 本次未新增依赖
+
+- 人事考勤助手“异常考勤”展示口径已调整：
+  - 迟到 / 早退超过 60 分钟改为方向判断：上班打卡晚于规定时间超过 60 分钟、下班打卡早于规定时间超过 60 分钟
+  - 日期筛选最大日期限制为当前日期前一天，当天不能查询
+  - 异常考勤列表按“部门 + 姓名 + 日期 + 异常类型”合并，同一天同一个人同类异常只显示一行
+  - 合并后分钟数取最大异常分钟数，详情保留当天相关打卡明细
+  - 异常分钟数展示为中文时长格式，例如 `63` 分钟显示为 `1小时3分`
+  - 提醒请假、异常考勤列表隐藏企微ID列；对应搜索框提示不再显示企微ID
+  - 异常考勤默认按日期正序排列，同日按部门、姓名稳定排序
+  - 地点异常筛选时分钟数显示为 `-`
+  - 异常考勤详情中异常打卡明细标红
+  - 缺卡详情的“打卡明细”仅展示缺卡类型：上班缺卡、下班缺卡；没有明细时显示“无打卡记录”
+  - 缺卡详情方向判断同步钉钉覆盖企微口径：同一天有钉钉明细时，只用钉钉明细反推上班/下班缺卡，避免企微明细补齐方向后显示不出来
+  - “企微考勤汇总”tab 仅管理员可见，非管理员访问该 tab 会自动切到“提醒请假”
+  - 部门筛选下拉选项改为已加载部门全集，不再因点击搜索后列表数据变窄导致清空后仍只显示旧部门
+  - 提醒规则文案改为“上班、下班都缺卡，如未走请假手续，记旷工 1 次”
+  - 新增计划任务 `wecom_dingtalk_attendance_sync`：
+    - 中文名：企微&钉钉考勤同步
+    - 部门：人事行政部
+    - 时间：每天 03:50
+    - 口径：同页面“同步企微考勤”按钮，同步默认考勤周期的企微考勤和钉钉考勤，合并钉钉到企微日汇总并重算缺卡
+    - 元数据 SQL 已执行 test / prod：`backend/sql/upsert_wecom_dingtalk_attendance_scheduler_meta.sql`
+  - 人事考勤助手权限已拆为独立角色：
+    - 角色：`wecom_attendance_viewer` / 人事考勤助手可见人员
+    - 权限：`app:wecom_attendance:access`、`app:dingtalk_attendance:access`
+    - 已从 `standard_user` 移除上述两个权限
+    - test / prod 均已绑定给 `ZhouYue`（周玥VIP3）和 `wangyamei`（王亚梅）
+    - SQL：`backend/sql/update_wecom_attendance_permission_role.sql`
+  - 管理后台“权限定义”和“角色与权限”已从卡片网格改为表格列表形式
+  - 已验证：`cd frontend && source ~/.nvm/nvm.sh && nvm use 20 >/dev/null && npm run build`
+  - 已验证：`cd backend && /opt/anaconda3/envs/smart/bin/python -m py_compile app/tasks/scheduler.py app/api/endpoints/admin/scheduler.py`
+  - 已验证：`cd backend && /opt/anaconda3/envs/smart/bin/python -m py_compile app/db_init.py`
+  - 本次未新增依赖
+
+- 招标信息公示订阅组筛选已修复：
+  - 正式库当前订阅组分布已确认：`18117` 组一、`44602` 组二、`70940` 组三、`157288` 组七、`167308` 组八、`187653` 售前营销
+  - 最新运行已从源站识别到 9 个 dzid：包含新增 `187653`
+  - “订阅组九”在正式库业务表里的名称是“售前营销”，不是“订阅条件组九”
+  - 后端列表接口新增 `group_options`，按 `CAST(dzid AS UNSIGNED)` 正序返回全量订阅组选项，不再只依赖当前页数据
+  - 前端订阅组筛选优先使用后端 `group_options`，无后端选项时再按当前页数据兜底并正序排序
+  - 已验证：
+    - `cd backend && /opt/anaconda3/envs/smart/bin/python -m py_compile app/api/endpoints/okcis_notices.py`
+    - `cd frontend && source ~/.nvm/nvm.sh && nvm use 20 >/dev/null && npm run build`
+  - 本次未新增依赖
+
+- OKCIS 公告写入 `deadline_raw` 超长已修复：
+  - 原因：部分公告详情里的截止时间候选字段抓到了整段 HTML / 长文本，超过 `crawler_okcis_notices.deadline_raw VARCHAR(255)`，导致 `Data too long for column 'deadline_raw'`
+  - 修复：新增 `_normalize_okcis_deadline_raw`，保存前去 HTML、压缩空白；仍超过 255 时保存标准化 `deadline_at` 字符串
+  - 影响：不改爬取规则、不改表结构，避免有效公告因原始截止时间字段超长被跳过
+  - 已验证：`cd backend && /opt/anaconda3/envs/smart/bin/python -m py_compile app/services/crawler_handlers/okcis.py app/api/endpoints/okcis_notices.py`
+  - 本次未新增依赖
+
+- 计划任务列表 cron 展示已修复：
+  - 前端 `scheduler-utils.ts` 的 `formatWeekday` 支持 `mon-fri`、`mon,wed,fri` 等英文星期写法
+  - 从 APScheduler `cron[...]` trigger 兜底解析时，会读取 `day_of_week`，不再统一显示为“每天”
+  - `10 16 * * mon-fri` 和 `day_of_week='mon-fri'` 现在显示为“每周一至五 16:10 执行”
+  - 已验证：`cd frontend && source ~/.nvm/nvm.sh && nvm use 20 >/dev/null && npm run build`
+  - 本次未新增依赖
+
+- 招标信息公示导出规则已调整：
+  - 导出接口 `GET /api/okcis/notices/export` 只按当前筛选条件导出全部内容，不使用分页参数
+  - 导出列去掉“采购人”“信息来源”，保留标题、订阅组、地区、发布日期、截止时间、跟进人、链接地址、采集时间
+  - 导出文件名规则改为 `招标信息公示_{订阅组或全部}_YYYY-mm-dd-H-M-S.xlsx`
+  - 有订阅组筛选时文件名显示订阅组；没有订阅组筛选时显示“全部”
+  - 已验证：`cd backend && /opt/anaconda3/envs/smart/bin/python -m py_compile app/api/endpoints/okcis_notices.py`
+  - 本次未新增依赖
+
+- OKCIS 登录验证码解析已修复并增加重试：
+  - `backend/app/services/crawler.py` 将单次 OKCIS 登录刷新拆为 `_refresh_credentials_from_login_curl_once`
+  - `refresh_credentials_from_login_curl` 负责验证码相关异常重试，默认最多 3 次
+  - 验证码算式归一支持 `5++37`、`5--37`、`6**27` 等中间运算符重复情况，重复运算符只按一次计算；`5++37` 会按 `5+3` 得到 `8`
+  - 已验证：
+    - 样例：`5++37 -> 8`、`4+237 -> 6`、`+0-437 -> -4`、`5--37 -> 2`、`6**27 -> 12`
+    - `cd backend && /opt/anaconda3/envs/smart/bin/python -m py_compile app/services/crawler.py app/api/endpoints/admin/crawler_tasks.py app/services/crawler_handlers/okcis.py`
+  - 本次未新增依赖
+
+- 招标信息公示指定标题排查：
+  - 正式库 `crawler_okcis_notices` 全库搜索“轻轨张贵庄站南侧地块”无记录；2026-07-14 今日入库 OKCIS 数据共 22 条
+  - 今日入库 dzid 分布：`70940` 6 条、`157288` 8 条、`167308` 8 条；没有 `18117` / `44602`
+  - 2026-07-14 15:40 最近一轮 OKCIS 任务为 partial：8 个 dzid 成功 6 个、失败 2 个
+  - 失败 dzid：`18117` 验证码解析失败“无法解析算式 5++37”；`44602` 自动刷新凭证后仍未登录
+  - 目标标题包含“二供泵房”，按订阅关键词应命中 `18117`，因此没入库的直接原因是 15:40 该订阅组抓取失败；8:40 全成功时库里也没有该标题
+
+- 招标信息公示 OKCIS 订阅组实时解析已兼容最新接口：
+  - OKCIS `myConditions` 最新返回项已从数组结构变为对象结构
+  - 已修复后台数据爬取预取逻辑和 OKCIS handler，支持从 `id/group_name/name` 等字段解析订阅组
+  - Redis 缓存仍使用 `crawler:okcis:dingzhi_groups`，有效期 30 天
+  - 新缓存写入会包含 `updated_at`、`groups`、`dzid_list`
+  - 已验证：`cd backend && /opt/anaconda3/envs/smart/bin/python -m py_compile app/api/endpoints/admin/crawler_tasks.py app/services/crawler_handlers/okcis.py`
+  - 本次未新增依赖
+
+- 正式环境招投标群发计划任务已调整为两条并存：
+  - 售后任务：`okcis_daily_summary_push`，机器人 ID=2，`10 16 * * mon-fri`
+  - 售前任务：`okcis_daily_summary_presales_push`，机器人 ID=3，`10 16 * * mon-fri`
+  - 正式库确认两条 `scheduler_job_meta` 均已存在；机器人 ID=2、3 均存在且启用
+  - 默认调度也改为周一到周五 16:10，避免服务重启后回到每天执行；手动执行入口已支持两条任务
+  - 新增 SQL：`backend/sql/upsert_okcis_daily_summary_push_scheduler_meta.sql`
+  - 已验证：
+    - `cd backend && /opt/anaconda3/envs/smart/bin/python scripts/run_sql_on_envs.py --env prod --sql-file sql/upsert_okcis_daily_summary_push_scheduler_meta.sql`
+    - `cd backend && /opt/anaconda3/envs/smart/bin/python -m py_compile app/tasks/scheduler.py app/api/endpoints/admin/scheduler.py`
+    - `_build_cron_trigger('10 16 * * mon-fri')` 解析为周一到周五 16:10
+  - 本次未新增依赖
+
+- 企微用户别名发送规则已统一：
+  - `kangpeng` 定义为 `tangpeng` 的别名
+  - 人事考勤助手人员汇总展示 userid 时会把别名归并为主 userid，例如只显示 `tangpeng`，不再显示 `kangpeng`
+  - 批量提醒按页面展示 / 选中的 userid 发送，后端发送层不再二次强制改写 touser
+  - 企业微信登录匹配复用同一份别名配置，避免认证和发送规则不一致
+  - 已验证：
+    - `cd backend && /opt/anaconda3/envs/smart/bin/python -m py_compile app/services/wecom.py app/api/endpoints/auth.py app/api/endpoints/wecom_attendance.py app/tasks/scheduler.py app/api/endpoints/admin/scheduler.py`
+    - `cd frontend && source ~/.nvm/nvm.sh && nvm use 20 >/dev/null && npm run build`
+  - 本次未新增依赖
+
+- 人事考勤助手“提醒请假”钉钉覆盖企微口径已补强：
+  - 后端 `recalculate_missing_punch_counts` 已从 `userid + 日期` 扩展到 `部门 + 姓名归一化 + 日期`，部门不一致时支持同日期唯一姓名兜底
+  - 同一人同一天存在钉钉打卡明细时，旷工 / 未打卡只按钉钉明细判断，不再混用企微别名账号数据
+  - 前端人员汇总也加了兜底：同一人同一天有钉钉记录时，实际出勤、旷工、未打卡按钉钉记录汇总，忽略企微行
+  - “缺卡详情”弹窗也按日期执行钉钉覆盖，同一天有钉钉记录时只展示钉钉行，不再展示企微别名行
+  - 已验证：
+    - `cd backend && /opt/anaconda3/envs/smart/bin/python -m py_compile app/services/wecom_attendance.py app/api/endpoints/wecom_attendance.py`
+    - `cd frontend && source ~/.nvm/nvm.sh && nvm use 20 >/dev/null && npm run build`
+  - 本次未新增依赖
+
+- 人事考勤助手新增“异常考勤”tab：
+  - 基于 `attendance_checkin_records` 明细展示异常考勤
+  - 后端 `/api/wecom-attendance/daily-records` 已返回打卡明细 `raw_json`，用于前端计算排班时间差
+  - 异常类型包含：迟到/早退超过60分钟、地点异常
+  - 地点异常支持分类筛选：营销管理中心、其他人员、全部人员
+  - 异常详情弹窗展示：部门、日期、打卡详情
+  - 已验证：
+    - `cd backend && /opt/anaconda3/envs/smart/bin/python -m py_compile app/api/endpoints/wecom_attendance.py`
+    - `cd frontend && source ~/.nvm/nvm.sh && nvm use 20 >/dev/null && npm run build`
+  - 本次未新增依赖
+
+- 人事考勤助手“提醒请假”缺卡统计已改为基于打卡明细重算并补齐两套环境数据：
+  - 新增统一明细表 `attendance_checkin_records`，保存企微 / 钉钉每条打卡明细
+  - 明细字段包含：打卡来源、来源记录ID、企微用户ID、来源用户ID、部门、姓名、考勤日期、打卡类型、打卡状态、打卡地点、实际打卡时间、原始 JSON
+  - 企微同步会保存 `checkin_type`、`exception_type/status`、地点、`checkin_time`
+  - 钉钉同步会保存 `check_type`、`time_result/location_result`、地点、`check_time`
+  - “提醒请假”重算规则已按明细判断：工作日缺上班且缺下班记旷工 1 次；只缺上班或只缺下班记未打卡 1 次
+  - 已执行 test / prod 建表 SQL：`backend/sql/create_attendance_checkin_records.sql`
+  - 已补同步测试环境 2026-06-25 至 2026-07-14 企微 / 钉钉打卡明细
+  - 抽检结果：test / prod 均为企微明细 `10448` 条、钉钉明细 `1104` 条；提醒请假汇总均为旷工 `102`、未打卡 `335`
+  - 人事考勤助手详情弹窗已展示“打卡明细”，包含来源、打卡类型、状态、实际打卡时间、地点
+  - “提醒请假”列表新增全选 / 多选和“批量提醒”按钮，按选中人员企微ID发送应用文本消息
+  - 批量提醒固定文案为：“小伙伴，查看到你有上下班未打卡异常记录，如正常在岗，请尽快提交考勤修正手续；如请假，请及时走请假手续。请在本月26号前完成哦，逾期会影响考勤核算，感谢配合。”
+  - 带别名账号合并后，旷工 / 未打卡按同一人同一天最多 1 次计算，避免重复叠加
+  - “提醒请假”点击详情弹出“缺卡详情”，仅显示缺卡日期，列为：日期、部门、打卡明细
+  - 已验证：
+    - `cd backend && /opt/anaconda3/envs/smart/bin/python -m py_compile app/models/attendance_checkin.py app/models/__init__.py app/services/wecom_attendance.py app/services/dingtalk_attendance.py app/api/endpoints/wecom_attendance.py app/api/endpoints/dingtalk_attendance.py migrations/versions/f6a7b8c9d0e1_create_attendance_checkin_records.py`
+    - `cd frontend && source ~/.nvm/nvm.sh && nvm use 20 >/dev/null && npm run build`
+  - 本次未新增依赖
+
+- 招标信息公示新增跟进人与删除操作记录：
+  - 新表 `crawler_okcis_notice_follow_records`：记录公告跟进人、跟进时间，支持多人跟进
+  - 新表 `crawler_okcis_notice_hidden_records`：记录当前用户删除/隐藏操作人和删除时间
+  - 列表新增“跟进人”列，按跟进时间正序展示姓名；点击跟进人可查看姓名、跟进时间、删除操作人、删除时间
+  - 跟进人支持筛选
+  - 删除按钮仍显示“删除”，但只对当前登录用户隐藏该条记录，其他人仍可看到，并可在详情里看到删除操作记录
+  - 跟进人列已收窄，操作列按钮保持单行不换行
+  - test / prod 已创建两张新表
+  - 已验证后端 `py_compile` 和前端 `npm run build`
+  - 本次未新增依赖
+
+- 晨天润达业务团队看板企微机器人推送失败日志增强：
+  - 08:30 失败日志为空，判断为超时类异常 `str(e)` 为空导致原因丢失
+  - 计划任务执行失败时现在记录异常类型和 traceback
+  - 企微图片机器人发送超时时间调为 30 秒
+  - 图片发送遇到超时会重试 2 次：等待 30 秒、再等待 60 秒
+  - 超时 / 网络异常会写入企微消息发送日志，错误信息不再为空
+  - 已验证：`cd backend && /opt/anaconda3/envs/smart/bin/python -m py_compile app/tasks/scheduler.py app/services/wecom.py`
+  - 本次未新增依赖
+
+- “招标信息公示”已拆出独立权限：
+  - 新权限：`app:okcis_notices:access`，描述为“访问招标信息公示”
+  - 卡片、前端路由、应用中心公示区、后端 `/api/okcis/*` 接口均改为校验该权限
+  - test / prod 已执行 `backend/sql/update_okcis_notices_permission.sql`
+  - 默认把新权限授予 `after_sales_dept_admin`，保持原售后管理员可见；后续可在权限配置中单独调整
+  - 已验证后端 `py_compile` 和前端 `npm run build`
+  - 本次未新增依赖
+
+- 人事考勤助手新增“提醒请假”tab：
+  - 仅统计企微上下班缺卡数据
+  - 规则为：上班+下班都缺卡记旷工 1 次；上班或下班缺卡记未打卡 1 次
+  - 后端新增 `absenteeism_count`、`missing_punch_count`，两套环境已补字段
+  - 页面新增汇总卡和人员列表，列表只显示存在旷工 / 未打卡的员工，保留现有日期 / 部门 / 人员筛选
+  - 人员汇总按“部门 + 姓名归一化”合并，同名不同企微ID按同一个人处理，企微ID列合并展示
+  - 别名合并后，实际出勤按同一人同一天最多 1 次计算，不叠加多个账号
+  - 页面默认时间范围、重置范围、企微 / 钉钉同步范围均为“上个月 25 日至今天”
+  - 企微同步后端支持超过 30 天自动拆分为多段请求后合并保存；钉钉仍使用原有后端分片
+  - 已验证 `py_compile` 和 `frontend npm run build`
+  - 本次未新增依赖
+
+- 人事考勤助手新增花名册模板填充，并支持最新请假类型：
+  - 已用最新 `花名册模板.xlsx` 覆盖 `backend/static/花名册模板.xlsx`，页面提供“下载模板”
+  - “企微考勤汇总”tab 新增“上传花名册”按钮，上传 `.xlsx` 后按当前页面日期范围填充模板并下载结果
+  - 后端新增：
+    - `GET /api/wecom-attendance/roster-template`
+    - `POST /api/wecom-attendance/roster/fill?start_date=YYYY-MM-DD&end_date=YYYY-MM-DD`
+  - 匹配规则：模板内 `部门 + 姓名` 优先匹配考勤表，姓名会去掉 `VIP数字` 后匹配；匹配不到时按唯一姓名兜底；部门空白行自动沿用上一行部门
+  - 新增数据库字段：年假、带薪病假、调休、产假、陪产假、婚假、丧假、哺乳假；`personal_leave`、`sick_leave` 改为一位小数
+  - 填充字段：实际出勤、年假、带薪病假、调休、事假、产假、陪产假、婚假、丧假、哺乳假、迟到/早退三档
+  - 实际出勤口径：仅扣 `事假 + 带薪病假`，其他请假类型只记录 / 展示 / 导出
+  - 右上角按钮文案已改为“同步企微考勤”
+  - test / prod 已执行 `backend/sql/add_wecom_attendance_leave_type_fields.sql`
+  - 已验证：
+    - `cd backend && /opt/anaconda3/envs/smart/bin/python -m py_compile app/models/wecom_attendance.py app/services/wecom_attendance.py app/api/endpoints/wecom_attendance.py migrations/versions/d4e5f6a7b8c9_add_wecom_attendance_leave_type_fields.py`
+    - `cd frontend && source ~/.nvm/nvm.sh && nvm use 20 >/dev/null && npm run build`
+    - 已用测试库 2026-07-01 至 2026-07-13 样例验证：张桐 / 王菲 / 张国君实际出勤为 `12`、事假 `1.0`，不再全 0
+  - 本次未新增依赖
+- 人事考勤助手最新修复：
+  - 详情弹窗宽度已放大到桌面 `1400px / 94vw`，覆盖公共 Dialog 默认 `sm:max-w-lg` 限制；详情表格最小宽度调到 `1320px`，字段可横向完整查看
+  - 病假统计卡后新增“迟到”卡片，合并统计 `20分钟内 + 20-40分钟 + 40-60分钟`
+  - “企微考勤汇总”列表已去掉“天数”列
+  - 实际出勤统计改为按日 `实际出勤 - 事假 - 病假` 计算，列表统计卡、人员汇总和详情弹窗口径一致
+  - 页面点击“同步考勤”时固定同步最近 30 天：今天往前 29 天至今天；同步完成后页面日期范围也切到该区间
+  - `POST /api/wecom-attendance/sync-daily-records` 后端也支持不传日期时默认最近 30 天
+  - 企微同步保存时，如果日汇总行已有钉钉记录 `dingtalk_record_count > 0`，`actual_attendance` 不会被企微 0 覆盖，保留钉钉合并后的出勤结果
+  - 已验证：
+    - `cd backend && /opt/anaconda3/envs/smart/bin/python -m py_compile app/api/endpoints/wecom_attendance.py app/services/wecom_attendance.py`
+    - `cd frontend && source ~/.nvm/nvm.sh && nvm use 20 >/dev/null && npm run build`
+  - 本次未新增依赖
+- 新增“钉钉考勤”后端同步模块，并接入“人事考勤助手”新 tab：
+  - 两套环境配置已写入 `backend/config/env_test` / `backend/config/env_prod`：
+    - `DINGTALK_ATTENDANCE_APP_ID=7e252448-69fb-4681-822d-0af1b2f08540`
+    - `DINGTALK_ATTENDANCE_AGENT_ID=4766941989`
+    - `DINGTALK_ATTENDANCE_APP_KEY=dingzvnbym6ggxsq4bas`
+    - `DINGTALK_ATTENDANCE_APP_SECRET`
+    - `DINGTALK_ATTENDANCE_DEPARTMENT_NAME=研发中心`
+    - `DINGTALK_ATTENDANCE_EXCLUDED_NAMES=顾江源,张强,王慧君,黄树才,张波,王满川`
+  - 新表：
+    - `dingtalk_attendance_users`：钉钉考勤人员管理，包含 `user_id`、姓名、手机号、部门、启用状态、禁用原因、原始 JSON
+    - `dingtalk_attendance_records`：钉钉考勤打卡记录，包含打卡时间、工作日、打卡类型、时间结果、位置结果、审批/排班/考勤组字段、原始 JSON
+  - 新权限：`app:dingtalk_attendance:access`
+  - 新接口：
+    - `POST /api/dingtalk-attendance/sync-users`：同步钉钉“研发中心”及子部门人员到本地人员表
+    - `GET /api/dingtalk-attendance/users`：查询钉钉考勤人员
+    - `PATCH /api/dingtalk-attendance/users/{user_id}`：启用 / 禁用人员
+    - `POST /api/dingtalk-attendance/sync-records`：按日期区间同步启用人员的钉钉考勤打卡记录，后端自动按 7 天切片
+    - `GET /api/dingtalk-attendance/records`：查询本地钉钉打卡记录
+  - “人事考勤助手”页面新增 tab：`钉钉考勤人员管理`
+    - 支持同步钉钉人员、搜索、按启用状态筛选、启用/禁用
+    - 钉钉人员同步时已自动匹配企微 `userID`，优先按手机号匹配 `users.mobile -> users.sso_uid`，手机号匹配不到再按唯一姓名兜底
+    - test / prod 两套环境钉钉人员均已匹配企微用户ID：`matched_wecom_count=38`
+    - 钉钉人员列表展示企微用户ID，不展示手机号；搜索也不按手机号搜索
+    - 工作台钉钉考勤助手卡片指向 `/apps/wecom-attendance?tab=dingtalk`
+  - 钉钉打卡记录表 `dingtalk_attendance_records` 也已新增并回填 `wecom_userid`，后续人员对比统一使用企微 userID
+  - 钉钉启用人员的打卡数据已支持汇总合并到企微考勤日汇总：
+    - `wecom_attendance_daily_records` 新增 `dingtalk_record_count`、`dingtalk_attendance_json`
+    - `POST /api/dingtalk-attendance/sync-records` 保存钉钉打卡后会自动合并到企微日汇总
+    - 前端“同步考勤”会先同步企微，再同步并合并钉钉
+    - 合并口径：钉钉启用人员按企微 `userID + 日期` 聚合，实际出勤按有打卡记录计入；迟到/早退分钟分段暂不从钉钉推断
+  - “企微考勤汇总”页调整：
+    - 搜索 / 重置按钮放到筛选同一行
+    - 搜索已改为后端按部门、姓名/企微ID过滤，避免前端刷新后筛选不生效
+    - 搜索口径修正为“先匹配人员，再返回该人员日期范围内全部日记录”，保证每个人仍是一行汇总
+    - 列表和统计卡隐藏“应出勤”，应出勤后续等表格上传赋值
+    - 主列表隐藏：外出、考勤修正、20分钟内、20-40分钟、40-60分钟
+    - 详情弹窗保留上述字段展示
+- 客户无忧跟进记录写入失败问题已修复：
+  - 原因：增量跟进 `source_dedupe_key` 使用整段 JSON 拼接，长跟进内容会超过 `VARCHAR(255)`
+  - 已改为根据规范化字段生成 SHA1 短去重键：`task_key|page:{page_no}|{sha1}`
+  - 排除名单会按姓名归一化匹配，类似 `张波VIP4` 也会命中 `张波` 并禁用
+  - test / prod 已执行 `backend/sql/create_dingtalk_attendance_records.sql`
+  - 已实际同步两套环境人员：均返回 `total=38`、配置禁用 `4` 人；`张强`、`黄树才` 当前不在钉钉“研发中心”返回范围内
+  - 钉钉手机号权限开通后已重新同步，test / prod 两套环境 `mobile_count=38`，手机号已写入 `dingtalk_attendance_users.mobile`
+  - 已验证：
+    - `cd backend && /opt/anaconda3/envs/smart/bin/python -m py_compile app/core/config.py app/api/api.py app/permissions.py app/db_init.py app/models/__init__.py app/models/dingtalk_attendance.py app/services/dingtalk_attendance.py app/api/endpoints/dingtalk_attendance.py migrations/versions/b7c8d9e0f1a2_add_dingtalk_attendance_tables.py`
+    - `cd frontend && source ~/.nvm/nvm.sh && nvm use 20 >/dev/null && npm run build`
+  - 本次未新增依赖
+- 新增“人事考勤助手”企业微信考勤模块：
+  - 新增配置：`WECOM_CHECKIN_AGENT_ID=3010011`、`WECOM_CHECKIN_CORP_SECRET`
+  - `backend/config/env_test` / `backend/config/env_prod` 已配置考勤应用 ID 和秘钥
+  - 新表：`wecom_attendance_daily_records`
+    - 每人每天一条，唯一键：`record_date + userid`
+    - 字段包含：所属部门、姓名、应出勤、实际出勤、外出、事假、病假、迟到/早退20分钟内、迟到/早退20-40分钟内、迟到/早退40-60分钟内、原始打卡 JSON
+  - 新权限：`app:wecom_attendance:access`
+  - 新工作台卡片：`人事考勤助手`，路径 `/apps/wecom-attendance`
+  - 新接口：
+    - `POST /api/wecom-attendance/checkin-data`
+    - `POST /api/wecom-attendance/sync-daily-records`
+    - `GET /api/wecom-attendance/employees`
+    - `GET /api/wecom-attendance/daily-records`
+  - 新前端页面支持日期区间查询、同步企微、部门/人员筛选、统计卡和明细表
+  - 列表页已改为：
+    - 搜索 / 重置按钮
+    - 日期和部门下拉仅修改筛选条件，点击搜索才触发查询与过滤
+    - 主表每个人只显示一行汇总
+    - 操作列提供“详情”，详情弹窗展示该人员每天的数据
+  - 已接入 OA 休假和考勤修正：
+    - 休假流程表单：`formtable_main_16`
+    - 考勤修正流程表单：`formtable_main_21`
+    - 仅同步已完成流程：`workflow_requestbase.CURRENTNODETYPE = '3'`
+    - 休假写入事假 / 病假标记并保留 `oa_leave_json`
+    - 考勤修正写入 `attendance_correction_count`，并将当天 `actual_attendance` 置为 `1`，保留 `oa_correction_json`
+    - test / prod 已自动补字段：`attendance_correction_count`、`oa_leave_json`、`oa_correction_json`
+  - 已验证企微外出数据：
+    - 2026-07-13 外出打卡为 `0`
+    - 2026-06-13 至 2026-07-13 外出打卡为 `23`
+    - 2026-07-09 `opencheckindatatype=3` 返回外出打卡 `2` 条，分别为顾江源、李兆民
+  - `out_attendance` 已改为外出次数累加，不再只是 0/1 标识
+  - test / prod 已执行：`backend/sql/create_wecom_attendance_daily_records.sql`
+  - 已验证：
+    - `cd backend && /opt/anaconda3/envs/smart/bin/python -m py_compile app/core/config.py app/services/wecom_attendance.py app/api/endpoints/wecom_attendance.py app/api/api.py app/models/wecom_attendance.py app/models/__init__.py app/permissions.py app/db_init.py migrations/versions/a6b7c8d9e0f1_add_wecom_attendance_daily_records.py`
+    - `cd frontend && source ~/.nvm/nvm.sh && nvm use 20 >/dev/null && npm run build`
+  - 本次未新增依赖
+- 正式环境“晨天润达业务团队看板推送”周一未自动推送原因已查明并修复：
+  - 正式日志显示 2026-07-13 08:30 没有该任务 cron 执行记录，10:50 手动执行成功
+  - 原因：任务配置为标准 cron `30 8 * * 1-5`，但 APScheduler 数字周几口径为 `0=周一`，导致 `1-5` 被解释为周二到周六，周一被跳过
+  - test / prod 两套环境已将该任务 `cron_expr` 更新为无歧义写法：`30 8 * * mon-fri`
+  - 代码已修复 `_build_cron_trigger`，将标准 cron 数字周几转换为 APScheduler 口径；以后 `1-5` 也会按周一到周五解析
+  - 已验证：
+    - `cd backend && /opt/anaconda3/envs/smart/bin/python -m py_compile app/tasks/scheduler.py`
+    - `_build_cron_trigger('30 8 * * 1-5')` 下一次触发可正确命中周一 08:30
+- 售后工单实时监控步骤进度和语音提醒已修正：
+  - 页面步骤展示已精简为固定 6 个：开始、派单、接单、出发、到场、处理回复
+  - 根据接口步骤最后一步的 `nodeId` 匹配上述 6 个节点，匹配到的节点显示蓝色，其它节点显示灰色
+  - 语音提醒改为：轮询刷入新工单，且该新工单步骤最后一步 `nodeId=Accept` 时触发
+  - 符合条件时同一条语音提示连续播放 `3` 次
+  - 初次加载和旧工单状态轮询不播报
+  - 如果本次刷新返回的新列表条数少于旧列表，直接用新列表覆盖为基线，不高亮、不播报，下一轮再继续对比
+  - 已验证：`cd frontend && source ~/.nvm/nvm.sh && nvm use 20 >/dev/null && npm run build`
+- 售后部（客户无忧）导出预览王贺 sheet 格式错乱已修复：
+  - 原因：王贺实际只有 A:H 可见列，但导出缓存中 I:IR 隐藏列残留模板旧内容；前端预览裁剪时未跳过隐藏列，导致隐藏旧内容被渲染出来
+  - 后端生成 Excel 时已清空未使用隐藏列的单元格值
+  - 前端 `trimWorksheetForPreview` 已跳过隐藏列，并过滤隐藏列合并区域，旧缓存文件预览也具备兜底
+  - 正式 Redis 已刷新 `all/online/offline` 三份导出缓存；新 `all` 文件：`售后部客户跟进表_全部_260711120724.xlsx`
+  - 已抽检正式新缓存：`深耕组-王贺` 隐藏列残留内容为 `0`
+  - 已验证：
+    - `cd backend && /opt/anaconda3/envs/smart/bin/python -m py_compile app/api/endpoints/after_sales_dept/after_sales_dept.py`
+    - `cd frontend && source ~/.nvm/nvm.sh && nvm use 20 >/dev/null && npm run build`
+- 客户无忧源站客户ID / 联系人ID补录口径已确认：
+  - 客户列表和客户跟进仍按原有固定业务人员列表执行全量 / 增量，不改为全员爬取
+  - 本次只增加源站 `客户ID`、`联系人ID` 的解析、落库和关联，不改变原爬取流程
+  - 一次性补录脚本已去掉客户列表特殊 `whereSql/completeSql` 覆盖，避免绕过已跑通的固定人员流程
+  - 已验证：`cd backend && /opt/anaconda3/envs/smart/bin/python -m py_compile scripts/refetch_kehu51_source_ids_once.py crawler_sites/kehu51/formatter.py app/services/crawler_handlers/kehu51.py app/services/crawler_handlers/kehu51_customer_list.py app/services/kehu51_follow_cache.py`
+- 售后部（客户无忧）导出预览卡顿排查与优化：
+  - 导出预览已改为只查 `crawler_kehu51_follow_records` 单表，不再关联 `crawler_kehu51_customer_list`
+  - 数据范围：固定业务人员 2026 年开始的跟进数据
+  - 客户分组：按跟进表原始 `source_customer_id` 分组，客户名仅用于展示；缺少源站客户ID的历史数据按客户名兜底分组
+  - 季度归属：按该跟进人该客户 2026 年最早跟进时间判断季度
+  - 最新：新增汇总表 `after_sales_customer_follow_export_summary`，导出预览和下载优先查询该表，不再每次现场统计跟进明细
+  - 汇总表字段包含：客户无忧用户ID、跟进人、源站客户ID、客户分组Key、客户名、渠道、今年首次跟进时间、所属季度、跟进条数、跟进内容集合JSON
+  - 新增计划任务 `after_sales_customer_follow_export_summary_sync` / `售后客户跟进统计导出表同步`，每天凌晨 `02:10` 执行一次
+  - 已修复计划任务列表“立即执行”不识别该新任务的问题：`admin/scheduler.py` 已把 `after_sales_customer_follow_export_summary_sync` 映射到 `sync_after_sales_customer_follow_export_summary_job(run_trigger="manual")`
+  - 每次执行 `售后客户跟进统计导出表同步` 后，会自动刷新导出预览 Redis 文件缓存：
+    - 缓存渠道：`all`、`online`、`offline`
+    - 缓存有效期：`86400` 秒（24 小时）
+    - 预览和下载命中同一份缓存
+  - 最新已将同步任务从每小时执行改为每天凌晨 `02:10` 执行，并把导出文件 Redis 缓存 TTL 从 `4200` 秒改为 `86400` 秒，降低白天资源占用
+  - test / prod 已执行 `backend/sql/update_after_sales_customer_follow_export_summary_schedule.sql`，两套环境 `scheduler_job_meta.cron_expr` 均已更新为 `10 2 * * *`
+  - 已用正式库验证同步 + 刷新缓存成功：`sync summaries=1012`，`channels=['all', 'online', 'offline']`
+  - 跟进内容去重规则：同一个用户、同一个客户、同一天、相同跟进内容只展示一条；同步汇总和导出展示两层都已做去重
+  - test / prod 已按最新去重规则重新同步 2026 汇总并刷新 `all/online/offline` 三个导出缓存
+  - 汇总表已补齐导出专用索引：
+    - `idx_after_sales_follow_summary_export_order (summary_year, owner_name, quarter_no, first_follow_time, id)`
+    - `idx_after_sales_follow_summary_channel_export_order (summary_year, customer_channel, owner_name, quarter_no, first_follow_time, id)`
+  - 导出查询已按是否筛选渠道显式 `FORCE INDEX`，避免优化器在 prod 选择全表扫
+  - test / prod 已建表并初始化任务配置，已手动同步 2026 年数据：
+    - test：`owners=10`、`summaries=1006`
+    - prod：`owners=10`、`summaries=1012`
+  - 截图中的 `路劲物业` 在源站是两个不同客户ID：`84447140`、`84447345`，按源站客户ID分组时会展示为两个客户列
+  - 新单表 SQL 已查执行计划：test / prod 均命中 `idx_follow_export_creator_time_channel_customer`，约 4200 行 range 扫描
+  - 导出接口已增加 Redis 文件级缓存，按年份 + 渠道缓存生成后的 Excel，TTL `180` 秒；预览和下载共用同一接口，3 分钟内不会重复查数据库或生成 Excel
+  - 前端导出预览 loading 增加百分比进度和进度条，接口完成后推进到 100%
+  - 已验证：
+    - `cd backend && /opt/anaconda3/envs/smart/bin/python -m py_compile app/api/endpoints/after_sales_dept/after_sales_dept.py app/tasks/scheduler.py app/services/kehu51_follow_export_summary.py migrations/versions/o5p6q7r8s9t0_create_after_sales_customer_follow_export_summary.py`
+    - `cd backend && /opt/anaconda3/envs/smart/bin/python scripts/run_sql_on_envs.py --both --sql-file sql/add_after_sales_customer_follow_export_summary_indexes.sql`
+    - `cd frontend && source ~/.nvm/nvm.sh && nvm use 20 >/dev/null && npm run build`
+
+- 新增“售后工单监控”售后服务卡片：
+  - 权限：`app:after_sales_work_order_monitor:access`
+  - 管理入口：`/apps/after-sales-work-order-monitor`，需要权限
+  - 独立实时监控入口：`/apps/after-sales-work-order-monitor/live`，不需要登录/权限，PC 和手机自适应
+  - 后端新表：`after_sales_work_order_monitor_accounts`
+    - 字段：`account_name`、`account_id`、`login_account`、`sort_order`、`remark`、`created_by`、`created_at`、`updated_at`
+  - 后端接口：
+    - 受保护账户管理：`GET/POST/PUT/DELETE /api/after-sales-dept/work-order-monitor/accounts`
+    - 受保护实时代理：`GET /api/after-sales-dept/work-order-monitor/worksheets`
+    - 公开实时页接口：`GET /api/after-sales-dept/work-order-monitor/public/accounts`
+    - 公开实时页接口：`GET /api/after-sales-dept/work-order-monitor/public/worksheets`
+  - 实时工单接口代理固定参数：
+    - `from=Dispatch`
+    - `to=Dispose`
+    - `sort=ID`
+    - `ascending=false`
+    - `count=10`
+    - `since=1`
+    - 仅 `user` 使用账户 ID 动态传入
+  - 前端实时监控按账户数量自动分屏，15 秒轮询，支持语音通知开关
+  - 实时监控已调整：
+    - 刷新频率改为每 `10~20` 秒随机刷新
+    - 语音通知前新增“测试播放”按钮
+    - 测试播放文案：`账户名 有一条新的工单，请注意查收`
+    - 发现新工单时播放同样文案
+    - 语音播报改为队列播放，多条提醒按顺序逐条播报，不互相打断
+    - 已删除“测试播放”按钮
+    - 每个账户卡片右上角在“实时”前显示该列表最后一次成功拉取时间
+    - 实时工单接口请求参数 `count=10`，每个账户最多展示最新 10 条，不再使用内部滚动条
+    - 实时监控卡片按自身内容高度自然撑开，页面随内容自动增高
+    - 工单卡片仅展示标题、类型、时间、地址
+    - 工单卡片已增加步骤展示：按箭头流程条样式展示，步骤文案优先取 `nodeName`，`display=1` 显示蓝色，`display=0` 显示灰色
+    - 语音播报规则已改为按步骤判断：只有第一个灰色步骤早于“接单”时才持续播报；刷新后灰色步骤达到“接单”或之后则停止继续播报
+    - 账户管理新增接口类型：`账号密码` / `token`
+    - `token` 类型走金北热线接口：`https://hotlineapi.jinbeishuiwu.cn:14443/order/related/list?pageNum=1&pageSize=10`
+    - `token` 类型账户新增授权 Token 字段，Token 存数据库，不写死在代码中
+    - `token` 类型接口返回列表在 `rows` 字段，页面已映射 `orderId`、`mtceContent`、`mtceClassName`、`launchTime`、`address` 等真实字段
+    - `token` 类型每次刷新都全量覆盖列表；只要接口返回有数据就语音提醒，不走 steps 判断
+    - `token` 类型账户编辑时授权 Token 已改为普通文本框并支持回显；`token` 类型账户 ID 可不填，后端自动生成内部 ID
+    - test / prod 已执行 `backend/sql/add_after_sales_work_order_monitor_account_type.sql`，补齐 `account_type`、`access_token` 字段
+    - 新工单会从上方向下出现并高亮背景色；高亮保持到下一次新工单将其挤下去后再消失
+    - 轮询无新工单时不再替换整组列表，旧数据保持不变；只有初始化或发现新工单时更新对应账户列表
+    - 新工单判断已改为“只识别插入当前列表顶部的新记录”；`count=10` 后底部补出来的历史工单不会再被当成新消息高亮或播报
+    - 语音队列播放到某个账户时，该账户卡片右上角更新时间前显示小喇叭图标
+    - 账户管理新增排序字段 `sort_order`，默认 `100`，账户列表按排序升序展示
+    - 账户管理新增登录账号字段 `login_account`
+    - 窄屏单列显示时，发现新工单的账户卡片会临时移动到第一个位置
+    - 管理页默认语音通知关闭，独立实时监控页默认语音通知开启
+    - 不再按状态值硬过滤，未处理范围由接口参数 `from=Dispatch&to=Dispose` 控制
+  - test / prod 已执行 `backend/sql/add_after_sales_work_order_monitor_sort_order.sql`，两套环境均已补 `sort_order` 字段并设置默认值为 `100`
+  - test / prod 已执行 `backend/sql/add_after_sales_work_order_monitor_login_account.sql`，两套环境均已补 `login_account` 字段
+  - 已用历史工单接口分析返回字段：
+    - `/api/ws/v1/worksheets/history?user=3140&sort=ID&ascending=false&count=10&since=1&uscope=2`
+    - 返回字段包含 `id`、`typeName`、`title`、`content`、`address`、`status`、`createTime`、`deadline`、`remark`、`steps`
+    - 页面仅展示基本信息，不展示 `steps`
+  - 账户管理“新增”点击时，如果账户名称或账户 ID 为空，会提示必填，不再静默无效
+  - test / prod 已执行 `backend/sql/create_after_sales_work_order_monitor.sql`
+    - 两套环境均已建表
+    - 两套环境均已插入权限
+    - 两套环境均已给 `after_sales_dept_admin` 授权
+    - 两套环境均已插入 dashboard 卡片
+  - 外部接口连通性已测：`user=3343` 返回 `200`、`{"code":0,"message":null,"data":[]}`
+  - 已验证：
+    - `cd backend && /opt/anaconda3/envs/smart/bin/python -m py_compile app/permissions.py app/db_init.py app/models/after_sales_dept.py app/models/__init__.py app/schemas/after_sales_dept.py app/api/endpoints/after_sales_dept/after_sales_dept.py migrations/versions/j0k1l2m3n4o5_add_after_sales_work_order_monitor_accounts.py`
+    - `cd frontend && source ~/.nvm/nvm.sh && nvm use 20 >/dev/null && npm run build`
+
+- 售后部（客户无忧）已增加客户渠道筛选：
+  - 前端客户跟进列表新增“客户渠道”下拉，默认“全部渠道”，支持“线上客户 / 线下客户”
+  - 列表请求新增 `customer_channel=online/offline` 参数
+  - 表格新增“客户渠道”列，显示“线上 / 线下”
+  - 历史空渠道数据按线下客户处理，避免线下筛选漏数据
+  - 导出和导出预览复用当前筛选条件，已同步带上客户渠道筛选
+  - 最新调整：导出 / 预览导出不带分页参数，且只按“客户渠道”筛选；客户名、跟进人、日期筛选只影响列表，不影响导出
+  - 最新调整：导出 / 预览导出客户列改为按跟进记录生成，不再按客户录入时间；哪个季度有跟进记录，客户就展示在哪个季度，历史录入客户只要当年有跟进也会进入预览
+  - 最新调整：导出 / 预览下载表格日期显示为完整年月日，如 `2026年6月11日`；客户进入预览后展示该客户当年从最早到最新的全部跟进记录
+  - 最新优化：导出 / 预览导出 SQL 从“先查客户再按负责人循环查跟进”改为“一次取当年跟进记录后内存分组”，减少 SQL 往返
+  - 已新增并在 test / prod 执行组合索引：`idx_follow_export_creator_time_channel_customer (creator_name, follow_time, customer_channel, customer_name)`
+  - 导出预览按人员懒加载方案已按要求回退：打开预览仍一次生成全部 sheet，弹窗内按 sheet 切换
+  - 最新优化：`crawler_kehu51_follow_records` 新增 `customer_list_id`，关联 `crawler_kehu51_customer_list.id`
+  - `customer_list_id` 匹配规则已统一为：客户列表里同客户名只有一条时，跟进记录 `客户名称` 对应客户列表 `客户名称`；同客户名一条以上时，跟进记录 `客户名称 + 联系人` 对应客户列表 `客户名称 + 联系人`
+  - 最新补充：客户列表 HTML 从 `GotoPage('follow',90901478,...)` 提取源站客户ID；客户跟进 HTML 从 `CusDetailNew(90901478,...)` / `GotoCusCheckDetail(90901478)` 提取源站客户ID，从 `LinkManDetail(32327622)` 提取源站联系人ID
+  - 两张表已新增 `source_customer_id`、`source_contact_id`，`customer_list_id` 关联优先按源站客户ID / 联系人ID 匹配，取不到再走名称规则
+  - 导出预览改为先按负责人获取今年有跟进的客户ID集合，再按客户ID读取 Redis 缓存；缓存不存在时查询该客户全部跟进记录及当年首次跟进时间并写入 Redis
+  - 客户所属季度由 Redis 中 `first_year_follow_time` 判断，跟进内容从 Redis 中该客户全部跟进记录生成
+  - 客户跟进爬取、后台旧同步入口、手工新增 / 编辑 / 删除均会维护 `customer_list_id` 并清理 / 刷新对应客户 Redis 缓存
+  - 缓存失效会同时清理跟进记录所属年份和当前年份，避免补录历史跟进后当前年度预览仍读旧缓存
+  - test / prod 已重新执行 `backend/sql/add_kehu51_follow_customer_list_id.sql`，包含字段、索引和仅对 `customer_list_id IS NULL` 的历史回填
+  - test / prod 已执行源站ID字段和索引补充 SQL：`backend/sql/add_kehu51_follow_customer_list_id.sql`
+  - 最新回填后剩余 `customer_list_id` 为空原因：客户列表无同名未删除客户、同名客户多条但联系人不匹配、少量客户名称为空；当前剩余 test `2900`、prod `2881`
+  - 预览弹窗内“下载”改为下载当前预览生成的同一个文件，确保渠道筛选一致
+  - 导出文件名已追加渠道：`售后部客户跟进表_线上_260710084221.xlsx`
+  - 已修复导出模板单列行数限制：原先会按模板行数截断单个客户的跟进记录，现在按每个 sheet 内最长客户跟进记录自动扩展行数，避免如“华电水务栾城有限公司”7 月 9 日跟进记录被截掉
+  - 已修复同名客户重复列问题：如“缴志健 / 赞皇县城西地表水厂”跟进记录本身只有 1 条，重复来自客户列表同一负责人同一客户存在 2 条未删除记录；导出客户列已按 `owner_name + customer_name` 去重
+  - 客户列表爬取入库排重已加强：按 `owner_name + customer_name + contact_name + mobile_phone` 作为业务唯一性判断，`source_dedupe_key` 改为稳定哈希，不再使用页码 / item 位置
+  - 历史客户列表重复数据已清洗：
+    - test：清理前 `87` 组重复、删除 `105` 条，清理后重复组 `0`
+    - prod：清理前 `90` 组重复、删除 `110` 条，清理后重复组 `0`
+    - prod “缴志健 / 赞皇县城西地表水厂”只剩 `id=11976`
+  - 后端 `/after-sales-dept/customer-follow-rows`、`/customer-follow-rows/export`、`/customer-follow-customers` 已支持 `customer_channel`
+  - 已验证：
+    - `cd backend && /opt/anaconda3/envs/smart/bin/python -m py_compile app/api/endpoints/after_sales_dept/after_sales_dept.py`
+    - `cd frontend && source ~/.nvm/nvm.sh && nvm use 20 >/dev/null && npm run build`
+
+- 客户无忧客户列表 / 跟进记录已增加线上线下标识：
+  - 新增字段：`crawler_kehu51_customer_list.customer_channel`
+  - 新增字段：`crawler_kehu51_follow_records.customer_channel`
+  - 字段取值：`online` 表示线上，`offline` 表示线下
+  - 客户列表写入规则：`creator_name = '李旭晴'` 标记为 `online`，其它标记为 `offline`
+  - 客户跟进写入规则：按 `customer_name + contact_name` 匹配客户列表；匹配到线上客户则跟进标记为 `online`，否则为 `offline`
+  - 已撤销“额外增加李旭晴为抓取目标”的思路，客户列表抓取人员范围保持原有负责人列表不变
+  - test / prod 两套环境已补字段、索引并回填：
+    - test 客户列表：`online=917`、`offline=6022`
+    - test 跟进记录：`online=4386`、`offline=37539`
+    - prod 客户列表：`online=921`、`offline=6078`
+    - prod 跟进记录：`online=4396`、`offline=37617`
+  - 已验证：`cd backend && /opt/anaconda3/envs/smart/bin/python -m py_compile app/services/crawler_handlers/kehu51.py app/services/crawler_handlers/kehu51_customer_list.py app/api/endpoints/admin/crawler_tasks.py migrations/versions/a0b1c2d3e4f6_add_kehu51_customer_channel.py`
+
+- 已清理 `crawler_kehu51_customer_list` 重复客户数据：
+  - 重复判断规则：`customer_name + contact_name + mobile_phone + created_time`
+  - 保留规则：优先保留未删除记录，再保留更新时间最新记录
+  - prod：清理前 `237` 组重复、需删 `364` 条；已删除 `364` 条；清理后重复 `0`
+  - test：清理前 `2` 组重复、需删 `4` 条；已删除 `4` 条；清理后重复 `0`
+  - 指定记录中保留 `4383`，删除重复记录 `11338`
+
+- 计划任务列表和工作台卡片列表已增加状态快捷切换：
+  - 计划任务列表“状态”列可直接点击运行中 / 已暂停，调用已有暂停 / 恢复接口
+  - 状态按钮已加固定最小宽度和不换行，避免“运行中”被挤成两行
+  - 工作台卡片列表“启用”列可直接点击启用 / 停用，调用已有 `toggle-enabled` 接口
+  - 两处都增加处理中状态和成功 / 失败提示
+  - 已验证：`cd frontend && source ~/.nvm/nvm.sh && nvm use 20 >/dev/null && npm run build`
+
+- 晨天润达业务团队看板推送图已继续微调：
+  - “业绩目标”指标卡内标题和值同步上移，避免视觉偏下
+  - 顶部横幅已去掉口号文案，减少拥挤
+  - JPG / SVG 两套生成逻辑已同步
+  - 预览图已重新生成：`data/after_sales_business_dashboard_push_preview_20260709.jpg`
+  - 预览 SVG 已重新生成：`data/after_sales_business_dashboard_push_preview_20260709.svg`
+  - 预览文件已加入 `.gitignore`
+  - 已验证：`cd backend && /opt/anaconda3/envs/smart/bin/python -m py_compile app/services/after_sales_dashboard_image.py`
+
+- 角色与权限卡片右上角装饰圆形已修复：
+  - 角色卡片容器从 `overflow-visible` 改为 `overflow-hidden`
+  - hover / 选中时右上角浅蓝圆形会裁切在卡片内部，不再露出到相邻卡片
+  - 已验证：`cd frontend && source ~/.nvm/nvm.sh && nvm use 20 >/dev/null && npm run build`
+
+- 系统管理首页卡片数量已改为真实统计：
+  - 访问控制：显示已有角色数
+  - 权限定义：显示已有权限数
+  - 部门架构、知识库管理、计划任务、爬虫任务、工作台卡片、企微推送管理均显示对应数量
+  - `/admin/stats/dashboard` 已补充上述统计字段
+  - 统计接口已接入 Redis 缓存 24 小时，缓存 key：`admin:dashboard:stats:v1`
+  - Redis 不可用时不影响接口返回，只是不走缓存
+  - 已验证：
+    - `cd backend && /opt/anaconda3/envs/smart/bin/python -m py_compile app/api/endpoints/admin/stats.py`
+    - `cd frontend && source ~/.nvm/nvm.sh && nvm use 20 >/dev/null && npm run build`
+
+- 软件部任务工具“工作记录”默认填写人筛选已修复：
+  - 问题：当前用户信息异步加载前，工作记录列表会先按空筛选请求全部数据；筛选框随后显示默认填写人，但列表仍可能停留在全部数据
+  - 修复：默认填写人尚未应用前不再请求列表，等 `created_by_user_id` 生效后再加载
+  - 手动清空填写人后仍支持查看全部
+  - 已验证：`cd frontend && source ~/.nvm/nvm.sh && nvm use 20 >/dev/null && npm run build`
+
+- 计划任务列表已新增“业务部门”字段：
+  - 表 `scheduler_job_meta` 新增 `business_department`，默认 `软件部门`
+  - test / prod 两套环境已补字段并回填空值
+  - 内置任务默认归属：
+    - 售后服务部：`oa_contract_payment_report_sync`、`after_sales_business_dashboard_push`
+    - 采购部：采购供应商风险 / 活跃度 / U8 供应商 / 采购合同同步
+    - 平台管理：知识库同步、OA 用户部门同步
+    - 软件部门：软件部日报提醒及其它未显式归属任务
+  - 计划任务列表新增“业务部门”列
+  - 列表筛选新增“业务部门”下拉，选项来自当前任务已有部门
+  - 编辑计划任务弹窗新增“业务部门”组织架构下拉，来源 `/admin/departments`
+  - 已验证：
+    - `cd backend && /opt/anaconda3/envs/smart/bin/python -m py_compile app/models/crawler_task.py app/api/endpoints/admin/scheduler.py migrations/versions/i0j1k2l3m4n5_add_scheduler_business_department.py`
+    - `cd frontend && source ~/.nvm/nvm.sh && nvm use 20 >/dev/null && npm run build`
+
+- 晨天润达业务团队看板推送图已修复字体更换后的排版错位：
+  - 调整 JPG / SVG 顶部标题、副标题、收官倒计时、口号坐标
+  - 指标卡高度加高，数值上移，避免贴底或裁切
+  - 已重新生成预览：`data/after_sales_business_dashboard_push_test_20260709.jpg`
+  - 已验证：`cd backend && /opt/anaconda3/envs/smart/bin/python -m py_compile app/services/after_sales_dashboard_image.py`
+
+- 公共下拉组件已修复点击下拉滚动条后菜单自动关闭：
+  - `AppSelect` / `AppMultiSelect` 统一设置 `closeMenuOnScroll={false}`、`captureMenuScroll={false}`、`menuShouldScrollIntoView={false}`
+  - 公共组件会自动识别是否处于 `DialogContent` 内：
+    - 弹窗内：不再 portal 到 `document.body`，改用弹窗内部绝对定位，避免 Radix Dialog 拦截选项点击，也避免位置跑偏
+    - 页面内：仍使用 `document.body` portal 和 fixed 定位
+  - 公共组件新增 `menuZIndex` 配置，默认仍为 `9999`
+  - 公共多选组件保留 `blockInteractionsWhenOpen` 可选项，当前工作台卡片编辑弹窗不再需要单独传 `menuPortalTarget`
+  - 影响所有复用公共下拉组件的页面
+  - 已验证：`cd frontend && source ~/.nvm/nvm.sh && nvm use 20 >/dev/null && npm run build`
+
+- 工作台卡片管理权限展示与编辑已调整：
+  - 列表“权限”列显示权限描述，不再直接显示权限 slug
+  - 鼠标 hover 权限列显示原始权限内容
+  - 编辑弹窗权限下拉改为调用 `/admin/permissions` 权限定义列表，不再使用页面写死的少量选项
+  - 接口异常时保留本地 fallback 权限选项
+  - 已验证：`cd frontend && source ~/.nvm/nvm.sh && nvm use 20 >/dev/null && npm run build`
+
+- 用户列表已增加批量更改角色：
+  - 后端新增 `PUT /api/admin/roles/batch/users/roles`
+  - 前端用户列表增加当前页多选、全选、批量更改角色按钮
+  - 批量弹窗会把选中用户角色统一替换为勾选角色
+  - 默认打开时预选所有选中用户共同拥有的角色
+  - 已验证：
+    - `cd backend && /opt/anaconda3/envs/smart/bin/python -m py_compile app/schemas/admin.py app/api/endpoints/admin/roles.py`
+    - `cd frontend && source ~/.nvm/nvm.sh && nvm use 20 >/dev/null && npm run build`
+
+- 客户无忧客户列表爬取任务已确认并恢复命名：
+  - 任务 key：`kehu51_customer_list`
+  - test / prod 两套环境原任务均存在，id 均为 `2`
+  - 原名称为 `kehu51客户列表`，已统一改为 `客户无忧客户列表`
+  - `backend/sql/update_kehu51_customer_list_task_to_api.sql` 已从单纯 UPDATE 改为 upsert，后续即使任务被删也能补回
+  - 已修复计划任务列表看不到该任务的问题：
+    - `crawler_tasks.run_mode` 已从 `manual` 改为 `cron`
+    - `scheduler_job_meta` 已补 `crawler_task_2`
+    - 计划任务列表接口会兜底展示尚未注册到当前内存 scheduler 的 cron 爬虫任务
+    - 爬虫计划任务即使尚未注册到内存 scheduler，也支持打开详情和立即执行
+  - 当前两套环境配置：
+    - `site_key=kehu51`
+    - `task_type=api`
+    - `template_name=customer_list.json`
+    - `run_mode=cron`
+    - `is_enabled=1`
+    - `sync_mode=incremental`
+    - `cron_expr=15 * * * *`
+    - `page_size=50`
+    - `page_start=1`
+    - `page_end=-1`
+    - `scheduler_job_meta.title_zh=客户无忧客户列表`
+    - `scheduler_job_meta.business_department=售后服务部`
+
+- 业务团队管理看板权限已从 `app:after_sales_dept:admin` 独立为 `app:after_sales_dept:kanban`：
+  - 后端新增常量 `APP_AFTER_SALES_DEPT_KANBAN`
+  - 看板查询、编辑数据、保存数据接口均改为校验 `app:after_sales_dept:kanban`
+  - 前端 `/apps/after-sales-management-dashboard` 桌面 / 移动路由均改为新权限
+  - 工作台卡片静态配置与数据库表 `dashboard_app_cards.permission_json` 已改为新权限
+  - 权限表已新增 `app:after_sales_dept:kanban`，并给 `after_sales_dept_admin` 角色补绑定
+  - test / prod 两套环境已执行并确认：
+    - `permissions=1`
+    - `role_permissions=1`
+    - `dashboard_app_cards=1`
+  - 已验证：
+    - `cd backend && /opt/anaconda3/envs/smart/bin/python -m py_compile app/permissions.py app/db_init.py app/api/endpoints/after_sales_dept/after_sales_dept.py`
+    - `cd frontend && source ~/.nvm/nvm.sh && nvm use 20 >/dev/null && npm run build`
+
+- 已新增“晨天润达业务团队看板推送”能力：
+  - 新增模板 key：`after_sales_business_dashboard_push`
+  - 测试库已配置模板名称：`晨天润达业务团队看板推送`
+  - 模板标题：`{{push_date}}-晨天润达业务团队看板`
+  - test / prod 两套环境均已绑定企业微信群机器人 `id=2`，机器人标题：`售后AI群发`
+  - 企微机器人与消息模板关系已从单个 `template_id` 升级为多对多：
+    - 新增表 `wecom_message_robot_templates`
+    - 旧字段 `wecom_message_robots.template_id` 保留作为兼容字段
+    - 后端列表 / 保存优先使用新关联表
+    - 计划任务优先按新关联表查找绑定机器人，旧字段仅兜底
+    - “推送机器人管理”的关联模板已改为多选
+    - “模板管理”的绑定机器人也已改为多选
+    - 已修复公共多选 `AppMultiSelect` 在弹窗内下拉条目点击不生效的问题：弹窗内多选不再 portal 到 body，避免被 Dialog 拦截点击
+  - test / prod 两套环境均已创建 `wecom_message_robot_templates` 并迁移旧绑定数据
+  - 新增计划任务：`after_sales_business_dashboard_push`
+  - 默认调度：每天 `08:30`
+  - 后台计划任务列表支持展示和立即执行
+  - 计划任务列表已增加固定任务兜底展示：即使后端当前内存 scheduler 尚未注册该任务，只要代码 / 元信息存在，也会在列表显示并提示“尚未注册到当前调度器”
+  - 推送内容已改为后端按业务团队管理看板实时数据生成的竖版青色看板图片
+  - 企微机器人 image 接口不支持 SVG 原始字节，实际推送改为 JPG；SVG 继续保留为预览源文件
+  - 推送只发一条 image，不再单独发送 markdown 标题
+  - 图片视觉按网页看板青色主题生成，不再使用临时黑白图
+  - 推送图左上角已移除不合适的“耳机”图标块，标题改为左侧直接展示
+  - 推送图“个人排名”姓名列已去掉“金奖/银奖/铜奖/奖牌”前缀，仅显示姓名
+  - 推送 SVG 已去掉“最近跟进”模块
+  - 推送图“小组战况 / 个人排名”表格已调整表头与内容列对齐：首列左对齐，其余列统一居中对齐
+  - 预览文件：
+    - `data/after_sales_business_dashboard_push_test_20260709.svg`
+    - `data/after_sales_business_dashboard_push_test_20260709.jpg`，约 `386KB`
+  - 企微图片发送已增加 `errcode=-1` 临时失败重试
+  - 已验证：
+    - `cd backend && /opt/anaconda3/envs/smart/bin/python -m py_compile app/services/after_sales_dashboard_image.py app/services/wecom.py app/tasks/scheduler.py app/api/endpoints/admin/scheduler.py`
+    - `cd backend && /opt/anaconda3/envs/smart/bin/python -m py_compile app/models/crawler_task.py app/api/endpoints/admin/wecom_management.py app/tasks/scheduler.py migrations/versions/h9i0j1k2l3m4_add_wecom_robot_template_links.py`
+    - `cd backend && /opt/anaconda3/envs/smart/bin/python scripts/run_sql_on_envs.py --both --sql-file sql/upsert_after_sales_business_dashboard_push_template.sql`
+    - `cd frontend && source ~/.nvm/nvm.sh && nvm use 20 >/dev/null && npm run build`
+    - 已重启本地测试后端并通过 `/api/admin/scheduler/jobs` 确认列表返回：`id=after_sales_business_dashboard_push`、标题 `晨天润达业务团队看板推送`、`paused=false`、`cron=30 8 * * *`
+  - 本次未新增依赖，使用已有 `Pillow`
+
+## 当前重点
+
+- 工作台看板卡片：
+  - 已新增表 `dashboard_app_cards`，将工作台 / 移动端看板卡片配置落库管理
+  - 已通过 `backend/sql/create_dashboard_app_cards.sql` 在 test / prod 两套环境建表并初始化当前 15 张卡片
+  - 后端新增接口：
+    - 公共读取：`GET /api/dashboard-app-cards`
+    - 管理后台：`/api/admin/dashboard-app-cards`
+  - 前端工作台桌面端 `AppGrid` 与移动端首页已改为优先读取数据库卡片配置，接口异常时兜底使用静态配置
+  - 管理后台已新增页面 `/platform/admin/dashboard-app-cards`
+  - 管理后台支持卡片搜索、分页、新建、编辑、启用 / 停用
+  - 新建卡片已简化为只填：名称、描述、排序；其它字段由后端自动生成默认值
+  - 编辑卡片仍保留完整配置字段，方便后续调整 key、路径、权限、图标、移动端展示等
+  - 编辑卡片交互已优化：
+    - 图标 key 改为可视化图标网格选择
+    - 图标选择、图标颜色均改为二级弹窗选择，避免撑长编辑表单
+    - 图标颜色改为预设色板选择，已去掉类名输入
+    - 权限改为公共多选组件
+    - 状态、分类改为公共下拉组件
+    - 唯一 key 已从后台编辑表单移除，创建时由后端自动生成
+    - 默认路径、桌面路径、移动路径已从后台编辑表单移除，沿用自动生成 / 已有配置
+    - 状态样式已从后台编辑表单移除，跟随状态自动设置
+  - 规划中卡片已补回表内，test / prod 当前均为：管理员 1、运行中 14、规划中 16
+  - 补规划中卡片使用 upsert，不删除正式环境已有卡片
+  - 管理列表筛选行已改为：标题、分类、启用状态
+  - 分类、启用状态筛选已改用公共下拉组件
+  - 筛选不会自动触发查询，需点击搜索；已提供重置按钮
+  - 列表底部已增加公共分页组件和每页条数选择
+  - 已执行验证：
+    - `cd backend && /opt/anaconda3/envs/smart/bin/python -m py_compile app/api/api.py app/api/endpoints/dashboard_app_cards.py`
+    - `cd frontend && source ~/.nvm/nvm.sh && nvm use 20 >/dev/null && npm run build`
+  - 本次未新增依赖
+- 重点任务集中在 `okcis` 与 `kehu51` 两条爬虫链路
+- `okcis`：
+  - 手动任务：`okcis_notice_manual`
+  - 已支持自动登录、验证码识别、详情抓取、截止时间过滤、专表写入
+  - 每次执行前先清理 `crawler_okcis_notices` 中不符合“截止时间大于未来4天”的旧数据
+  - 执行前会请求订阅组接口，提取 `myConditions[*][0]` 作为 `dzid` 列表并写入 Redis，缓存 30 天
+  - 演示模式会裁剪大字段，避免前端预览异常
+  - 首页已新增“招标信息公示”卡片，展示 `crawler_okcis_notices` 最新数据
+  - 招标信息公示页已增加截止时间、地区筛选，类型列已隐藏
+  - 招标信息公示页已增加“跟进 / 取消跟进”操作，状态写入数据库字段
+  - 若数据库尚未执行 `is_followed` 迁移，列表接口会自动降级返回 `is_followed=0`，避免页面 500
+  - `crawler_okcis_notices.is_followed` 已同步补齐 test / prod 两套环境
+  - 招标信息公示页日期筛选已从浏览器原生 `input[type=date]` 改为 `react-day-picker` 弹层日历选择
+  - 日期选择组件已抽为公共组件 `frontend/src/components/ui/date-picker-input.tsx`，后续页面默认复用
+  - 招标信息公示页已改为仅在 URL 带 `date_from` 参数时默认注入发布日期开始筛选；推送链接可传 `date_from=today`
+  - 招投标每日推送已增加空数据保护：当天无新增公告时不推送群消息
+  - 招投标每日推送链接已改为携带 `?date_from=today`
+  - 招投标企业微信推送统计口径已改为按 `publish_date` 当天统计，不再按 `crawled_at/created_at` 当天统计
+  - 推送链接已同步改为精确当天筛选：`date_from=当天&date_to=当天`
+- `kehu51`：
+  - 客户列表 `customer_name` 统一去掉 `▼`
+  - 客户列表 `customer_name` 统一去掉前缀序号，规则如：`1 天津中环领先材料技术有限公司 -> 天津中环领先材料技术有限公司`
+  - 纯数字/数字空格类客户名（如 `1218 9988`）视为原始编号，不纳入前缀序号清洗
+  - 客户列表任务 `kehu51_customer_list` 已改为仅同步四个负责人：
+    - 范运成 `1680321`
+    - 缴志健 `1442273`
+    - 马超 `1774436`
+    - 李秋雷 `1592326`
+  - 客户列表按负责人分别请求 `selectuserid={{user_id}}`，源站未返回但本地已有的数据标记 `crawler_kehu51_customer_list.is_deleted=1`
+  - 客户列表已拆成独立 handler：`backend/app/services/crawler_handlers/kehu51_customer_list.py`
+  - 客户列表 `crawler_kehu51_customer_list.department_name` 已补齐两套环境历史数据：
+    - 优先取 `raw_json` 中 `所属部门/部门`
+    - 其次按同负责人最高频部门回填
+    - 仍为空时 `公客` 回填为 `公客`，其它回填为 `未归属部门`
+    - test / prod 当前空值均为 0
+  - 新数据录入已兼容同步 `所属部门` 和 `部门` 两个字段
+  - 客户列表总条数通过 GET `cuslist.aspx?appointtype=&name=负责人为：{{user_name}}&selectuserid={{user_id}}&selecttype=1&viewname=allcus&templateid=` 读取 `<font id="rptCount">`
+  - 客户列表分页请求的 `whereSql` 从同页隐藏字段 `#listcount_wheresql` 提取
+  - 客户列表每个负责人必须满足“源站总条数 == 实际分页抓取条数”，不一致则任务失败且不会执行删除标记
+  - 客户列表后台任务入口已修复：空 `json_body={}` 不再覆盖表单请求；达到源站总条数后立即停止分页，避免多请求一页导致条数误差
+  - 站点完整凭证已改为 Redis 共享缓存：
+    - key：`crawler:site_credentials:{site_key}`
+    - TTL：30 天
+    - 数据库继续保存 `headers/cookies/cookie_text`
+    - `login_curl/check_login_curl` 等完整凭证优先从 Redis / 本地文件读取
+    - `credentials.json` 不存在时不再中断任务
+    - 已新增一次性脚本 `backend/scripts/cache_crawler_site_credentials.py`
+    - 已把本机 `kehu51` 当前凭证写入 test / prod Redis
+  - 售后客户跟进相关客户列表查询需默认排除 `is_deleted=1`
+  - 跟进结果异常数据已有修复脚本与清理记录
+  - 客户跟进任务总条数取值改为 GET 页面脚本中的 `recordCount`
+  - 客户跟进 / 客户列表在预取源站总条数为 `0` 时会直接按空结果结束，不再继续请求分页
+  - `kehu51` formatter 已补兜底：返回总条数为 `0` 时统一格式化为 `items=[]`
+  - 客户跟进记录管理已新增手动标识字段 `crawler_kehu51_follow_records.is_manual_created`
+  - 后台手动新建客户跟进记录时自动写入 `is_manual_created=1`
+  - 列表接口已返回 `is_manual_created`
+  - 仅 `is_manual_created=1` 的记录前端展示删除按钮
+  - 爬取同步数据禁止删除，后端删除接口会拦截
+  - test / prod 已补字段并回填历史 `source_from='手动新增'` 数据为可删
+  - 客户跟进增量参数 `showID` 已改为 `2`
+  - 客户跟进默认执行日期范围已改为“昨天 + 今天”：
+    - 不传 `run_date/run_date_start/run_date_end` 时，自动按 `range_start=昨天`、`range_end=今天` 替换模板
+    - 手动传 `run_date` 时仍按指定单日执行，方便补历史
+    - 计划任务也走同一默认范围
+  - 客户跟进写库已移除旧的“遇到数据库最大 follow_time 就停止/跳过”边界，避免同一天较早记录被误判为历史数据
+  - 已在 prod 补跑 `2026-07-06`，源站 `36` 条、抓取 `36` 条完全一致
+  - prod 当前 `2026-07-06` 四人跟进统计：
+    - 范运成 `3`
+    - 李秋雷 `3`
+    - 马超 `3`
+  - 客户跟进增量 `today` 参数链路已按浏览器真实请求修正：
+    - `request.json` 主请求 `referer` 改为 `ShowID=2`
+    - `prefetch.url / prefetch.referer` 改为 `ShowID=2`
+    - `whereSql` 改为浏览器 today 实际值 `4689C015...7E9A0`
+    - 追加 `<font id="rptCount">` 提取规则
+    - 测试脚本也已同步改为同一套 today 参数，不再沿用旧全量 `whereSql`
+  - 后续确认 `kehu51` 增量正确链路不是 `showID=2`，而是 `mode=search + CreateTime` 日期范围筛选：
+    - 先访问搜索页提取 `recordCount / showID / whereSql`
+    - 再调用 `FollowTools.aspx/GetFollowScrollData`
+    - 默认范围占位符已切为 `{{range_start}} ~ {{range_end}}`
+    - 正式增量模板 `UserID` 默认留空，由搜索页日期范围获取全量增量结果
+  - `showID` 枚举说明：`1=全部`、`2=今天`、`4=本周`、`5=本月`、`6=最近30天`
+  - `kehu51` 凭证已补 `check_login_curl`，跟进任务 prefetch 前可先检测登录态并自动刷新凭证
+  - 已修复 prefetch 仍沿用主请求 POST 头导致 GET 页面取总条数时报 500 的问题
+  - 已把脏 HTML 文本清洗正式落到写库链路：
+    - `crawler_kehu51_follow_records.follow_result`
+    - `crawler_kehu51_customer_list.last_follow_content`
+    - 清洗函数：`_clean_html_text`
+  - 已对新增 5 个业务团队成员执行全量重爬：
+    - 薄再峥 `1442269`
+    - 崔凯 `1442270`
+    - 卢迪 `1442271`
+    - 王太鼎 `1442272`
+    - 闫治国 `1442240`
+  - `kehu51_customer_list` 全量重爬结果：
+    - test：`run_id=35`，正式执行完成：成功 `27`，失败 `0`
+    - prod：`run_id=366`，正式执行完成：成功 `27`，失败 `0`
+  - `kehu51_follow_records` 全量重爬结果：
+    - test：
+      - 薄再峥 `1613/1613`，新增 `17`
+      - 崔凯 `2936/2936`，新增 `24`
+      - 卢迪 `3086/3086`，新增 `27`
+      - 王太鼎 `3974/3974`，新增 `1790`
+      - 闫治国 `356/356`，新增 `6`
+    - prod：
+      - 薄再峥 `1613/1613`，新增 `13`
+      - 崔凯 `2936/2936`，新增 `24`
+      - 卢迪 `3086/3086`，新增 `27`
+      - 王太鼎 `3974/3974`，新增 `1783`
+      - 闫治国 `356/356`，新增 `5`
+- 售后管理看板：
+  - 新增入口 `/apps/after-sales-management-dashboard`
+  - 权限：`app:after_sales_dept:admin`
+  - 页面与应用卡片标题已改为“业务团队管理看板”
+  - 新增表 `after_sales_management_dashboard_members`
+  - 看板人员固定为：
+    - 范运成
+    - 缴志健
+    - 马超
+    - 李秋雷
+  - 表内维护全年目标、完成额、待签约金额、客户回访、应酬次数等无实时数据源字段
+  - 拜访量按当年 `crawler_kehu51_follow_records` 中四个人的客户跟进记录实时统计
+  - 小组战况已改为按 `crawler_kehu51_customer_list.department_name` 聚合有效客户
+  - 当前 test / prod 四人有效客户按部门聚合：
+    - 开拓组：`667`
+    - 范运成 `199`、缴志健 `308`、马超 `74`、李秋雷 `86`
+  - test / prod 已执行建表与四人默认测试数据初始化 SQL
+  - 看板已新增编辑能力：
+    - 前端右上角“编辑数据”打开弹窗
+    - 后端接口：`GET /api/after-sales-dept/management-dashboard/members`
+    - 后端接口：`PUT /api/after-sales-dept/management-dashboard/members`
+    - 可编辑字段：全年目标、完成额、待签约、客户回访、应酬次数、备注
+    - 姓名固定为四人，拜访量 / 客户数仍来自爬虫实时统计，不在编辑弹窗内手工维护
+    - 编辑弹窗已放大到接近整屏宽度，表格列固定展示，避免字段挤压隐藏
+  - 看板右上角已新增“预览”按钮：
+    - 点击后进入浏览器全屏预览
+    - 预览层只展示看板主体内容
+    - 不显示顶部导航、返回、编辑、刷新等操作入口
+  - 近 30 天拜访趋势图已移除
+  - 编辑业务团队管理看板已新增每人 Q1/Q2/Q3/Q4 季度目标字段
+  - `after_sales_management_dashboard_members` 已新增：
+    - `q1_target`
+    - `q2_target`
+    - `q3_target`
+    - `q4_target`
+  - test / prod 已执行字段补齐 SQL，历史季度目标按全年目标四等分回填
+  - 看板“季度目标 / 季度完成率”已改为按当前季度目标字段计算，不再按全年目标除以 4
+  - 看板人员已从固定四人改为动态读取 OA `润达 > 售后服务部(业务组)` 及其子部门：
+    - 排除：张涛、刘超VIP3、俞莎莎、张波VIP4、李春梅、李玉敏、毛丽恒
+    - 仅取有 `LOGINID` 且 `STATUS IN (0,1)` 的人员
+    - 显示名统一去掉 `VIP*` 后缀
+    - Redis 缓存 key：`after_sales:business_team_members:v1`，TTL 1 天
+    - 当前动态人员：范运成、缴志健、李秋雷、马超、薄再峥、崔凯、卢迪、王太鼎、闫治国、王贺
+    - 王贺在 OA 中真实部门为 `售后服务部(生态城)`，在售后业务模块内按“动态虚拟组”覆盖展示为 `深耕组`，不影响真实组织架构
+  - 售后客户无忧的跟进人候选接口已改为同一套动态人员来源
+  - `kehu51_customer_list` 负责人 ID 来源已改为动态读取 HR 接口：
+    - `https://hr.kehu51.com/api/employee/list?groupId=12&pageSize=10&pageIndex=1&filters={}`
+    - 匹配 OA 动态人员姓名，取 `userID` 作为 kehu51 用户 ID
+    - kehu51 员工列表缓存：`kehu51:employees:group:12:v1`，TTL 1 天
+    - 匹配后的客户列表负责人缓存：`kehu51:after_sales_business_team_users:v1`，TTL 1 天
+    - 不再兜底旧固定四人
+    - HR 接口未登录 / cookie 失效时，会使用 `kehu51` 站点凭证中的 `login_curl` 自动刷新凭证，刷新后重试
+    - 当前已验证匹配 9 人：
+      - 马超 `1774436`
+      - 李秋雷 `1592326`
+      - 范运成 `1680321`
+      - 闫治国 `1442240`
+      - 王太鼎 `1442272`
+      - 卢迪 `1442271`
+      - 缴志健 `1442273`
+      - 崔凯 `1442270`
+      - 薄再峥 `1442269`
+      - 王贺 `1555551`
+  - 已在 test / prod 补王贺看板默认配置，并单独同步王贺数据：
+    - 客户列表：源站 `14` 条，test / prod 均为有效客户 `14` 条，部门均为 `深耕组`
+    - 客户跟进：按 `UserID=1555551`、日期 `2000-01-01` 到 `2026-07-08` 补跑，源站 `96` 条，抓取 `96` 条，条数校验一致
+  - 个人拜访量图表已拉高并独占一行，最近跟进已下移到图表下方
+  - 个人拜访量图表 tooltip 已改为中文展示：`姓名 / 拜访量`
+  - 动态新增人员已补看板测试数据：
+    - 薄再峥、崔凯、卢迪、王太鼎、闫治国
+    - 运行时兜底新增人员也会写入同一套默认测试值
+    - test / prod 已执行只插入缺失人员的 SQL
+  - 客户跟进 Excel 导出已取消 `customer_name == contact_name` 过滤
+  - 像 `河北清源水利工程有限公司-刘先生` 这类有效客户，现可正常进入导出表格
+  - “个人排名 / 完成额”数据源已改为 OA 合同回款镜像表 `oa_contract_payment_report_rows`
+  - 统计口径：
+    - 年度完成额：按合同签订时间（为空则回退合同编号解析日期）落在所选年度内的合同金额汇总
+    - 季度完成率：按当前季度内的合同金额 / 当前季度目标计算
+    - 为避免同一合同多笔回款重复累计，按 `salesperson_name + contract_no` 去重后汇总合同金额
+  - 页面内其它“完成额/完成率”口径已同步统一：
+    - 顶部“目前完成 / 总完成率 / 季度完成率”
+    - 小组战况“目前完成 / 季度完成率”
+    - 个人排名“完成额 / 季度完成率”
+  - 编辑弹窗里的“完成额”已改为只读自动计算值，不再允许手工录入
+  - 看板金额展示已统一：
+    - 完成额按“万”展示并保留两位小数
+    - 个人排名已移除“季度目标”列
+    - 个人排名“季度完成率”已改为“完成率”，展示年度完成率
+    - 编辑弹窗已去掉“完成额(自动)”列
+    - 编辑弹窗的全年目标 / Q1-Q4 目标表头已补“(万)”单位
+    - “当季拜访量”已补单位“次”
+- OA 合同回款报表：
+  - 已新增本地镜像表 `oa_contract_payment_report_rows`
+  - 数据来源：
+    - 合同基础信息：OA `uf_httz`
+    - 回款信息：OA `formtable_main_117`、`formtable_main_240`
+  - 同步口径改为仅包含 `所属部门 IN (深耕组, 开拓组)`
+  - 同步范围仅保留 `合同编号日期 >= 2026-01-01` 的数据，更早历史不再同步
+  - 字段包含：所属部门、业务员、合同编号、合同名称、合同签订时间、合同金额、回款金额、回款时间
+  - 已新增字段 `contract_no_date`：同步时从合同编号中解析 8 位日期，例如 `CT-X2019122402 -> 2019-12-24`
+  - 同一合同多笔回款会拆成多行；无回款合同保留合同基础信息，回款字段为空
+  - 同步脚本：`backend/scripts/sync_oa_contract_payment_report.py`
+  - 建表 SQL：`backend/sql/create_oa_contract_payment_report_rows.sql`
+  - test / prod 已建表并同步完成：`1447` 个合同、`1725` 行，其中 `1477` 行有回款金额，`1725` 行均已解析合同编号日期
+  - 已接入计划任务：
+    - job_id：`oa_contract_payment_report_sync`
+    - 标题：`售后OA合同回款报表同步`
+    - 默认调度：每天 `04:15`
+    - cron：`15 4 * * *`
+    - test / prod 的 `scheduler_job_meta` 已写入同名配置
+  - 已确认 Excel `htdjb1.xlsx` 中“项目来源人”对应 OA 字段：
+    - `uf_httz.xmlyr`
+    - 兼容老流程表 `formtable_main_94.xmlyr`
+    - 新流程表 `formtable_main_239.xmlyr`
+  - 同步规则已调整：
+    - 当业务员为 `李春梅 / 李玉敏 / 毛丽恒` 这类代理合同业务员时
+    - 不再把合同归到代理业务员名下
+    - 统一按 `项目来源人` 归属到真实业务员名下
+    - 若代理业务员记录的 `项目来源人` 为空，则本次跳过不同步，待后续补齐后下次同步再入库
+- 用户去重：
+  - 已新增脚本 `backend/scripts/merge_duplicate_users.py`
+  - 已按“保留仍被业务使用的账号、删除未使用重复账号”的规则合并 test / prod 同名用户
+  - 已处理：
+    - `康鹏`：保留 `id=88`，删除 test `306` / prod `291`，并同步 `sso_uid= kangpeng`、手机号 `15101690158`
+    - `杨延涛`：保留 `id=79`，删除 test / prod `70`
+    - `康鹏`（正式环境新增重复 `id=307`）：已删除，仅保留 `id=88`
+    - `康鹏`（正式环境企微登录再次新建 `id=308`）：已删除，仅保留 `id=88`
+  - 合并后 test / prod `users` 表内上述重名账号已清理，重复昵称校验结果为空
+  - 企微登录建号已补兜底：
+  - 为彻底解决企微 userid 漂移导致的重复建号，`users` 表已新增 `sso_uid_aliases`
+  - 认证链路已改为按 `sso_uid + sso_uid_aliases` 共同匹配既有账号
+  - 命中既有账号后不再覆盖主 `sso_uid`，改为把新的企微 userid 追加到别名字段
+  - test / prod 已补字段并把 `康鹏 id=88` 统一回填为：
+    - `sso_uid_aliases=',kangpeng,tangpeng,'`
+  - prod 重复账号 `康鹏 id=310` 已删除，当前 test / prod 均仅剩 1 条康鹏账号记录
+- 软件部日报提醒：
+  - 已排查 2026-07-08 早上正式环境推送误包含 `康鹏 / 王业龙`
+  - `康鹏` 原因是重复账号误判，已通过 `sso_uid_aliases` 和重复账号清理解决
+  - `王业龙` 正式库存在记录：
+    - `software_work_records.id=471`
+    - `record_date=2026-07-07`
+    - `created_by=62`
+    - `created_at=2026-07-08 08:27:38`
+  - 日报提醒逻辑已改为：
+    - 先取软件部候选人
+    - 再取目标日期已填写人员
+    - 按 `用户ID + 昵称 + 邮箱 + 手机号 + sso_uid` 综合判断是否已填写
+    - 避免同一人多账号导致误报
+  - 企微推送记录已写入 `business_module='software_work_record_reminder'`
+  - 任务日志会记录目标日期和缺失名单，方便后续追溯
+  - 正式库按新逻辑复算 `2026-07-07` 缺失名单：`于涛、王帅`
+- 业务团队管理看板：
+  - 页面已隐藏“客户回访、应酬次数”
+  - 编辑弹窗也已隐藏“客户回访次数、应酬次数”
+  - 后端字段暂保留，避免影响历史数据和接口兼容
+    - 先按 `sso_uid=企微userid` 查用户
+    - 查不到时再按 `mobile`、`email`、唯一 `nickname` 兜底匹配已有账号
+    - 命中已有账号后，会把该账号 `sso_uid` 更新为新的企微 userid，避免再次新建重名用户
+  - 康鹏已做单独企微别名映射：
+    - `kangpeng`、`tangpeng` 统一映射到同一账号
+    - 登录时直接按别名组查同一用户，不再新建新账号
+- 业务团队管理看板本轮前端细节已继续调整：
+  - “最近跟进”卡片已改为固定高度内滚动展示
+  - 跟进日期文案已改为 `7月6日` 这种中文格式
+  - 编辑弹窗表格表头已吸顶冻结，纵向滚动时仍可见字段名
+  - 图表标题已调整为：
+    - `个人全年完成率`
+    - `个人季度完成率`
+- 软件部任务工具：
+  - 工作记录列表非管理员默认只看自己的记录
+  - “填写人”筛选已改用业务人员列表并修正生效链路
+  - 软件部日报提醒已增加空名单保护：若昨日无人缺日报，则不推送群消息
+- 给排水部助手新建任务负责人下拉已去掉 `users.is_active = true` 过滤，部门树命中用户都会返回
+- 给排水部助手负责人下拉已修复“同名研发中心 / 给排水部”导致漏人的问题：
+  - 现会合并匹配所有 `研发中心 > 给排水部` 节点，而不是只取第一条部门树
+
+## 最近已完成
+
+- `AGENTS.md` 已补充规则：
+  - 以后凡是代码改动引入了新的包、模块导入或调整导入方式
+  - 完成后必须自动执行对应导入校验
+  - Python 至少做 `py_compile` / import 级校验
+  - 前端至少做一次 `npm run build` 或等效编译校验
+
+- 已新增公共日期组件：
+  - `frontend/src/components/ui/date-picker-input.tsx`
+  - 基于 `react-day-picker + shadcn/ui` 封装
+  - 支持日期选择、清空、最小日期约束
+  - `招标信息公示` 已改为直接复用该公共组件
+  - `AGENTS.md` 已补规则：后续新增日期筛选默认使用公共日期组件
+- 企微推送管理已补齐旧模板迁移到新模板配置表：
+  - `wecom_message_templates` 已作为统一模板配置表
+  - 模板已增加 `template_type` 区分：`single_user` / `group_robot`
+  - 历史模板默认归类为 `single_user`
+  - 已新增旧模板回填脚本 `backend/scripts/backfill_wecom_group_robot_from_env.py`
+  - 已将历史模板回填到 test / prod 两套环境的新表中
+  - 已同步把旧版 `WECOM_GROUP_WEBHOOK_URL` 回填到 `wecom_message_robots`
+  - `WeComService.send_group_robot_markdown` 已改为优先读取 `wecom_message_robots`，环境变量仅作兜底
+  - 已新增 `okcis_notice_daily_group_robot` 模板，内容为“每日招投标情报”群机器人推送
+  - 推送机器人管理列表已增加 `ID` 列
+  - 推送机器人关联模板下拉已改为仅展示 `group_robot` 类型模板
+  - 群机器人推送链路已支持 `robot_id -> template_id -> template content` 自动渲染
+  - 已修复 `/api/admin/wecom-message-templates` 因运行环境缺少 `template_type` 字段导致的 500
+  - 已同步补齐 `wecom_message_templates.template_type` 到 test / prod 两套环境，并把历史模板默认回填为 `single_user`
+  - 后端列表接口已增加缺字段兼容兜底，未迁移完成前也不会直接报 500
+  - 已新增公共单用户模板发送能力：
+    - `backend/app/services/wecom_template_sender.py`
+    - `backend/app/services/wecom.py::send_single_user_message_by_template`
+  - 后续单用户企微推送统一按 `template_id + touser + template_vars` 调用
+  - 模板管理列表已补：
+    - 模板类型筛选
+    - 最前面 `ID` 列
+    - 状态列快捷启用 / 停用切换
+  - 推送机器人管理列表状态列也已支持快捷启用 / 停用切换
+  - 已新增招投标每日推送任务 `okcis_daily_summary_push`，固定使用机器人 `ID=2`
+  - 当前调度时间为每日 `18:00`，仅 `prod` 环境实际发送
+- 售后部（客户无忧）导出预览样式已修复独立页不生效问题：
+  - 原因是 `/apps/after-sales-customer-follow` 复用了 `CustomerFollowPanel`，但预览样式之前只挂在售后部助手页面容器内
+  - 现已把 Excel 预览横向展示样式下沉到 `CustomerFollowPanel` 内部
+  - 独立页与售后部助手页的导出预览现使用同一套样式
+- 给排水部助手统计页已新增“区域项目重复率”图表：
+  - 位于“业务区域（部门）统计”下方，独占一行
+  - 按项目编号统计项目次数，左侧展示项目名
+  - 顶部增加业务区域下拉筛选，复用任务大厅同款筛选组件
+  - 区域下拉现仅展示该图中有数据的区域，并按项目数量倒序
+  - 单次项目也纳入统计，不再仅显示大于 1 次的项目
+  - 统计口径已改为与任务大厅“项目编号”一致，读取给排水任务 `title`
+  - 左侧项目名称已改为固定宽度内最多两行，超出省略，避免字体重叠
+- 已新增企微推送记录能力，并拆成可复用组件：
+  - 后端新增 `wecom_message_logs` 数据表模型、发送日志写库服务、管理端列表接口
+  - `wecom.py` 发送文本 / markdown / 卡片 / 群机器人消息时会自动记录发送结果
+  - 前端已新增独立管理页 `/platform/admin/wecom-message-logs`
+  - 前端列表主体已拆出公共组件 `frontend/src/components/wecom/WecomMessageLogsPanel.tsx`，后续其他模块可直接复用
+  - 公共请求已拆到 `frontend/src/api/wecom-message-logs.ts`
+  - `wecom_message_logs` 表已同步创建到 test / prod
+  - Alembic 迁移已去掉 `created_by -> users.id` 外键，避免线上库字段类型不兼容导致迁移失败
+- 前端爬虫任务详情页已修复“执行成功却提示失败”
+- `okcis` 演示执行已补 `[START]`、`[DZID]`、`[EMPTY]` 日志
+- `okcis` 自动登录验证码 403 问题已修复
+- 爬虫任务与计划任务已接通即时同步：
+  - 爬虫任务新增 / 编辑 / 删除后会立即同步到 APScheduler
+  - 爬虫任务启用 / 停用会同步到计划任务暂停 / 恢复状态
+  - 在计划任务管理里暂停 / 恢复爬虫任务，也会反向同步 `crawler_tasks.is_enabled`
+  - 已修复计划任务管理页中爬虫任务“暂无执行记录”的展示问题：
+    - 原来误查 `scheduler_job_runs`
+    - 现已改为爬虫任务优先读取真实执行表 `crawler_task_runs`
+  - 计划任务列表已增加编辑按钮，可直接编辑任务标题与描述
+  - 已新增持久化表 `scheduler_job_meta` 保存计划任务标题/描述自定义配置
+- 调度执行日志已增加长度截断，并过滤 `sqlalchemy.engine` / `aiomysql` 噪音日志，避免 `scheduler_job_runs.output` 写库超长报错
+- `crawler_scheduler_sync` 每分钟同步任务已移除，改为服务启动时执行一次爬虫任务注册同步，后续依赖即时同步链路
+- 采购部供应商风险详情接口已补 PrimeMatrix 限流兜底：
+  - MCP 429 等异常时优先回退数据库缓存
+  - 无缓存时直接返回空风险状态，不再抛未处理 500
+- 采购部供应商风险详情弹窗已补空态文案：
+  - 工商信息不为空且风险信息为空时，风险状态显示“正常”
+  - 工商信息为空且风险信息为空时，风险状态显示“未知”
+  - 工商信息不为空且风险信息有值时，风险状态显示“风险”
+  - 工商信息空时显示“暂无工商信息”
+  - 风险信息空时按场景显示“暂无风险信息” / “暂未获取到数据”
+- 采购部列表风险列已增加空展示：`risk_status` 为空且 `risk_count=0` 时显示 `-`
+- 风险计划任务未获取到风险数据时，会把 `procurement_suppliers.risk_status` 写为空字符串
+- 软件部任务工具-新建工作记录已增加“存草稿”：
+  - Redis key 含 `用户ID + 日期`
+  - 草稿有效期到当日 `23:59:59`
+  - 新建弹窗打开或切换日期时，优先回填草稿中的项目/工时/工作内容
+- 前端筛选交互本轮继续统一：
+  - 系统内已继续把搜索 / 查询按钮样式统一为黑色系，替换剩余蓝色搜索按钮
+  - 业务页与管理页残留原生 `input[type=date]` 已继续切到公共日期组件 `frontend/src/components/ui/date-picker-input.tsx`
+  - 本轮已验证 `frontend` 构建通过
+  - 构建环境：`Node v20.20.2`、`npm 11.16.0`
+  - 本轮未新增依赖
+- 软件部任务工具主页签已隐藏“统计”Tab，仅软件部入口隐藏，给排水入口保持原状
+- `okcis_daily_summary_push` 内置默认调度时间已改为 `16:10:00`，与当前数据库配置保持一致
+- `okcis_daily_summary_push` 推送卡片链接已从 `date_from=today` 改为写入执行当日实际日期，避免隔天点击筛选漂移
+- 爬虫任务详情页已支持可选“执行日期”传参：
+  - 前端可在任务详情页选择执行日期
+  - 后端手动执行接口支持 `run_date=YYYY-MM-DD`
+  - 仅任务模板本身使用 `{{today}}` / 同类日期变量时才会实际生效
+  - 不填时默认仍为当天
+- 已定位正式环境 `okcis` 自动登录失效根因：
+  - 刷新凭证时文件凭证会丢失 `check_login_curl`
+  - 导致后续定时任务不再执行登录态检测
+  - 已修复刷新凭证持久化时保留 `login_curl / check_login_curl`
+  - 并补充未登录响应识别：`请登录后查看` / `nologin`
+  - 自动刷新后若仍未登录，任务会直接报错，不再误记成功
+- `okcis` 详情页截止时间提取规则已增强：
+  - 新增识别 `报名起止时间`
+  - 单个字段内若存在时间区间，取区间结束时间
+  - 多个候选字段同时存在时，取最近的截止时间
+- `okcis` 演示任务已再次实测通过：
+  - 2026-07-06 使用正式环境 `task_id=3 / okcis_notice_manual` 演示执行
+  - 登录检查已恢复正常，`is_nologin=False`
+  - 已抓到真实数据，示例：
+    - `dzid=18117` 抓到 5 条
+    - `dzid=44602` 抓到 5 条，详情里识别到 `响应截止时间: 2026-07-09 15:00:00`
+    - `dzid=70940` 抓到 24 条
+    - `dzid=157288` 抓到 50 条
+  - 本次演示汇总：成功 8，失败 0
+- 后台手动执行计划任务时，已可绕过测试环境的 `prod` 限制：
+  - 软件部日报提醒
+  - OKCIS 招投标每日推送
+  - 定时 cron 触发仍保持仅 `prod` 环境执行
+- 计划任务列表“调度计划”文案已改为更直白中文：
+  - 如“每分钟执行一次”“每 5 分钟执行一次”“每小时 5 分执行一次”“每天 16:10 执行”
+- 爬虫结构已开始按“默认主流程 + 个性化 handler”拆分：
+  - 新增 `backend/app/services/crawler_handlers/`
+  - 主流程仍在 `crawler_tasks.py`
+  - `okcis` 站点特化逻辑已抽到独立 handler
+  - `kehu51` 客户跟进 / 客户列表写库逻辑也已抽到独立 handler
+  - 主流程通过 handler 接口调用运行前清理、运行目标生成、详情增强、空结果判断、业务表落库
+  - `kehu51` 增量模式的历史 `follow_time` 停止判断也已迁入 handler
+  - `kehu51` 正式执行已新增“原始总条数 vs 实际抓取条数”一致性校验
+  - 若总条数不一致，会直接记失败，并把原因分析写入执行日志
+  - `kehu51_follow_records` 后台任务入口已补 `targetID=3 / targetType=1 / targetField=UserID`，避免源站 `GetFollowScrollData` 空对象 500
+  - 已新增 `backend/tests/test_kehu51_follow_count_consistency.py`
+  - 覆盖 4 个指定人员参数解析；实时全量条数核对需显式设置 `RUN_KEHU51_LIVE_TEST=1`
+  - 实时核对测试已补自动重登重试，避免被 kehu51 “异地登录踢下线”误伤
+  - 当前实时测试已临时改为仅打印 4 个指定人员的 `total` 与 `page1_items`
+  - 已新增 `COUNT_ONLY` 开关；测试脚本当前默认 `COUNT_ONLY=1`
+  - `COUNT_ONLY=1` 时仅打印条数，不执行增量写库
+  - 测试脚本现已继续复用正式增量模板，只在运行时把 `UserID=` 替换成指定人员 ID
+  - `kehu51` 实时测试脚本 `COUNT_ONLY` 已改为环境变量控制，默认 `0`，即默认执行增量第一页入库逻辑；如仅看条数可传 `KEHU51_COUNT_ONLY=1`
+  - `kehu51` 实时测试脚本现已改为四个指定人员“全量数据”模式：
+    - 搜索页仅传 `UserID`
+    - 不再附带 `CreateTime`
+    - 会按 `recordCount/pageSize` 抓完全部分页，再校验条数并执行入库
+  - 当前为便于排查，测试脚本默认已临时缩到只跑 `范运成(1680321)` 一人全量数据
+- `kehu51` 实时测试已补 `engine.dispose()` 收尾，避免 `aiomysql ResourceWarning: Unclosed connection`
+- `kehu51` 实时测试脚本已调整为稳定复核方案：
+  - 不再使用“全部用户”全量链路（源站当前会返回空响应 / 异地登录脚本，稳定性差）
+  - 恢复为 4 个已确认 `targetID` 的全量校验：
+    - `范运成 / 1680321`
+    - `缴志健 / 1442273`
+    - `马超 / 1774436`
+    - `李秋雷 / 1592326`
+  - 新增本地缓存文件：`backend/tmp/kehu51_live_test_follow_cache.json`
+  - 仍保留 Redis 缓存；本地缓存优先，避免 test / prod 两套环境重复爬源站
+  - `asyncTearDown` 已补 Redis 连接关闭，避免 `redis ResourceWarning`
+  - 已新增“全部用户”动态模式：
+    - 通过 `GetSmartUserList.aspx?viewName=allcus&type=user&tableID=39&callback=loadUserCallBack` 拉取全部用户及 `UserID`
+    - 用户列表写入 Redis：`kehu51:live_test:user_list:allcus`
+    - 缓存有效期 `5` 天
+    - 打开环境变量 `KEHU51_ALL_USERS=1` 后，测试脚本会逐个用户执行全量校验
+  - 已补强全部用户批量全量测试稳定性：
+    - `FollowTools.aspx/GetFollowScrollData` 遇到 `500` 时自动重试并刷新登录态
+    - 空响应会自动重试
+    - `recordCount <= 0` 时不再继续请求分页接口，直接按空结果返回
+    - 全部用户模式默认“单个用户失败不中断整轮”，仅记录 `[KEHU51-ERROR]` 和汇总
+    - 如需严格模式，可传 `KEHU51_ALL_USERS_STRICT=1`
+  - 测试脚本说明文档已落地：
+    - `doc/kehu51-follow-live-test.md`
+  - 已定位 `范运成(1680321)` 全量条数差异：
+  - 源站全量抓取 `819` 条，分页抓取结果也是 `819` 条，抓取链路本身正常
+  - 2026-07-06 已进一步定位正式环境 4 人条数异常根因不是正式爬虫任务，而是实时测试脚本写库时固定使用 `run_id=0`
+  - 由于全量模式 `source_dedupe_key = task_key + run_id + page + item`，4 个人共用 `run_id=0` 时会互相覆盖相同 `page/item` 位置的数据
+  - 已修复测试脚本：按人员 `target_id` 生成独立 `run_id`
+  - 已清理正式环境被串位的 4 条错误记录，并重新回填
+  - `kehu51` 跟进记录判重口径已再次收紧，新增包含 `联系方式`
+  - 当前跟进记录判重字段为：`客户名称 + 联系人 + 联系方式 + 跟进时间 + 跟进结果`
+  - 2026-07-06 已按新判重口径在正式环境重新执行 4 人全量写库
+  - 当前正式环境已对齐为：
+    - `范运成`：`819`
+    - `缴志健`：`1869`
+    - `马超`：`355`
+    - `李秋雷`：`809`
+  - 按新口径比对缓存源数据，4 人当前均为 `missing=0 / extra=0`
+  - 当前正式环境 4 人结果已恢复一致：
+    - `范运成`：`819`
+    - `缴志健`：`1869`（源站总条数 `1870`，其中 `1` 条为完全相同重复）
+    - `马超`：`355`
+    - `李秋雷`：`808`（源站总条数 `809`，其中 `1` 条为完全相同重复）
+  - 按当前去重口径（`客户名称 + 联系人 + 跟进时间`）源数据唯一键为 `818`
+  - 本地库当前 `creator_name=范运成` 仅有 `807` 条
+  - 差异原因为：
+    - 库里缺少 12 条近期待补数据
+    - 同时库里已有 1 组重复数据：`辰雅佳苑 / 苏工 / 2025-10-10 19:04:00`
+  - 因此当前库内唯一业务条数实际为 `806`，与源站唯一键 `818` 相差 `12`
+  - 已修复增量写库问题：
+    - 之前 `sync_items` 遇到 `follow_time <= 当前库最大 follow_time` 时直接跳过写入
+    - 会把“历史时间较早但数据库缺失”的记录也错误跳过
+    - 现已改为：仍标记当前页为边界页，但该页内缺失记录继续按去重规则补写
+  - 2026-07-06 本地复测通过：
+    - `范运成` 全量抓取 `819`
+    - 成功补写 `12` 条
+    - 当前测试输出：`db_inserted=12 db_skipped=807`
+  - 已完成历史重复数据清理：
+    - 按 `客户名称 + 联系人 + 跟进时间` 作为业务唯一键
+    - 仅保留每组最早一条 `id`
+    - 本地库共删除重复 `688` 条
+    - 清理后重复组 `0`，重复冗余行 `0`
+  - 2026-07-06 已补跑 4 人全量数据并清理 test / prod 两套环境重复：
+    - test：清理前重复 `0`，清理后重复 `0`
+      - `范运成`：源站 `819`，唯一 `818`，库内补齐后 `818`，差异原因为源站重复 `1`
+      - `缴志健`：源站 `1870`，唯一 `1867`，库内补齐后 `1867`，差异原因为源站重复 `3`
+  - 2026-07-06 已再次本地验证测试环境实时全量抓取通过：
+    - `范运成`：`819`
+    - `缴志健`：`1870`
+    - `马超`：`355`
+    - `李秋雷`：`809`
+    - 命令：`RUN_KEHU51_LIVE_TEST=1 KEHU51_COUNT_ONLY=1 KEHU51_CACHE_TTL_SECONDS=1800 /opt/anaconda3/envs/smart/bin/python -m unittest tests.test_kehu51_follow_count_consistency`
+    - 结果：`Ran 2 tests in 84.990s / OK`
+      - `马超`：源站 `1870`，唯一 `1867`，库内仍为 `345`；用户给定 `target_id=1442273` 与 `缴志健` 完全相同，按当前去重规则全部与他人键冲突 `1867`
+      - `李秋雷`：源站 `809`，唯一 `807`，库内补齐后 `807`，差异原因为源站重复 `2`
+    - prod：清理前重复 `688`，已删除 `688`，清理后重复 `0`
+      - `范运成`：源站 `819`，唯一 `818`，补写 `9`，库内补齐后 `818`
+      - `缴志健`：源站 `1870`，唯一 `1867`，补写 `11`，库内补齐后 `1867`
+      - `马超`：旧 `target_id=1442273` 与 `缴志健` 重合，后改用真实 `target_id=1774436` 复测通过：
+        - test：源站 `355`，库内 `355`
+        - prod：源站 `355`，补写 `7`，库内 `355`
+      - `李秋雷`：源站 `809`，唯一 `807`，补写 `11`，库内补齐后 `807`
+  - `kehu51` 跟进结果解析已修复：
+    - 原因是 timeline 脚本里的 `detail.html` 富文本包含转义双引号，旧正则在 `<font face=\"...` 处被截断
+    - `backend/crawler_sites/kehu51/formatter.py` 已改为按 `detail:{"html":"..."}` 完整提取并反转义
+    - 范运成 `辰雅佳苑 / 苏工 / 2025-10-10 19:04:00` 两条现已正确解析为：
+      - `楼内管道维修7000元已成交`
+      - `应急地埋维修8000元已成交`
+    - 这两条按“客户名称 + 联系人 + 跟进时间 + 跟进内容”口径不再属于重复
+  - `backend/tests/test_kehu51_follow_count_consistency.py` 已恢复为 4 人批量实时校验：
+    - 现已改为“全部用户 / 不传 UserID”全量校验
+  - 测试脚本已支持 Redis 结果缓存复用：
+    - key：`kehu51:live_test:follow_records:full:{case_name}:{target_id_or_all}`
+    - TTL：默认 `1800` 秒，可用 `KEHU51_CACHE_TTL_SECONDS` 覆盖
+    - 若缓存存在，第二次执行直接复用 `expected_total + preview_items + all_items`，不再重复爬取
+    - 适合 test / prod 两套环境顺序执行时共用一次抓取结果
+  - `COUNT_ONLY=0` 时才会按第一页数据执行“已存在跳过，不存在写入”，且直接复用正式增量 handler 逻辑
+  - 无草稿时继续显示现有默认项目与日报模板
+  - 已修复新建弹窗“今天”取值为 UTC 导致的草稿回填失败，现统一按 `Asia/Shanghai`
+  - 草稿保存已增加 Redis 回读校验，避免“接口成功但实际未写入”
+  - “存草稿”按钮已改为页面内悬浮提示，鼠标移入会稳定显示“草稿仅保存当日数据”
+- 已新增企微首次登录同步说明文档与 SVG 流程图：
+  - `doc/wecom-first-login-sync.md`
+  - `doc/wecom-first-login-sync.svg`
+- 已新增 OA 用户/部门同步任务：
+  - 数据源：`hrmpinyinresource`、`hrmdepartmentallview`
+  - 每小时 `05` 分执行一次
+  - 同步到本地 `users`、`departments`
+  - 新增映射字段：`users.oa_resource_id`、`departments.oa_department_id`
+  - 已过滤 OA 部门脏数据：跳过 `id<=0` 或部门名称为空的记录
+  - 已执行 test / prod 缺失字段 SQL，同步补齐上述两列和唯一索引
+  - 已补兼容逻辑：`sso_uid` 按忽略大小写匹配历史账号，避免重复插入
+  - 已改为不同步任何角色；OA 新用户默认登录后无权限，后续手动分配角色
+  - 已放开 OA 人员筛选条件：`hrmpinyinresource.STATUS=0` 的人员也会同步，只要 `LOGINID` 不为空
+  - 本地验证通过，最近一次结果：部门更新 `13`、用户新增 `0`、用户更新 `0`
+  - 已新增一次性清理脚本 `backend/scripts/merge_legacy_departments_to_oa.py`
+  - 已执行 test / prod：
+    - 把旧部门树中的 `users / users2 / knowledge_bases / cost_items` 引用迁到 OA 部门树
+    - 旧部门树已清空并删除
+    - 校验结果：`departments.oa_department_id IS NULL` 两套环境均为 `0`
+
+## 依赖提醒
+
+- 最近新增过的依赖：`Pillow==11.3.0`
+- 以后新增依赖必须明确告知用户，并同步更新依赖文件
+- 已在 `AGENTS.md` 补充：本机可使用 `nvm` 管理 Node 环境，前端工具链异常时优先检查并切换 Node 版本
+- 已在 `AGENTS.md` 补充：本机 Python 默认使用 `conda activate smart`
+
+## 历史文件规则
+
+- `PROJECT_HISTORY.md` 保持压缩版
+- 完整历史放 `PROJECT_HISTORY.archive.md`
+- 当 `PROJECT_HISTORY.md` 变得过长时，继续归档旧内容，只保留最近关键记录
+
+## 2026-07-03 补充
+
+- 计划任务列表“编辑”已开始支持调度计划改动：
+  - 后端 `scheduler_job_meta` 新增字段：
+    - `trigger_type`
+    - `cron_expr`
+    - `interval_minutes`
+  - 普通调度任务编辑时可直接改为 `cron` 或 `interval`，保存后即时 `reschedule`
+  - 爬虫调度任务编辑时同步回写 `crawler_tasks.cron_expr`，并即时同步 APScheduler
+  - 前端编辑弹窗已增加“调度类型 / cron 表达式 / 间隔分钟”输入
+- 本地后端语法校验已通过：
+  - `conda run -n smart python -m py_compile ...`
+- 前端 `npm run build` 未执行通过，原因是本机 Node/npm 环境异常：
+  - `Error: Cannot find module 'node:path'`
+  - 需按仓库约定优先使用 `nvm` / 合适 Node 版本后再构建
+- 本次未新增任何依赖包
+- `scheduler_job_meta` 调度计划字段已补齐到 test / prod：
+  - `trigger_type`
+  - `cron_expr`
+  - `interval_minutes`
+  - 已确认两套环境 `information_schema.COLUMNS` 均可查到
+- 计划任务编辑弹窗 cron 表达式回显已修复：
+  - 普通调度任务现在会直接从 APScheduler 当前 `job.trigger` 反解析出 cron 表达式
+  - 即使数据库里还没有手动保存过 `cron_expr`，编辑时也能正常回显
+- 计划任务手动执行接口已补 `okcis_daily_summary_push`：
+  - `/api/admin/scheduler/jobs/okcis_daily_summary_push/run` 之前会报“未找到任务”
+  - 现已接入 `run_okcis_daily_summary_push_job(run_trigger='manual')`
+- 计划任务列表已补列表分页与手动筛选：
+  - 底部已增加公共分页组件
+  - 已增加每页条数切换
+  - 筛选已改为“搜索 / 重置”按钮触发
+  - 任务名称筛选框宽度已缩小
+- 软件部任务工具下拉公共化已继续补齐：
+  - `工作记录`、`任务大厅` 顶部筛选已切到公共 `AppSelect`
+  - `新建工作记录` 项目下拉已切到公共 `AppSelect`
+  - `新建任务` 的“负责人（软件部）”已切到公共 `AppMultiSelect`
+  - `新建任务` 的“所属项目”旧手写搜索弹层已切到公共 `AppSelect`
+  - `AppMultiSelect` 基于 `react-select` 封装，支持搜索、勾选、多选、清空
+  - 公共下拉焦点色已统一改为青色系，和页面其他输入框保持一致
+  - 公共下拉高度已统一收敛到 `40px`，与页面其他输入框保持一致
+- 软件部日报提醒已改为固定机器人 ID 链路：
+  - `software_work_record_reminder` 现固定使用 `robot_id=1`
+  - 不再走“第一个启用机器人”的兜底选择
+- 已排查正式环境企业微信 `invaliduser`：
+  - 用户 `张春嫣VIP3` 的真实 `sso_uid=ZhangChunYan`
+  - 失败日志里发送的是 `touser=张春嫣`
+  - 根因是业务人员解析未命中用户后，把中文姓名直接当成企微 `userid` 发送
+  - 已修复软件部 / 自控部业务人员解析：
+    - 新增 `mobile` 精确匹配
+    - 新增昵称 / 邮箱前缀唯一匹配
+    - 仅当 token 看起来像合法企微 `userid` 时才兜底直发
+    - 中文姓名这类非法 token 改为跳过并记 warning
+- 已排查给排水任务通知 `invaliduser: tengaizhe`：
+  - 正式环境本地用户存在：`sso_uid=tengaizhe`
+  - 但 `users.is_active=0`
+  - 历史逻辑仍会把停用用户解析成 `touser` 并尝试发送
+  - 已修复软件部 / 给排水 / 自控部共用解析逻辑：仅 `is_active=1` 用户可参与企微接收人解析
+- 管理端展示已补：
+  - 推送记录管理列表新增 `ID` 列
+  - 用户管理列表新增“状态”列，显示 `启用 / 停用`
+- 用户管理列表已改为真实分页：
+  - 后端 `/admin/users` 返回 `items / total / page / page_size`
+  - 前端默认每页 `20` 条，支持上一页 / 下一页
+- 已回退上一轮误扩散的下拉改造：
+  - `frontend/src/pages/auto_ctrl/index.tsx` 已恢复到误改前状态
+  - `frontend/src/pages/brand_ops_center/index.tsx` 已恢复到误改前状态
+  - `frontend/src/pages/software_task/index.tsx` 中误带入的 `Bug` 筛选、`Bug 编辑`、`区域项目重复率` 下拉已恢复
+  - 已保留此前已确认的公共组件改造，不影响软件部已确认的表单/分页能力
+  - `frontend` 已重新执行 `npm run build` 通过（Node `v20.20.2`）
+- 用户管理列表已增加筛选项：
+  - 部门
+  - 状态
+  - 手机号 / 邮箱
+  - 用户昵称 / ID
+- 用户管理分页栏已优化：
+  - 左侧统计文案改为单行展示，不再换行
+  - 已支持切换每页条数：`20 / 50 / 100`
+- 公共下拉框迁移已开始分批推进：
+  - 公共组件：`frontend/src/components/ui/app-select.tsx`
+  - 已补 `size="sm"` 以兼容分页条数小下拉
+  - 已修复选中值后再次点击下拉按钮仍可展示全部选项
+  - 第一批已替换：角色编辑、业务学习模块、计划任务列表相关下拉
+  - 第二批已替换：供应商助手、售后部客户无忧、采购部、市场部页面中的旧原生下拉
+  - 第三批已替换：`software_task`
+  - 第四批已替换：`brand_ops_center`
+  - 第五批已替换：`auto_ctrl`
+  - 业务页面旧 `<select>` / 旧 `SelectTrigger` 已清理完成，仅保留公共 `components/ui/select.tsx` 组件自身
+  - 已补漏 `software_task` 中任务大厅 / 工作记录区域的旧自定义输入下拉：
+    - 任务大厅：项目、业务区域、负责人、状态筛选
+    - 工作记录：项目、填写人筛选
+    - 新建工作记录：项目选择
+  - 本地已执行 `npm run build`，构建通过
+  - 已切换为公共三方分页组件 `frontend/src/components/ui/pagination-control.tsx`
+  - 基于 `react-paginate` 封装，后续其他列表可直接复用
+  - 已使用 `Node v20.20.2 / npm 11.16.0` 完成前端构建验证
+- 前端公共下拉组件已切到三方库：
+  - 新增 `frontend/src/components/ui/app-select.tsx`
+  - 基于 `react-select` 封装
+  - 支持普通下拉、搜索下拉、清空、Portal 弹层
+  - `FilterableSelect` 已改为内部复用该公共组件
+  - 用户管理页的部门 / 状态 / 每页条数已接入
+  - 管理端已继续接入：
+  - 业务分页区块已继续接入公共组件：
+    - `software_task`
+    - `brand_ops_center`
+    - `procurement_dept`
+    - `after_sales_dept`
+    - `SupplierAssistantPage`
+    - `marketing_dept`
+    - `WecomMessageLogsPanel`
+  - 上述页面的“每页条数”已改用 `AppSelect`
+  - 上述页面的上一页 / 下一页区块已改用 `PaginationControl`
+  - 已再次用 `Node v20.20.2 / npm 11.16.0` 通过 `frontend npm run build`
+    - `SchedulerPage`
+    - `CrawlerTasksPage`
+    - `WecomTemplateManagerPanel`
+    - `WecomRobotConfigPanel`
+- 前端公共分页组件已统一替换项目内分页使用点：
+  - `frontend/src/components/ui/pagination-control.tsx`
+  - 基于 `react-paginate` 封装
+  - 用户管理页、业务学习模块各分页区块已切换完成
+  - 前端构建已再次通过
+- 本轮已继续收尾剩余分页与下拉点击态样式：
+  - `frontend/src/pages/auto_ctrl/index.tsx`
+  - `frontend/src/pages/brand_ops_center/index.tsx`
+  - `frontend/src/pages/software_task/index.tsx`
+  - 上述页面残留的“上一页 / 下一页”已统一切到公共 `PaginationControl`
+  - `auto_ctrl` 残留的“每页条数”原生下拉已统一切到公共 `AppSelect`
+  - `frontend/src/components/ui/app-select.tsx` 已去掉点击后的蓝色边框 / 蓝色阴影，改为灰色边框且无 focus 阴影
+  - 已再次使用 `Node v20.20.2 / npm 11.16.0` 执行 `frontend npm run build`，构建通过
+- 前端规范文档已新增：
+  - `doc/frontend-common-components.md`
+  - `doc/frontend-style-guide.md`
+  - `AGENTS.md` 已补入口，后续新增或改造页面默认按公共组件规范和清爽蓝绿色系执行
+
+- 软件部日报提醒部门配置已修正：`SOFTWARE_TASK_ASSIGNEE_DEPARTMENT_ID=63`
+- 原因：软件开发部本地部门 ID 为 `63`，旧值 `3` 导致提醒任务统计范围为空
+- 售后业务团队管理看板“个人排名”已改为按“完成额”倒序；完成额相同时再按完成率倒序
+- 售后业务团队管理看板“个人排名”已取消内部滚动条，区域高度微增以完整展示当前排名列表
+- 售后业务团队管理看板“小组战况”表格容器高度已固定为 `182px`
+- OA 合同金额同步已兼容王贺：
+  - OA 合同业务员为 `王贺VIP1`，真实合同部门为 `售后服务部(生态城)`
+  - 同步脚本仅对王贺做业务例外纳入，并在本地合同镜像表中按虚拟业务组写入 `深耕组`
+  - 已重新同步 test / prod，两套环境王贺 2026 合同均为 `20` 个，完成额 `68.75 万`
+- 业务团队管理看板人员口径已新增“其他非业务人员”虚拟组：
+  - 来源：`张涛` + OA `售后服务部(技术组)` 及其子部门
+  - 排除：`王贺`
+  - 显示名继续去掉 `VIP*`
+  - 看板人员缓存：`after_sales:dashboard_team_members:v3`
+  - 客户无忧 / kehu51 客户列表同步仍使用原业务组口径，不包含“其他非业务人员”
+  - 已主动补齐 test / prod 当前年度缺失看板人员
+  - 当前验证：
+    - 看板人员 `75` 人
+    - 原业务组 `10` 人
+    - 其他非业务人员 `65` 人
+    - `张涛` 已包含
+    - `王贺` 未进入其他非业务人员
+    - kehu51 同步人员 `10` 人，不包含 `张涛`
+    - 小组战况分组为：`深耕组 / 开拓组 / 其他非业务人员`
+  - 个人排名已将“其他非业务人员”聚合为单行：
+    - 姓名固定为 `其他非业务人员`
+    - 完成额为整组合同金额合计
+    - 客户数 / 跟进数 / 拜访等统计均不参与，返回 0
+    - 固定排在个人排名最后，不展示奖杯 / 奖牌图标
+  - 小组战况已增加 `其他非业务人员` 行：
+    - 仅显示 `年度完成`
+    - 全年目标、季度目标、年度完成率、季度完成率、拜访量均显示 `-`
+  - `其他非业务人员` 不参与其它个人统计图表：
+    - 个人全年完成率
+    - 个人季度完成率
+    - 个人拜访量
+  - 正式环境 `其他非业务人员` 合同金额排查：
+    - 米鸿旭、赵成宇已加入排除名单，不纳入 `其他非业务人员`
+    - 看板人员缓存已更新为 `after_sales:dashboard_team_members:v4`
+    - 当前非业务人员 `63` 人
+    - 2026 年按看板口径汇总合同 `34` 个，合计 `58.78 万`
+    - 有合同金额人员：张涛 `0.14 万`、杨彬 `51.98 万`、王利伟 `0.08 万`、王满川 `0.00 万`、闫智华 `6.58 万`
+    - 当前看板合同统计按 `salesperson_name` 匹配人员别名，不额外限制合同表 `department_name`
+- 人事考勤助手“汇总项详情”里的请假事由已修正：
+  - 详情弹窗打开请假类汇总项时，改为按“当前人员姓名 + 当前人员部门”单独拉取 OA 已通过记录
+  - 不再复用页面外层筛选关键词，避免被其他筛选条件误伤导致 `内容` 显示为 `-`
+  - 已执行前端构建校验通过
+- 人事考勤助手“考勤修正/补卡/请假”已改为本地镜像模式：
+  - 新增本地表 `wecom_attendance_oa_approved_records`
+  - “同步企微考勤”接口与每日 `03:50` 计划任务执行时，会同步对应日期范围的 OA 已通过请假/考勤修正明细到本地
+  - `/api/wecom-attendance/oa-approved-records` 已改为只读本地镜像表，不再每次直连 OA 数据库
+  - 已补 Alembic 迁移 `i7j8k9l0m1n2_create_wecom_attendance_oa_approved_records.py`
+  - 已执行 Python 导入校验通过
+- 人事考勤汇总“未打卡”口径已改为按缺卡次数统计：
+  - 上班缺卡记 `1` 次，下班缺卡记 `1` 次
+  - 同一天上下班都缺卡时，`未打卡 = 2`，同时 `旷工 = 1`
+  - 已执行 Python 导入校验通过
+- 人事考勤汇总前端展示已同步修正未打卡统计口径：
+  - 汇总总数与详情弹窗时长，统一按 `上班缺卡/下班缺卡` 标签数量统计
+  - 修复像 `王帅` 这类详情显示两次、汇总仍显示一次的问题
+  - 已执行前端构建校验通过
+- 钉钉调休余额修正已新增可复用方法与脚本：
+  - `DINGTALK_ATTENDANCE_QUOTA_OPERATOR_USERID=manager4593`
+  - `DINGTALK_ATTENDANCE_QUOTA_OPERATOR_NAME=王亚梅`
+  - 已验证 `manager4593` 对应钉钉用户 `徐桥`，可查询调休余额；`026960310339` 和 `366502766` 均不可用
+  - 新增 `backend/scripts/adjust_dingtalk_compensatory_balance.py`
+  - 方法和脚本都支持显式传入 `operator_userid`
+- 钉钉假期规则：
+  - 已找到王亚梅真实钉钉 userId：`026960310339-366502766`
+  - 已新增假期规则 `调休(新)`，leave_code=`d270ec7a-ec0d-4e47-8de6-ec680916e067`
+  - 因企业只能有一个 `lieu_leave` 类型，新规则按 `general_leave` 创建，单位/折算按原调休复制
+  - 用康鹏 `032607495340527` 测试写入 1 小时额度，接口返回 `errcode=0` 但单条 reason 仍提示缺年度/额度字段，余额列表仍为空
+  - 已将 `调休(新)` 改名为 `调休（研发中心）`
+  - 新员工请假已改为入职后就可以：`when_can_leave=entry`
+  - 余额发放方式按钉钉普通假期规则走手动发放：`biz_type=general_leave`，额度通过 `quota/init` + `quota/update` 手动发放
+  - 已验证康鹏先初始化 0、再更新约 1 小时成功，查询到 `quota_num_per_day=13`、`quota_cycle=2026`
+  - 适用部门已改为研发中心，`visibility_rules=[{"type":"dept","visible":["1001032160"]}]`
+  - 后续按要求重新改回限制额度 + 手工发放：删除不限额规则 `1725c796-5f36-4e2f-9cd6-ce5e78f98d98`
+  - 当前正式规则 leave_code=`91a66dd8-5dbd-42c6-a927-60bb5e9009bc`，`freedom_leave=false`、`paid_leave=true`
+  - 余额修正方法已改为优先命中 `调休（研发中心）`
+- 正式环境已手动执行 `wecom_dingtalk_attendance_sync`：
+  - 执行时间：`2026-07-23 08:29:35` 至 `08:31:18`
+  - 同步范围：考勤 `2026-06-25` 至 `2026-07-22`；OA 已通过记录同步至 `2026-07-22`
+  - `scheduler_job_runs` 记录状态：`success`
+  - 摘要：`企微&钉钉考勤同步完成`
+- 已新增人力资源助手业务流程图文档：
+  - 文件：`doc/hr-attendance-assistant-business-flow.md`
+  - 内容覆盖：总体流程、同步链路、人员范围、考勤汇总计算、请假/修正/加班/调休、花名册上传导出、页面模块接口关系、核心表关系
+  - 流程图使用 Mermaid，可在支持 Mermaid 的 Markdown 预览器中直接查看
+- 前端系统管理头部已统一：
+  - `platform/admin` 首页改为复用公共 `NavBar`
+  - 系统管理子页面公共 `AdminNavBar` 改为顶部公共 `NavBar` + 二级返回栏
+  - 二级栏保留返回系统管理箭头和当前卡片名称/模块切换
+- 软件部任务工具新建工作记录定时提交默认值已调整：
+  - 康鹏新建工作记录时默认勾选“定时自动提交”
+  - 默认提交时间改为记录日期当天 `17:30-17:50` 之间随机时间
+  - 已执行 `npm run build` 通过
+- 人事考勤助手页面与花名册导出的实际出勤口径已统一：
+  - 正式库确认李海涛差异发生在 `2026-07-11`，日汇总表为 `0`，本地钉钉已审批调休为 `1` 天
+  - 页面原先会实时合并 OA/钉钉审批数据，导出仅查询日汇总表，因此分别显示 `25` 和 `24`
+  - 后端已抽取公共来源合并方法与有效实际出勤计算方法，页面接口和导出共同调用
+  - 页面优先使用后端返回的 `effective_actual_attendance`，不再独立决定统计口径
+  - Python 语法检查、前端 `./build.sh` 通过；正式库调用公共导出汇总方法复算通过
+- 人事考勤页面与花名册导出的全部汇总字段已统一：
+  - 张桐正确数据为年假 `2` 天、调休 `2` 天；Excel 年假 `8` 天是导出缺少 OA 已合并标记后，将本地 3 份历史重复镜像再次累计导致
+  - 公共来源合并方法会自动补齐 `oa_leave_json/oa_correction_json`，不再依赖调用方查询完整字段
+  - 本地 OA/钉钉审批镜像读取增加申请单、人员、日期、类型语义去重
+  - 新增后端唯一人员日汇总方法，页面和 Excel 共用年假、调休、事假、病假等全部假期，以及实际出勤、旷工、未打卡、迟到早退、外勤、补卡、加班统计
+  - 页面汇总改为直接读取后端 `attendance_summary_items`，缓存版本升级为 `v11`
+- 正式库复算张桐：年假 `2`、调休 `2`；Python 语法检查和前端 `./build.sh` 通过
+- 正式环境研发中心及下属部门调休余额已核对并修正：
+  - 统计区间：`2026-01-01` 至 `2026-08-03`
+  - 成功回写 6 人：朱文波 `0.3→1.4` 天、沈孟男 `0.2→0.3` 天、张杰 `3.6→4.6` 天、李海涛 `6.3→5.3` 天、苗会亮 `0→0.3` 天、史延明 `4.0→4.1` 天
+  - 8 人本地计算余额为负数，未回写钉钉：刘雁鹏、贠丹丹、赵本德、郭丽霞、孔德明、张永勋、程金雨、高振兴
+  - 负数原因是调休使用天数大于加班累计天数，钉钉余额不支持负数，已保留钉钉当前余额
+  - 本次使用本地已同步人员名单完成 35 人范围处理，部门树接口临时超时未影响最终更新
+- 地下水登记造册台账管理列表列宽继续压缩：
+  - 管理列表表格改为 `colgroup + minWidth + width: 100%`，避免列被内容撑开，同时在页面空间允许时可自适应分配宽度
+  - `2026改造` 表头强制两行显示为 `2026 / 改造`，列宽调整为 46px
+  - `接口类型`、`远传终端`、`传水资源`、`超周期` 最小列宽 38px，空间允许时可展开
+  - `取水权人` 保持 64px 截断并用 title 展示完整内容
+  - 已执行 `cd frontend && ./build.sh` 通过，Node `v20.20.2`
+- 地下水登记完整导出任务列表 500 已修复：
+  - 报错接口：`GET /api/dengji/records/full-export-tasks?page=1&page_size=10`
+  - 原因：接口 `items` 直接返回 `GroundwaterRegistryExportTask` ORM 对象，触发 `PydanticSerializationError`
+  - 已新增导出任务 Pydantic schema，并给列表接口配置 `response_model`
+  - 已执行后端 `py_compile` 和 ORM 序列化测试通过
+- 前端通用表单控件高度已统一：
+  - `Button` 默认高度从 32px 调整为 40px，与 `Input`、`AppSelect`、`AppCreatableSelect` 对齐
+  - `AppSelect`、`AppCreatableSelect` 默认 control/value/indicator 高度固定为 40px 体系，避免筛选栏按钮、下拉、输入框有高有低
+  - 已执行 `cd frontend && ./build.sh` 通过，Node `v20.20.2`
+- 已全项目排查同类手写文字按钮：
+  - 地下水台账 `列表/完整导出` 页签改为公共 `Button`
+  - 自控部、软件部、给排水助手、营销部、售后部、采购部中命中的筛选/重置/导出/弹窗确认类文字按钮改为公共 `Button`
+  - 保留下拉菜单选项、图标小按钮、练习题号按钮等非同类紧凑交互
+  - 已执行 `cd frontend && ./build.sh` 通过，Node `v20.20.2`
+- 地下水登记台账管理列表返回地址已修复：
+  - `/dengji?admin=1` 进入填写页时，编辑地址追加 `?fromAdmin=1`
+  - 编辑页顶部返回和底部返回会回到 `/dengji?admin=1`
+  - 普通列表仍返回 `/dengji`
+  - 已执行 `cd frontend && ./build.sh` 通过，Node `v20.20.2`
