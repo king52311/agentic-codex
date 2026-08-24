@@ -33,6 +33,8 @@
 │   ├── code-reviewer.md
 │   ├── architect-agent.md
 │   └── refactoring-agent.md
+├── agent-docs/             # Agent 相关 Markdown 统一归档目录
+│   └── README.md
 ├── workflows/              # 任务执行 SOP
 │   ├── context-memory.md
 │   ├── validation-checklist.md
@@ -56,6 +58,7 @@
 通用代码规范参考：agentic-codex/rules/
 通用工作流参考：agentic-codex/workflows/
 通用架构方案参考：agentic-codex/architectures/
+Agent 文档归档参考：agentic-codex/agent-docs/
 ```
 
 项目规则与用户当前要求优先级高于本仓库通用规则。
@@ -65,6 +68,8 @@ Agent 进入业务项目后，如项目内存在 `agentic-codex/AGENT.md`，应�
 ## 架构方案沉淀方式
 
 后续遇到可复用业务架构时，优先新增到 `architectures/`。
+
+后续遇到 Agent 规则、上下文、排查记录等 Markdown 文档时，优先落到 `agent-docs/`，再按主题沉淀到 `rules/`、`workflows/`、`architectures/` 或 `projects/`。
 
 每个方案建议包含：
 

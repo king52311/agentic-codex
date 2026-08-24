@@ -1,5 +1,12 @@
 # PROJECT_HISTORY
 
+## 2026-08-24
+
+- 新增 `agent-docs/` 目录，作为 Agent 相关 Markdown 文档统一归档入口。
+- 更新 `rules/project-script-standards.md`，补充业务项目忽略 `start.sh`、`stop.sh`、`build.sh`、`*.md` 的通用建议。
+- 明确已跟踪文件需通过 `git rm --cached` 取消跟踪，需保留文档用 `.gitignore` 白名单放开。
+- 更新 `AGENT.md` 与 `README.md` 索引，要求后续 Agent 相关 md 优先落到 `agentic-codex/agent-docs/`。
+
 ## 2026-08-11 08:34:39 CST
 
 - 新增本机开发环境配置：`environment/local-dev-environment.md`。
