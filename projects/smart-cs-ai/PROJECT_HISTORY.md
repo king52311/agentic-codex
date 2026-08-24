@@ -10,6 +10,8 @@
 
 ## 当前活跃主题
 
+- 2026-08-24 财务报销开票主体清理：正式库 `finance_reimbursement_invoice_subjects` 已删除“天津宏捷安装工程有限公司”“晨天润泓（天津）科技服务有限公司”2 条，删除后剩 11 条；本地 `backend/sql/create_finance_reimbursement_invoice_subjects.sql` 和 `backend/migrations/versions/fa20260821_create_finance_reimbursement_assistant.py` 也移除了这两条种子数据。验证：全仓 `rg` 无残留、迁移文件 `py_compile`、`git diff --check` 通过。
+
 - 2026-08-24 项目 Agent 文档迁移：建立 `agentic-codex/projects/smart-cs-ai/` 项目目录，迁移 `AGENTS.md`、`CURRENT_CONTEXT.md`、`PROJECT_HISTORY.md`、`PROJECT_HISTORY.archive.md`、`GIT_CHANGELOG.md`；根目录同名文件改为轻量入口指针。用户确认财务报销开票主体中“天津宏捷安装工程有限公司”“晨天润泓（天津）科技服务有限公司”已删除，不再按停用主体处理。
 
 - 2026-08-24 `oa_e9_browser_session_guard` 已改成仅正式环境启动：`APP_ENV=prod/production` 才注册每分钟守护和启动即拉起；本地/测试环境启动 scheduler 时只打印 skipped，不再启动浏览器守护进程。后端 `py_compile app/tasks/scheduler.py` 通过。
