@@ -53,7 +53,7 @@
 
 - 2026-08-22 财务报销助手历史修复现状：已给 OCR 增加 PDF 文本层兜底，能补抓清晰电子票里的票号；但历史回填脚本在正式库仍受 OA E9 Cookie 失效影响，当前无法重新下载附件，因此 `oa_request_id=1211399` 这类旧单仍未补出 OSS 和票号。后端 `py_compile` 通过，后续更新一版有效 OA Cookie 后可以继续回填。
 - 2026-08-22 财务报销助手继续落地：已直接执行 `finance_reimbursement_invoice_subjects` 和 `finance_reimbursement_records.attachment_names / invoice_oss_url` 到 test/prod 两套库，复查两边各有 13 条开票主体且新增列均已存在；`load_active_invoice_subjects` 已兼容表不存在场景，旧库不会直接 500。`backend` 语法检查通过。
-- 2026-08-22 财务报销助手新增校验：OA 报销表单的付款主体与任一发票抬头不一致时会直接拦截整单并发消息，理由固定为 `发票抬头（****）与付款主体（****）不一致`，继续沿用申请人 + 财务韩颜合双发。历史数据回填仍受数据库连接权限限制未能执行，但代码已兼容旧库和历史展示。
+- 2026-08-22 财务报销助手新增校验：OA 报销表单的付款主体与任一发票抬头不一致时会直接拦截整单并发消息，理由使用真实值：`发票抬头（实际识别抬头）与付款主体（OA付款主体）不一致`；当前调试期临时只推送康鹏。历史数据回填仍受数据库连接权限限制未能执行，但代码已兼容旧库和历史展示。
 - 2026-08-22 财务报销助手附件名对齐 OA：列表和弹窗现在优先显示 OA 原始文件名，不再只显示占位名；后端会从 `raw_json.file_items` 兜底补历史附件名，并在同步写库时兼容 `attachment_names` 列是否存在。新增回填脚本 `backend/scripts/backfill_finance_reimbursement_attachment_names.py`，但当前数据库连接权限不足，脚本未能实际落库，历史展示先靠接口兜底修正。前端 `./build.sh` 已通过，Node `v20.20.2`。
 - 2026-08-22 财务报销助手附件展示优化：列表保留前 4 个附件快捷入口，超出的 `+N` 变成可点击汇总入口，弹窗内列出全部附件链接；继续优先使用 OSS 链接。前端 `./build.sh` 已通过，Node `v20.20.2`。
 - 2026-08-22 财务报销助手增强继续收口：新增开票主体管理 tab 和独立权限 `app:finance_reimbursement:admin`；报销列表去掉“当前节点”列，`流程ID` 可直达 OA 表单，默认按 `reimbursement_time DESC, oa_request_id DESC` 排序；发票附件通过 OA Cookie 下载后备份到独立 MinIO bucket，列表优先展示 OSS 链接，`finance_reimbursement_invoice_subjects` 和 `invoice_oss_url` 已补，`doc/database_dictionary.md` 已同步。后端 `py_compile`、前端 `./build.sh` 通过，Node `v20.20.2`。
@@ -8811,3 +8811,10 @@
 - 正式库处理：已删除并重建 `request_id=1210611` 本地请假记录，当前为 8-14、8-17 各 1 天；已重算韩颜合 8-14 至 8-17 日汇总。
 - 结果：韩颜合 2026-08-17 当前为 `actual_attendance=1.0`、`annual_leave=1.0`、`absenteeism_count=0.0`、`missing_punch_count=0`。
 - 验证：`cd backend && conda run -n smart python -m py_compile app/services/wecom_attendance.py`、`git diff --check`。
+
+### 2026-08-24 财务报销图片发票旋转识别
+- `recognize_invoice_file` 的通义视觉兜底改为对图片/PDF 首页按 `0/90/180/270` 四个角度识别，按票号、购方抬头、购方税号完整度选择最佳结果。
+- 二维码识别支持优先按视觉判定正常的角度扫描，用于补齐或覆盖发票号。
+- 财务报销校验通知继续只发康鹏，消息为可打开链接的普通文本；付款主体不一致详情写真实发票抬头和付款主体，事件表也不再保存 `****`。
+- 已临时同步正式 `zhidao-api`、`zhidao-cron` 验证：`1212006` 附件 `1172607` 识别票号 `26127000000405663681`，附件 `1172609` 识别票号 `26127000000405663736`。
+- 验证：本地与正式容器 `py_compile` 通过，`git diff --check` 通过。
