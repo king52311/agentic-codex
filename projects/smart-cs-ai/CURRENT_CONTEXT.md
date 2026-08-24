@@ -4,6 +4,12 @@
 
 ## 最新记录
 
+- 2026-08-24 财务报销消息与调度排查：
+  - 正式 OA E9 登录态正常：`check_oa_e9_login_status` 返回 `is_nologin=false`，能拿到 OA 用户信息；`zhidao-cron` 浏览器守护每分钟运行，独立凭证文件持续刷新。
+  - 财务报销同步任务元数据启用（10 分钟 interval），但此前每分钟 `apply_scheduler_meta_overrides` 都无条件 `reschedule_job`，导致 interval 任务下一次执行时间被不断后推。已改为 trigger 配置未变化时不重排，临时同步到正式 `zhidao-cron` 并重启。
+  - 财务报销校验消息已临时写死只推给康鹏，正式环境也只推康鹏；调试完成后再改回申请人/财务推送。
+  - 已按用户要求补推 `1212006` 的 `20260824100339_00003.jpg` 消息给康鹏，返回 `sent=True`，申请人胡芸芸。
+
 - 2026-08-24 文档继续迁移：`SCHEDULER_AND_SUPPLIER_ACTIVITY_NOTES.md`、`U8_TABLE_REFERENCE.md` 已从主仓根目录移动到 `agentic-codex/projects/smart-cs-ai/`，根目录本地副本已清理。
 
 - 2026-08-24 财务报销开票主体清理：正式库 `finance_reimbursement_invoice_subjects` 已删除“天津宏捷安装工程有限公司”“晨天润泓（天津）科技服务有限公司”2 条，删除后剩 11 条；本地种子 SQL 和迁移文件也已移除这两条，避免后续重建又出现。已验证全仓无残留文本，迁移文件 `py_compile` 和 `git diff --check` 通过。
