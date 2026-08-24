@@ -4,6 +4,8 @@
 
 ## 最新记录
 
+- 2026-08-24 文档继续迁移：`SCHEDULER_AND_SUPPLIER_ACTIVITY_NOTES.md`、`U8_TABLE_REFERENCE.md` 已从主仓根目录移动到 `agentic-codex/projects/smart-cs-ai/`，根目录本地副本已清理。
+
 - 2026-08-24 财务报销开票主体清理：正式库 `finance_reimbursement_invoice_subjects` 已删除“天津宏捷安装工程有限公司”“晨天润泓（天津）科技服务有限公司”2 条，删除后剩 11 条；本地种子 SQL 和迁移文件也已移除这两条，避免后续重建又出现。已验证全仓无残留文本，迁移文件 `py_compile` 和 `git diff --check` 通过。
 
 - 2026-08-24 项目规则与上下文迁移：根目录 `AGENTS.md`、`CURRENT_CONTEXT.md`、`PROJECT_HISTORY.md`、`PROJECT_HISTORY.archive.md`、`GIT_CHANGELOG.md` 已迁移到 `agentic-codex/projects/smart-cs-ai/`，根目录保留轻量入口指针；后续恢复上下文和写历史优先使用新项目目录。财务报销开票主体中“天津宏捷安装工程有限公司”“晨天润泓（天津）科技服务有限公司”用户确认已删除，不再按停用主体处理。
