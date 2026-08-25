@@ -185,3 +185,5 @@
 - 修复页面白屏报错 `this.loadAll is not a function`：移除机械表缴费 `BusiMechanicalMeter.vue` 和组织机构用户管理 `Organization.vue` 中残留的 `this.restaurants = this.loadAll()` 调用，相关 `loadAll` 方法已不存在且该数据未参与当前页面逻辑。前端 `npm run build` 验证通过。生产/测试 nginx 若使用 `BASE_API=/api`，必须配置 `/api/` 反代并剥离前缀，否则后端会把 `/api/login` 当成未授权路径重定向到 `/login_p`，出现 `/api/login_p` 循环跳转。
 - 首页“今日销售统计”图表重叠修复：隐藏三个环图外部标签和引导线，数据改由 tooltip 展示；图例上移到环图与下方图表之间，折线/柱状图区域下移；图表容器高度从 420px 调整为 500px，避免文字互相遮挡。前端 `npm run build` 验证通过。
 - 首页“今日销售统计”图例继续优化：将环图半径由百分比改为固定像素，避免宽屏下环图过大压住图例；图表高度调整为 560px，图例放到 54%，下方折线/柱状图从 66% 开始，减少文字覆盖统计图。前端 `npm run build` 验证通过。
+- 左侧一级菜单交互调整：移除 `Home.vue` 左侧一级目录标题上的 `goMenu(item)` 跳转事件，点击一级菜单只触发展开/收起，不再更改当前页面，也不再自动进入第一个二级菜单；顶部菜单默认进入子页逻辑保持不变。前端 `npm run build` 验证通过。
+- 新增 Agent 文档落地规则：后续所有与 Agent 上下文相关的 Markdown 文档统一写入 `agentic-codex` 项目对应目录，不再写到业务项目根目录；写完自动在 `agentic-codex` 中先 `git pull --rebase`，再 `git add`、中文提交、`git push`。
