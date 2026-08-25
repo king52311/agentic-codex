@@ -8830,3 +8830,10 @@
 - 校验通知从企业微信 text 消息改为 markdown 消息。
 - 表单地址显示为 `[点击详情](OA表单URL)` 文字链，不再展示裸链接和单独的无链接“点击详情”。
 - 已同步正式 `zhidao-api`、`zhidao-cron` 并重启；本地与正式容器 `py_compile` 通过。
+
+### 2026-08-25 财务报销历史模板导入
+- `/Users/sunday/Downloads/财务报销导入模板.xlsx` 共 80086 行数据，跳过示例附件行 1 条，test/prod 各导入 80085 条。
+- 缺流程 ID 的导入数据使用内部负数 ID 去重，前端显示为 `-`，不生成 OA 链接。
+- 缺报销人默认 `系统`；缺报销金额默认等于发票金额；缺报销时间默认 `2026-08-20`；缺流程标题/科目名称默认 `系统导入`；发票名称为空允许导入。
+- test/prod 已补财务报销表索引：`invoice_no(64)`、`payment_subject`、`updated_at`、`reimbursement_time + oa_request_id`。
+- 正式前端静态资源和 `zhidao-api` 已更新；后端 `py_compile`、前端 `./build.sh`、`git diff --check` 通过。
