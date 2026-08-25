@@ -192,3 +192,5 @@
 - 继续推进前后端基础优化：前端公共分页组件 `WsPagination.vue` 继续替换抄表册管理 `ReadingBook.vue`、抄表计划管理 `ReadingPlan.vue`、抄表活动明细 `ReadingActivity.vue` 三个新增页面；后端新增 `SlowRequestLogFilter`，自动记录耗时超过 3 秒的接口 method、uri、query、status 和 cost，便于后续排查慢接口。前端 `npm run build`、后端 JDK8 `mvn -q -DskipTests compile` 均验证通过。
 - 继续替换高频列表页公共分页：用户档案管理 `DocuserDocument.vue`、表具历史 `MetecuHistory.vue`、表具基础管理 `DocMeter.vue` 改用 `WsPagination`，保持原分页事件、页码和 pageSize 逻辑不变；后端无业务改动，本轮复验前端 `npm run build`、后端 JDK8 `mvn -q -DskipTests compile` 均通过。
 - 前端打包输出降噪：`omsvue/build.sh` 增加 `NODE_OPTIONS=--no-warnings` 与 `BROWSERSLIST_IGNORE_OLD_DATA=1`，并使用 `npm run --silent build`；`package.json` 的 `build` 脚本同步设置 `--no-warnings` 和 Browserslist 静默变量。已执行 `./build.sh test` 验证，Node circular dependency warning 与 Browserslist outdated 提示不再输出，dist 与 dist.zip 正常生成。
+
+- 继续统一前端系统设置分页：`SysCity`、`SysArea`、`SysStreet`、`SysCommunity`、`SysCodeTable`、`Organization` 改用公共 `WsPagination`，并通过 `npm run build` 验证。
