@@ -45,3 +45,4 @@
 - 按 Agentic Codex 归档规则新增 `agent-docs/project-notes/cbys-omsapi/` 独立目录。
 - 从 `omsapi` 根目录迁移说明类 Agent 回顾文档：`API_SCHEDULED_TASKS.md`、`COLLECT_DATA_PROJECT.md`、`PROJECT_RUNNING_LOGIC.md`、`DOCUSERDOCUMENT_PRODUCT_DIFF.md`。
 - `omsapi` 继续保留 `AGENTS.md`、`PROJECT_HISTORY.md`、`README.md` 作为业务项目必要入口。
+- 新增全局 Agent 文档落地规则：所有项目的 Agent 相关 Markdown 统一写入 `agentic-codex` 对应目录，不写入业务项目根目录；写完必须在 `agentic-codex` 中先 `git pull --rebase`，再 `git add`、中文提交并 `git push`。

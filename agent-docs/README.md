@@ -6,7 +6,8 @@
 
 - 业务项目中临时沉淀的 Agent 规则、排查记录、上下文说明、执行约定，优先迁移到本目录或本仓库对应目录。
 - 业务项目根目录只保留必要入口文件，例如 `AGENTS.md`；通用内容不要散落在业务仓库。
-- 后续新增的 Agent 相关 `.md` 文件，默认落到 `agentic-codex/agent-docs/`，再按主题沉淀到 `rules/`、`workflows/`、`architectures/` 或 `projects/`。
+- 后续所有项目新增的 Agent 相关 `.md` 文件，默认落到 `agentic-codex/agent-docs/` 或本仓库对应目录，再按主题沉淀到 `rules/`、`workflows/`、`architectures/` 或 `projects/`。
+- 每次写完 Agent 相关 Markdown，必须在 `agentic-codex` 中先 `git pull --rebase`，再 `git add`、中文 `git commit`、`git push`。
 - 业务项目若需要忽略本地脚本和文档，推荐在 `.gitignore` 中加入 `start.sh`、`stop.sh`、`build.sh`、`*.md`；必须保留的文档用白名单显式排除。
 
 ## 推荐子目录

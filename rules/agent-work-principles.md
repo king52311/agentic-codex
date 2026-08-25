@@ -14,6 +14,13 @@
 - 非必要不引入新依赖。
 - 前后端同一概念保持命名一致。
 
+## Agent 文档落地
+
+- 所有项目的 Agent 相关 Markdown 文档统一写入 `agentic-codex` 项目对应目录。
+- 不再把 Agent 规则、上下文、排查记录、执行约定等文档写入业务项目根目录。
+- 写完 Agent 相关 Markdown 后，必须在 `agentic-codex` 中先执行 `git pull --rebase`，再执行 `git add`、中文 `git commit`、`git push`。
+- 若业务项目需要入口文件，只保留必要引用入口，具体内容沉淀到 `agentic-codex`。
+
 ## 架构边界
 
 - 路由层负责请求、鉴权和响应组织。
