@@ -8837,3 +8837,8 @@
 - 缺报销人默认 `系统`；缺报销金额默认等于发票金额；缺报销时间默认 `2026-08-20`；缺流程标题/科目名称默认 `系统导入`；发票名称为空允许导入。
 - test/prod 已补财务报销表索引：`invoice_no(64)`、`payment_subject`、`updated_at`、`reimbursement_time + oa_request_id`。
 - 正式前端静态资源和 `zhidao-api` 已更新；后端 `py_compile`、前端 `./build.sh`、`git diff --check` 通过。
+
+### 2026-08-25 财务报销重复发票提醒补充历史信息
+- 重复发票校验通知增加历史发票信息，包含历史发票票号、流程 ID、流程标题、报销人、报销时间、发票金额。
+- 同步过程新增票号到历史记录映射；本轮同步内已通过的票号也会参与重复提醒详情。
+- 验证：`cd backend && python -m py_compile app/services/finance_reimbursement.py`、`git diff --check` 通过。
