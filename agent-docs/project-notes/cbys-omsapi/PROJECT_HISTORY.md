@@ -196,3 +196,5 @@
 - 继续统一前端系统设置分页：`SysCity`、`SysArea`、`SysStreet`、`SysCommunity`、`SysCodeTable`、`Organization` 改用公共 `WsPagination`，并通过 `npm run build` 验证。
 
 - 前端提交 `402e492 统一系统页面分页组件` 已推送到 `omsvue/new`：统一系统设置与用户管理相关页面分页组件。
+
+- 确认前端构建产物 `dist.zip` 已纳入 `omsvue/new` 并推送，提交号 `673865e 更新dist.zip文件`。
