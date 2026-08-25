@@ -8,9 +8,9 @@
 - `COLLECT_DATA_PROJECT.md`：数据采集项目说明。
 - `PROJECT_RUNNING_LOGIC.md`：前后端与采集整体运行逻辑、流程图。
 - `DOCUSERDOCUMENT_PRODUCT_DIFF.md`：用户档案相关功能与 product 逻辑差异对照。
+- `AGENTS.md`：`omsapi` 项目专属规则入口。
+- `PROJECT_HISTORY.md`：`omsapi` 项目历史上下文入口。
 
 ## 保留在业务项目的文件
 
-- `omsapi/AGENTS.md`：项目专属规则入口。
-- `omsapi/PROJECT_HISTORY.md`：项目历史上下文入口。
 - `omsapi/README.md`：项目使用说明。
