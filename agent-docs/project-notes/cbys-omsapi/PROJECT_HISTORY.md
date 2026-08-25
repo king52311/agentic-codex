@@ -194,3 +194,5 @@
 - 前端打包输出降噪：`omsvue/build.sh` 增加 `NODE_OPTIONS=--no-warnings` 与 `BROWSERSLIST_IGNORE_OLD_DATA=1`，并使用 `npm run --silent build`；`package.json` 的 `build` 脚本同步设置 `--no-warnings` 和 Browserslist 静默变量。已执行 `./build.sh test` 验证，Node circular dependency warning 与 Browserslist outdated 提示不再输出，dist 与 dist.zip 正常生成。
 
 - 继续统一前端系统设置分页：`SysCity`、`SysArea`、`SysStreet`、`SysCommunity`、`SysCodeTable`、`Organization` 改用公共 `WsPagination`，并通过 `npm run build` 验证。
+
+- 前端提交 `402e492 统一系统页面分页组件` 已推送到 `omsvue/new`：统一系统设置与用户管理相关页面分页组件。
