@@ -198,3 +198,5 @@
 - 前端提交 `402e492 统一系统页面分页组件` 已推送到 `omsvue/new`：统一系统设置与用户管理相关页面分页组件。
 
 - 确认前端构建产物 `dist.zip` 已纳入 `omsvue/new` 并推送，提交号 `673865e 更新dist.zip文件`。
+
+- 统一缴费管理分页样式：`Busicharge`、`BusimoneyLoad`、`BusiEcuLoad`、`BusiprePay`、`BusiMechanicalMeter` 改用公共 `WsPagination` 和 `ws-page` 白底样式，`npm run build` 验证通过。
