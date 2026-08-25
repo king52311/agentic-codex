@@ -188,3 +188,4 @@
 - 左侧一级菜单交互调整：移除 `Home.vue` 左侧一级目录标题上的 `goMenu(item)` 跳转事件，点击一级菜单只触发展开/收起，不再更改当前页面，也不再自动进入第一个二级菜单；顶部菜单默认进入子页逻辑保持不变。前端 `npm run build` 验证通过。
 - 新增 Agent 文档落地规则：后续所有与 Agent 上下文相关的 Markdown 文档统一写入 `agentic-codex` 项目对应目录，不再写到业务项目根目录；写完自动在 `agentic-codex` 中先 `git pull --rebase`，再 `git add`、中文提交、`git push`。
 - Agent 文档落地规则已升为 `agentic-codex` 全局通用规则，不再局限于 `cbys-omsapi`：所有项目都适用。
+- 继续优化前后端基础能力：前端新增公共分页组件 `WsPagination.vue`，先替换表具最新状态 `MetecuNewest.vue` 和缴费充值查询 `SysPaydetail.vue` 的分页区域，并显式补充 `size` 响应式字段；后端新增 `GlobalExceptionHandler`，统一记录未捕获接口异常的 method、uri、query 和堆栈，返回标准 `RespBean("error", "系统异常，请联系管理员")`。前端 `npm run build`、后端 JDK8 `mvn -q -DskipTests compile` 均验证通过。
