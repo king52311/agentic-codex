@@ -15,3 +15,6 @@
 - `project-notes/`：业务项目迁移出来的上下文和排查记录。
 - `templates/`：可复制到新项目的 `AGENTS.md`、历史记录模板。
 
+## 已归档项目
+
+- `project-notes/cbys-omsapi/`：晨天营收 `omsapi` 相关 Agent 回顾文档。

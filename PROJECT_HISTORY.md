@@ -40,3 +40,8 @@
 - 沉淀独立客户端应用的完整生成流程、核心约束、目录脚手架、公共能力接入顺序和逻辑代码生成层次，方便后续项目快速搭建应用基础框架。
 - 更新 `AGENT.md` 与 `architectures/README.md` 索引。
 - 客户端应用生成框架去除案例专属品牌约束，将展示名规则改为使用当前组织或项目约定的统一前缀，保持框架通用性。
+# 2026-08-25
+
+- 按 Agentic Codex 归档规则新增 `agent-docs/project-notes/cbys-omsapi/` 独立目录。
+- 从 `omsapi` 根目录迁移说明类 Agent 回顾文档：`API_SCHEDULED_TASKS.md`、`COLLECT_DATA_PROJECT.md`、`PROJECT_RUNNING_LOGIC.md`、`DOCUSERDOCUMENT_PRODUCT_DIFF.md`。
+- `omsapi` 继续保留 `AGENTS.md`、`PROJECT_HISTORY.md`、`README.md` 作为业务项目必要入口。
