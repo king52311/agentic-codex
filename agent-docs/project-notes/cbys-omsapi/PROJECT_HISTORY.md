@@ -182,3 +182,4 @@
 - `omsapi/AGENTS.md` 与 `omsapi/PROJECT_HISTORY.md` 已迁移到 `agentic-codex/agent-docs/project-notes/cbys-omsapi/`，业务项目根目录不再保留这两个 Agent 专用上下文文件；目录索引 README 已同步更新。
 - 修复登录页点击登录后 loading 出现白色方块问题：移除登录表单容器上的 `v-loading` 白色遮罩，改为登录按钮自身 `:loading`，并补充请求异常时恢复 loading 状态。前端 `npm run build` 验证通过。
 - api 启动完成日志补齐：`MsApiApplication` 增加 `ApplicationReadyEvent` 监听，Spring Boot 完全就绪后在命令行输出 `API服务已启动成功`。后端 JDK8 `mvn -q -DskipTests compile` 验证通过。
+- 修复页面白屏报错 `this.loadAll is not a function`：移除机械表缴费 `BusiMechanicalMeter.vue` 和组织机构用户管理 `Organization.vue` 中残留的 `this.restaurants = this.loadAll()` 调用，相关 `loadAll` 方法已不存在且该数据未参与当前页面逻辑。前端 `npm run build` 验证通过。生产/测试 nginx 若使用 `BASE_API=/api`，必须配置 `/api/` 反代并剥离前缀，否则后端会把 `/api/login` 当成未授权路径重定向到 `/login_p`，出现 `/api/login_p` 循环跳转。
