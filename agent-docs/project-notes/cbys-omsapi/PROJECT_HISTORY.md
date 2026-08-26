@@ -229,3 +229,4 @@
 - 新增“计费出账管理”一期：后端补充 `reading_billing_batch`、`reading_billing_detail` 两张表和 `/reading/billing/**` 接口，支持按抄表计划预览出账、正式执行出账、查看批次与明细；前端新增 `ReadingBilling` 页面和菜单入口，先接出账批次列表与创建出账弹窗；前端构建已通过，后端仍在 JDK8 编译验证中。
 - 新增“收费工作台”一期：复用 `reading_billing_detail` 作为账单数据源，接入用户查询、账户余额、待缴账单、批量缴费入口；后端新增 `/newsun/payment/workbench/search` 与 `/newsun/payment/workbench/pay`，前端新增 `BusiCashierWorkbench` 页面并挂到缴费管理下；前后端构建已通过，后续再补真实缴费细节展示和状态联动。
 - 收费工作台新增“代缴费确认”弹窗：单笔缴费和批量缴费统一展示账单编号、用户、项目、应缴金额，支持收款方式、备注和核验确认；批量缴费改为按明细 ID 查询，允许同一用户跨批次合并缴费并校验不可跨用户缴费。新增 `newsun_payment.remark` 迭代 SQL 并已同步测试库；前端 `./build.sh test`、后端 JDK8 编译通过。
+- 计费出账管理补齐批次明细弹窗：接入 `/reading/billing/details`，展示批次汇总、客户、户号、表号、上期/本期读数、用量、单价、应收金额、出账状态、缴费状态、失败原因及出账时间，并支持客户/户号/表号和出账状态筛选；前端 `./build.sh test` 验证通过，`dist.zip` 已更新。
