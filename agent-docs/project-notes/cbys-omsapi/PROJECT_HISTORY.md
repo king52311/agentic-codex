@@ -11,6 +11,7 @@
 - 抄表端列表新增计划字段和计划筛选，待抄/已抄均支持按计划过滤；同时收紧抄表端移动页布局为顶部信息条、筛选面板和任务卡片三段式；`npm run build` 与后端 `mvn -q -DskipTests compile` 验证通过。
 - 说明当前前端仍是 hash 路由，`/#/mr` 不能仅靠 nginx 直接改成纯 `/m`；若要浏览器地址栏显示 `/m`，需要改成 history 路由或做前端入口重定向。
 - 前端已切换为 `history` 路由模式；配合 nginx 的 `try_files $uri $uri/ /index.html;` 后，可直接访问 `/m`、`/mr`，刷新不再 404。
+- 修正 Vue 开发环境 `/m` 被后端根代理吞掉的问题：`config/index.js` 的根路径代理增加 HTML 请求 bypass，命中浏览器页面访问时返回 `/index.html`，确保 history 路由由前端接管，API 请求仍走后端代理。
 
 ## 2026-08-12
 
