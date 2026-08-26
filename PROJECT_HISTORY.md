@@ -46,3 +46,11 @@
 - 从 `omsapi` 根目录迁移说明类 Agent 回顾文档：`API_SCHEDULED_TASKS.md`、`COLLECT_DATA_PROJECT.md`、`PROJECT_RUNNING_LOGIC.md`、`DOCUSERDOCUMENT_PRODUCT_DIFF.md`。
 - `omsapi` 继续保留 `AGENTS.md`、`PROJECT_HISTORY.md`、`README.md` 作为业务项目必要入口。
 - 新增全局 Agent 文档落地规则：所有项目的 Agent 相关 Markdown 统一写入 `agentic-codex` 对应目录，不写入业务项目根目录；写完必须在 `agentic-codex` 中先 `git pull --rebase`，再 `git add`、中文提交并 `git push`。
+
+## 2026-08-26
+
+- `omsvue` 阶梯设置页面增加管理类型、阶梯名称筛选，支持搜索和重置。
+- `omsapi` 阶梯设置初始化接口 `/system/price/initData` 增加可选筛选参数 `manageNo`、`priceName`，保留旧的无参调用兼容。
+- 验证通过：前端 `npm run build`，后端 JDK8 `mvn -q -DskipTests compile`。
+- `omsvue` 调整系统列表公共宽度样式，`ws-table-wrap`、`el-table`、后台内容区统一支持自适应铺满，避免列表右侧空白。
+- 验证通过：前端 `npm run build`。
