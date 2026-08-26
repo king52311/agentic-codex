@@ -14,6 +14,7 @@
 - 修正 Vue 开发环境 `/m` 被后端根代理吞掉的问题：`config/index.js` 的根路径代理增加 HTML 请求 bypass，命中浏览器页面访问时返回 `/index.html`，确保 history 路由由前端接管，API 请求仍走后端代理。
 - 抄表端列表进一步优化视觉层级：客户名、计划标签、地址、客户编号、上期读数及日期改成卡片化布局；新增 `reading_activity.last_reading_time` 字段和迭代 SQL，生成待抄任务时优先使用 `newsun_account.chargeDate`，否则回退 `ecu.ecuStateDate`；`npm run build` 与 `mvn -q -DskipTests compile` 验证通过。
 - 分离后台与抄表端开发默认账号：后台登录页默认 `admin/admin`，抄表端登录页默认 `dev/ct@123`，生产构建仍不注入默认账号；`npm run build` 验证通过。
+- 新增前端项目 `.env.development` 并让 `start.sh` 读取该文件；修正后台登录页兜底账号仍为 `dev/ct@123` 的问题，后台固定兜底为 `admin/admin`，抄表端继续使用独立的 `MOBILE_DEV_DEFAULT_*`；`npm run build` 验证通过。
 
 ## 2026-08-12
 
