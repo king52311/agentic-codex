@@ -1,5 +1,11 @@
 # PROJECT_HISTORY
 
+## 2026-08-26
+
+- 新增“系统配置-站点配置”：支持配置系统标题 `天津港供水营收管理平台` 与余额信用开关，后端提供 `/config/site`、`/system/site/config` 查询和保存接口，前端登录页、顶部标题、抄表端标题改为读取站点标题；新增生产迭代 SQL `20260826_create_sys_site_config.sql`。
+- 调整本地开发默认登录账号：`omsvue/start.sh` 默认注入 `dev / ct@123`；后台登录页和抄表员登录页仅开发环境自动带出默认账号，生产打包不注入。
+- 排查抄表员登录后无数据：确认抄表端按当前登录用户 `id` 匹配 `reading_plan.reader_id`；测试库将抄表员 `id=155` 的登录账号修正为 `dev / ct@123` 并绑定“抄表员”角色，接口验证 `/reading/mobile/tasks` 返回 1 条待抄任务。
+
 ## 2026-08-12
 
 - 为 `collect-data` 新增 `start.sh` 启动脚本，优先使用 Java 8，支持 `SPRING_PROFILES_ACTIVE`，并更新 `collect-data/README.md`。
