@@ -34,6 +34,7 @@ Agent 进入业务项目后，如项目内存在 `agentic-codex/AGENT.md`，应�
 - 优先复用项目已有组件、工具函数、接口风格和验证命令。
 - 涉及权限、认证、数据删除、生产配置、密钥、迁移时，必须额外谨慎。
 - 改完要做与影响范围匹配的验证。
+- 前端项目构建验证时，若项目根目录存在 `build.sh`，必须优先执行该脚本；仅当 `build.sh` 不存在时，才根据项目包管理器执行 `npm run build`、`pnpm build`、`yarn build` 等系统构建命令。
 - 重要改动要留下可回顾记录，便于后续 Agent 恢复上下文。
 - 所有项目的 Agent 相关 Markdown 文档统一写入 `agentic-codex` 项目对应目录，不写入业务项目根目录；写完自动在 `agentic-codex` 中先 `git pull --rebase`，再 `git add`、中文 `git commit`、`git push`。
 

@@ -226,3 +226,5 @@
 - 手机抄表端 `/mr` 增加已抄列表：支持待抄/已抄切换，已上传记录可更新读数，已结算记录只读并提示原因；读数前后端均限制为非负整数；API 编译和前端构建通过。
 
 - 手机抄表端增强：已抄列表显示抄表时间，支持按抄表时间段筛选；抄表端登录增加 remember-me cookie，服务重启后可恢复登录态；API 编译和前端构建通过。
+- 新增“计费出账管理”一期：后端补充 `reading_billing_batch`、`reading_billing_detail` 两张表和 `/reading/billing/**` 接口，支持按抄表计划预览出账、正式执行出账、查看批次与明细；前端新增 `ReadingBilling` 页面和菜单入口，先接出账批次列表与创建出账弹窗；前端构建已通过，后端仍在 JDK8 编译验证中。
+- 新增“收费工作台”一期：复用 `reading_billing_detail` 作为账单数据源，接入用户查询、账户余额、待缴账单、批量缴费入口；后端新增 `/newsun/payment/workbench/search` 与 `/newsun/payment/workbench/pay`，前端新增 `BusiCashierWorkbench` 页面并挂到缴费管理下；前后端构建已通过，后续再补真实缴费细节展示和状态联动。

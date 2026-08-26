@@ -49,6 +49,7 @@
 
 ## 2026-08-26
 
+- 新增前端构建通用规则：项目存在 `build.sh` 时必须优先使用该脚本；仅在脚本不存在时，才执行 npm、pnpm 或 yarn 的系统构建命令。
 - `omsvue` 阶梯设置页面增加管理类型、阶梯名称筛选，支持搜索和重置。
 - `omsapi` 阶梯设置初始化接口 `/system/price/initData` 增加可选筛选参数 `manageNo`、`priceName`，保留旧的无参调用兼容。
 - 验证通过：前端 `npm run build`，后端 JDK8 `mvn -q -DskipTests compile`。
