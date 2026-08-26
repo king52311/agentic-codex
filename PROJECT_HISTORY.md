@@ -54,3 +54,6 @@
 - 验证通过：前端 `npm run build`，后端 JDK8 `mvn -q -DskipTests compile`。
 - `omsvue` 调整系统列表公共宽度样式，`ws-table-wrap`、`el-table`、后台内容区统一支持自适应铺满，避免列表右侧空白。
 - 验证通过：前端 `npm run build`。
+- `omsapi` 充值缴费链路切换为按户 `profilesId` 聚合更新余额，保留抄表按表号逻辑不变。
+- `newsun_account` 增加 `profilesId` 字段迁移，新增/导入账户时回填户ID，充值记录查询支持按户查询。
+- 验证通过：后端 JDK8 `mvn -q -DskipTests compile`，前端 `npm run build`。
