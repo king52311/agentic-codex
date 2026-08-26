@@ -230,3 +230,4 @@
 - 新增“收费工作台”一期：复用 `reading_billing_detail` 作为账单数据源，接入用户查询、账户余额、待缴账单、批量缴费入口；后端新增 `/newsun/payment/workbench/search` 与 `/newsun/payment/workbench/pay`，前端新增 `BusiCashierWorkbench` 页面并挂到缴费管理下；前后端构建已通过，后续再补真实缴费细节展示和状态联动。
 - 收费工作台新增“代缴费确认”弹窗：单笔缴费和批量缴费统一展示账单编号、用户、项目、应缴金额，支持收款方式、备注和核验确认；批量缴费改为按明细 ID 查询，允许同一用户跨批次合并缴费并校验不可跨用户缴费。新增 `newsun_payment.remark` 迭代 SQL 并已同步测试库；前端 `./build.sh test`、后端 JDK8 编译通过。
 - 计费出账管理补齐批次明细弹窗：接入 `/reading/billing/details`，展示批次汇总、客户、户号、表号、上期/本期读数、用量、单价、应收金额、出账状态、缴费状态、失败原因及出账时间，并支持客户/户号/表号和出账状态筛选；前端 `./build.sh test` 验证通过，`dist.zip` 已更新。
+- 新增“缴费管理 > 账单查询”：复用 `reading_billing_detail`，增加账单编号、账期、表类型、用户类型和核销信息快照字段；新增 `/reading/bill/page` 分页汇总查询与 `/reading/bill/export` 当页/全部导出接口；前端新增 `BusiBillQuery` 页面，支持账期、抄表册、用户号、表号、用户名称和结清状态筛选。数据库变更同步至 `db/migrations/20260826_add_bill_query.sql`；后端使用 Zulu JDK 8 编译通过，前端 `./build.sh test` 构建通过并更新 `dist.zip`。后端提交 `ce22ce1`、前端提交 `c3919d3` 已推送。
