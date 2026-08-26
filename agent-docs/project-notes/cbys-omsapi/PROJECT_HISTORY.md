@@ -7,6 +7,7 @@
 - 排查抄表员登录后无数据：确认抄表端按当前登录用户 `id` 匹配 `reading_plan.reader_id`；测试库将抄表员 `id=155` 的登录账号修正为 `dev / ct@123` 并绑定“抄表员”角色，接口验证 `/reading/mobile/tasks` 返回 1 条待抄任务。
 - 修正抄表员登录页默认账号仍显示旧值：`config/dev.env.js` 增加开发环境兜底 `dev / ct@123`，后台登录页与抄表端登录页仅在 `APP_ENV=dev` 时显示默认账号；`npm run build` 验证通过。
 - 优化抄表端入口：已登录访问 `/#/m` 自动跳转 `/#/mr`；待抄列表为空时自动查询已抄列表，有已抄数据则切换到“已抄”页签展示；`npm run build` 验证通过。
+- 修正抄表端退出后又自动登录：退出时同时请求 `/logout` 清理后端会话和 remember-me cookie，并用 `sessionStorage` 标记手动退出，避免立刻被自动恢复；`npm run build` 验证通过。
 
 ## 2026-08-12
 
