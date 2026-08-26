@@ -202,3 +202,5 @@
 - 统一缴费管理分页样式：`Busicharge`、`BusimoneyLoad`、`BusiEcuLoad`、`BusiprePay`、`BusiMechanicalMeter` 改用公共 `WsPagination` 和 `ws-page` 白底样式，`npm run build` 验证通过。
 
 - 新增抄表员手机端：前端短地址 `/m` 登录、`/mr` 待抄列表与逐条提交读数；后端新增 `/reading/mobile/tasks`、`/reading/mobile/submit`，按当前登录抄表员过滤任务；API 编译和前端构建通过。
+
+- 修正抄表计划抄表员同步：新建/编辑计划选择抄表册后自动带出周期、例日、抄表员ID和抄表员名称；后端保存计划时以抄表册抄表员为准，API 编译和前端构建通过。
