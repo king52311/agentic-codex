@@ -10,6 +10,7 @@
 - 修正抄表端退出后又自动登录：退出时同时请求 `/logout` 清理后端会话和 remember-me cookie，并用 `sessionStorage` 标记手动退出，避免立刻被自动恢复；`npm run build` 验证通过。
 - 抄表端列表新增计划字段和计划筛选，待抄/已抄均支持按计划过滤；同时收紧抄表端移动页布局为顶部信息条、筛选面板和任务卡片三段式；`npm run build` 与后端 `mvn -q -DskipTests compile` 验证通过。
 - 说明当前前端仍是 hash 路由，`/#/mr` 不能仅靠 nginx 直接改成纯 `/m`；若要浏览器地址栏显示 `/m`，需要改成 history 路由或做前端入口重定向。
+- 前端已切换为 `history` 路由模式；配合 nginx 的 `try_files $uri $uri/ /index.html;` 后，可直接访问 `/m`、`/mr`，刷新不再 404。
 
 ## 2026-08-12
 
