@@ -49,6 +49,7 @@
 - 增加调度日期边界测试 4 项，全部通过；后端配置接口已验证返回新增字段，服务正常启动。
 - 营收首页快捷入口新增收费工作台、账单查询、抄表册管理、抄表计划管理、计费出账管理，统一改为配置驱动渲染并完成测试环境构建。
 - 修复 omsapi Docker 构建对 `xjbw-security-access/` 空目录的无效 COPY 依赖；安全组件继续使用 `src/main/resources/lib/xjbw-security-access.jar`，日志目录取消跟踪后不再影响服务器构建。
+- 修复营收首页饼图悬浮时被画布裁切的问题：统一缩小半径、下移圆心并限制悬浮偏移，已重新生成测试环境 `dist.zip`。
 # 2026-08-25
 
 - 按 Agentic Codex 归档规则新增 `agent-docs/project-notes/cbys-omsapi/` 独立目录。
