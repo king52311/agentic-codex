@@ -48,6 +48,7 @@
 - 暂不接入余额信用/欠费开关，余额不足时按用户账期顺序停止后续账单处理。
 - 增加调度日期边界测试 4 项，全部通过；后端配置接口已验证返回新增字段，服务正常启动。
 - 营收首页快捷入口新增收费工作台、账单查询、抄表册管理、抄表计划管理、计费出账管理，统一改为配置驱动渲染并完成测试环境构建。
+- 修复 omsapi Docker 构建对 `xjbw-security-access/` 空目录的无效 COPY 依赖；安全组件继续使用 `src/main/resources/lib/xjbw-security-access.jar`，日志目录取消跟踪后不再影响服务器构建。
 # 2026-08-25
 
 - 按 Agentic Codex 归档规则新增 `agent-docs/project-notes/cbys-omsapi/` 独立目录。
