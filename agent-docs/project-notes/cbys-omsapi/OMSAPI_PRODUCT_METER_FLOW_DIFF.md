@@ -166,6 +166,94 @@ Product 中可确认的关键 SQL：
 - `NewsunMeterStopMapper.xml`：停用记录查询及列表分页。
 - `NewsunMeterUnloadMapper.xml`：落表/复装记录查询及列表分页。
 
+## 4.1 数据库查询与写入差异
+
+### 结论
+
+表具状态和换表的核心 SQL 基本没有变化。对 `NewsunMeterMapper.xml`、`NewsunMeterExchangeMapper.xml`、`NewsunMeterStopMapper.xml`、`NewsunMeterUnloadMapper.xml` 做对照后：
+
+- 换表记录插入 SQL 两边一致：插入 `newsun_meter_change`，字段包括旧/新表号、读数、金额、余额、用户类型、操作员、时间和 IP。
+- IC 转 NB 记录插入 SQL 两边一致：插入 `ic_nb_meterchange`，保存旧表/新表品牌、表号、用户、地址、表类型、底数、补发量、价格和审计信息。
+- 状态列表查询两边一致：停用列表从 `newsun_meter_stop` 左连接表具、用户档案、地址视图、操作员；落表列表从 `newsun_meter_unload` 使用相同方式关联。
+- 普通换表两边都执行 `newsun_meter` 新表插入和旧表按 `ecuId` 删除；Mapper 中的 `updateChangeByState` 虽然存在，但当前普通换表代码没有调用。
+
+### omsapi 新增或变化的查询
+
+当前 `omsapi` 的 `NewsunMeterMapper.xml` 相比 `product` 增加或保留了以下扩展查询：
+
+```sql
+-- 一户多表：按户 ID 查询全部表具
+select nm.*, e.lhecuId, na.balanceAmount
+from newsun_meter nm
+left join ecu e on e.ecuId = nm.ecuId
+left join newsun_account na on na.ecuId = nm.ecuId
+where nm.profilesId = ?
+order by nm.ecuState asc, nm.id desc
+```
+
+这部分是 `omsapi` 的业务扩展，旧 `product` 没有对应的 `getMetersByProfilesId` 查询。它不会改变原有按表号查询状态和换表的结果，但为一户多表提供了户 ID 查询入口。
+
+另外，当前 Mapper 增加了万泰表具关联 `wt_valve_list` 的查询，以及按时间查询 `newsun_payment` 的开阀相关查询；这些属于新增/扩展功能，不是状态变更主流程。旧 `product` 中存在的 `findEcuIdList`、赛恩 IMEI 查询则不在当前 Mapper 的同一位置保留，属于功能整理或迁移差异。
+
+### 查询条件上的实际影响
+
+- 状态更新使用精确匹配：`where ecuId = ?`，两套逻辑都按表号更新，不按户 ID 更新。
+- 停用/落表历史列表使用模糊匹配：`ecuId like concat('%', ?, '%')`，两套逻辑一致。
+- 普通换表账户查询使用旧表号：`getAccountByecuId(oldEcuId)`；用户档案和表具也使用旧表号查出 `profilesId`，之后才把账户表号改为新表号。
+- 换表历史查询使用新表号、旧表号、联系人、换表日期模糊过滤；两套 `NewsunMeterExchangeMapper.xml` 查询结构一致。
+- 账户、表具、历史流水没有统一改为按 `profilesId` 聚合处理；当前只有一户多表资料查询明确按户 ID，状态/换表仍按表 ID。
+
+## 4.2 对外接口差异
+
+### 旧 product 与新 omsapi 仍兼容的接口
+
+两套 Controller 的公开方法和路径基本一致，前端原有调用无需改地址：
+
+```text
+PUT  /meter/updateMeterState
+GET  /meter/meterStopList
+GET  /meter/meterUnLoadList
+
+POST /newsunMeter/exchange/insertExchange
+POST /newsunMeter/exchange/insertExchangeBH
+POST /newsunMeter/exchange/exchangeMeterForSe
+POST /newsunMeter/exchange/exchangeMeterForIcToNb
+GET  /newsunMeter/exchange/list
+GET  /newsunMeter/exchange/listIcToNb
+GET  /newsunMeter/exchange/loadAllDropdownList
+GET  /newsunMeter/exchange/export
+GET  /newsunMeter/exchange/export2
+```
+
+### omsapi 新增接口
+
+`omsapi` 在表具 Controller 增加了：
+
+```text
+GET /meter/profileMeters?profilesId={户ID}
+```
+
+该接口返回一个用户档案下的全部表具，服务层调用 `getMetersByProfilesId`。这是当前一户多表页面使用的扩展接口，`product` 的旧 Controller 公共方法中没有该接口。
+
+### 接口内部行为差异
+
+- `product` 是已编译的旧 Controller，外部接口主要负责把参数转给旧 Service；只能从 class 和 XML 看到调用关系。
+- `omsapi` 的状态接口在 Controller 内显式补充当前操作员 ID、客户端 IP、写入时间，再进入 Service；因此同一个请求写入的审计字段更明确。
+- `omsapi` 普通换表接口固定调用 `insertExchangeRecord2`；该方法执行合计水价计算。代码中的 `insertExchangeRecord3` 阶梯计算方法没有被该公开接口调用。
+- `insertExchangeBH` 通过 `exchangeType=1/2` 在同一个接口内分流换表和换卡；接口名没有拆分，属于旧接口兼容设计。
+- `exchangeMeterForIcToNb` 当前对外表现是“按新表号查询目标资料”，返回 `exdata`；实际写入 `ic_nb_meterchange` 的 Mapper 方法是内部换表流程调用的 `insertExchangeForIcToNb`，不是这个查询接口本身。
+
+### 外部设备接口差异
+
+普通状态和普通换表只访问 API 数据库；炳华补卡/换卡还依赖前端直接访问：
+
+```text
+GET  http://localhost:5000/omspaymentapi/findCard
+POST http://localhost:5000/omspaymentapi/makeUserCard
+```
+
+这两个设备接口在 `omsapi` Controller 中没有代理，仍由 Vue 页面直接调用。`product` 的旧页面也采用同类本地写卡调用方式，因此这里没有形成新的后端统一接口；服务器部署时尤其要保证操作员电脑上的 `5000` 端口可访问。
+
 ## 5. 关键差异与风险
 
 1. **审计信息**：`omsapi` 状态变更明确补充 `operatorId`、`loginIp`、`dateWrite`；旧实现需以历史 class 行为为准。
