@@ -8842,3 +8842,13 @@
 - 重复发票校验通知增加历史发票信息，包含历史发票票号、流程 ID、流程标题、报销人、报销时间、发票金额。
 - 同步过程新增票号到历史记录映射；本轮同步内已通过的票号也会参与重复提醒详情。
 - 验证：`cd backend && python -m py_compile app/services/finance_reimbursement.py`、`git diff --check` 通过。
+
+### 2026-08-28 财务报销附件名纠偏发票抬头
+- 修复 `1212301` 这类 OCR 将附件发票抬头误识别为相近公司名导致误推送的问题。
+- 同步校验前增加附件名开票主体纠偏：附件名命中开票主体表公司名时，使用该主体的单位名称和税号参与抬头、付款主体一致性校验。
+- 验证：`cd backend && python -m py_compile app/services/finance_reimbursement.py`、`git diff --check` 通过。
+
+### 2026-08-28 财务报销附件名命中主体免税号误拦
+- 修复附件名已明确命中开票主体，但 OCR 税号错误导致继续触发“发票抬头有误”的问题。
+- 附件名命中开票主体表后标记为可信主体，后续开票主体校验直接通过，仍保留付款主体一致性校验。
+- 验证：`cd backend && python -m py_compile app/services/finance_reimbursement.py`、`git diff --check` 通过。
