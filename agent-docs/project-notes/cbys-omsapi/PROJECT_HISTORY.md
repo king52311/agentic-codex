@@ -2,9 +2,11 @@
 
 ## 2026-08-28
 
+- 排查用户档案管理停用表后列表消失：`UserProfilesMapper.xml` 的 `getUserProfilesByPage` 赛恩查询固定包含 `and nm.ecuState = '0'`，数量查询 `getCountByKeywords` 也固定过滤 `nm.ecuState = '0'`；停用接口将状态改为 `3`，因此停用成功后主列表必然查不到，并非数据被删除。
 - 完成 `omsapi` 与 `product` 表具最新状态、停用/启用、落表/复装、普通换表、炳华换表/补卡、卡表换 NB 和 IC 转 NB 流程对比。
 - 新增 `agent-docs/project-notes/cbys-omsapi/OMSAPI_PRODUCT_METER_FLOW_DIFF.md`，记录接口链路、状态映射、数据表变化、旧实现依据、差异风险和维护建议。
 - 补充两套系统的实际代码执行顺序：Vue 入口、Controller 分支、Service 查询/计算、Mapper 写表、事务结果和页面刷新，并明确普通换表当前实际调用合计水价算法，未调用阶梯算法。
+- 进一步核对数据库 Mapper 和 Controller class：核心状态/换表 SQL 基本一致，`omsapi` 新增按户 ID 查询全部表具接口 `/meter/profileMeters`，并补充外部接口、查询条件、写入表及本地写卡接口差异。
 
 ## 2026-08-26
 
