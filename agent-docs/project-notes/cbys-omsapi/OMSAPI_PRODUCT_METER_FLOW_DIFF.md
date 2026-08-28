@@ -26,6 +26,82 @@
 
 ## 3. omsapi 实际请求链路
 
+## 3.0 代码执行顺序对比
+
+本次核对后，普通换表的 `omsapi` 与 `product` 反编译 class 实际调用顺序基本相同；差异主要不是“业务步骤改变”，而是源码可维护性、接口保留情况和后续改造内容不同。
+
+### 状态操作的实际执行
+
+```text
+Vue DocuserDocument.disable/enabled/fallmeter/reinstall
+  -> putRequest("/meter/updateMeterState", meterUnLoad)
+  -> NewsunMeterController.updateMeterState
+  -> SecurityContextHolder 获取登录用户
+  -> SysOperaterService.loadUserByUsername 获取 operatorId
+  -> CommonUtils.getIpAddr 获取 loginIp
+  -> NewsunMeterService.updateMeterStateByEcuId
+  -> NewsunMeterMapper.updateMeterStateByEcuId
+  -> 根据 unLoadType 写 NewsunMeterStopMapper 或 NewsunMeterUnloadMapper
+  -> 返回 RespBean
+  -> Vue 刷新列表
+```
+
+`product` 的 Controller class 同样按 `unLoadType` 分支调用状态 Service 和停用/落表 Service；`omsapi` 已有对应 Java 源码，便于继续维护。两边都没有在“取消”时调用后端，取消只是关闭弹窗。
+
+### 普通换表的实际执行
+
+```text
+Vue exchangeData
+  -> 校验 exchangeForm
+  -> POST /newsunMeter/exchange/insertExchange
+  -> NewsunMeterExchangeController.insertExchangeRecord
+  -> NewsunMeterExchangeService.insertExchangeRecord2
+  -> getAccountByecuId(旧表号)
+  -> getMeterByEcuId(旧表号)
+  -> 获取当前操作员、IP、时间和用户档案
+  -> sumPDetail() 查用户类型合计水价
+  -> 计算 (页面旧止度 - 账户上次结算读数) * 水价
+  -> exchangeInsertMeter() 插入新表，状态设为 0
+  -> deleteOldMeter() 删除旧表
+  -> updateEcuIdAccount() 把账户表号换成新表号并更新余额、结算读数
+  -> insertexCharge() 写换表扣费流水
+  -> insertExchangeRecord() 写 newsun_meter_change
+  -> 返回“换表成功”
+```
+
+`product` 反编译的 `insertExchangeRecord2` 依次调用的 Mapper 与上述一致，因此普通换表当前不是“将旧表改成已换表”，而是**新增新表、删除旧表、迁移账户、写扣费流水和换表记录**。源码中 `updateChangeByState` 代码被注释，旧表不会保留在 `newsun_meter` 中。
+
+### 阶梯换表的实际执行
+
+代码中另有 `insertExchangeRecord3`，但当前 Controller 的 `/insertExchange` 实际调用的是 `insertExchangeRecord2`，所以页面普通换表目前走的是“合计水价”算法，不会自动走 `insertExchangeRecord3` 的阶梯计算。
+
+如果业务代码显式调用 `insertExchangeRecord3`，执行顺序才是：读取账户累计用量 -> 调用 `ChargeService.getChargeSumResult` -> 按阶梯拆分流水 -> 新表插入/旧表删除 -> 账户余额更新 -> 写多条扣费流水 -> 写换表记录。
+
+### 炳华补卡的实际执行
+
+```text
+Vue exchangeDataBH(exchangeCardFormBH)
+  -> 校验表具类型和补卡原因
+  -> GET http://localhost:5000/omspaymentapi/findCard
+  -> 组装卡类型、表号、表具类型和 0 购水量
+  -> POST http://localhost:5000/omspaymentapi/makeUserCard
+  -> 写卡成功后 POST /newsunMeter/exchange/insertExchangeBH
+  -> Controller 根据 exchangeType=2 调 insertExchangeCardRecordBH
+  -> 查询炳华用户、表具和账户
+  -> 组装 BhWritecardRecord
+  -> BhWritecardRecordMapper.insert
+  -> BhWritecardRecordMapper.updateAfterInsert
+  -> 返回结果，关闭串口并刷新页面
+```
+
+这里存在两个系统边界：本地写卡服务成功不代表 API 数据库写流水一定成功；反过来也一样。因此 `product` 与 `omsapi` 都有“设备已写卡但数据库记录失败”的部分成功风险。
+
+### 炳华换表与卡表换 NB
+
+- 炳华换表：Vue 先校验新表号、补水量为非负整数，再调用 `exchangeMeterForSe`；Service 查询旧卡/登记号对应用户和表具，按补水量计算写卡/账户数据，最后记录换表和写卡流水。
+- 卡表换 NB：Vue 先调用 `exchangeMeterForIcToNb` 按新表号查询资料，返回客户、地址、价格类型后才允许继续；真正的登记数据写入由 `insertExchangeForIcToNb` 写入 `ic_nb_meterchange`，不是仅靠查询接口完成。
+- `product` 中上述入口、参数和 Mapper 表名均存在；`omsapi` 的代码分支更容易追踪，但设备服务地址仍是前端写死的本机 `5000` 端口。
+
 ### 3.1 状态变更
 
 1. 用户档案页面 `DocuserDocument.vue` 校验当前表具状态。

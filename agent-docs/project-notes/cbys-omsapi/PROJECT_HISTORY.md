@@ -4,6 +4,7 @@
 
 - 完成 `omsapi` 与 `product` 表具最新状态、停用/启用、落表/复装、普通换表、炳华换表/补卡、卡表换 NB 和 IC 转 NB 流程对比。
 - 新增 `agent-docs/project-notes/cbys-omsapi/OMSAPI_PRODUCT_METER_FLOW_DIFF.md`，记录接口链路、状态映射、数据表变化、旧实现依据、差异风险和维护建议。
+- 补充两套系统的实际代码执行顺序：Vue 入口、Controller 分支、Service 查询/计算、Mapper 写表、事务结果和页面刷新，并明确普通换表当前实际调用合计水价算法，未调用阶梯算法。
 
 ## 2026-08-26
 
