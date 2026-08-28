@@ -2,6 +2,8 @@
 
 ## 2026-08-28
 
+- 表具状态筛选下拉框无数据：确认数据库缺少 `basic_code.codeType='ecuState'` 字典；新增 `omsapi/db/migrations/20260828_add_ecu_state_codes.sql`，补充正常、已换表、已落表、已停用 4 个幂等字典项，前端保留空接口响应时的兜底选项。
+- 已将该迭代 SQL 执行到测试库 `172.18.2.14:3306/djwms`，验证 `ecuState` 返回 `0正常、1已换表、2已落表、3已停用`。
 - 用户档案管理列表改为默认查询全部表具状态，新增 `ecuState` 状态筛选；后端同步调整列表 SQL、统计 SQL、Controller、Service、Mapper 参数，前端高级搜索增加状态下拉框。后端编译和前端 `./build.sh test` 构建通过。
 - 排查用户档案管理停用表后列表消失：`UserProfilesMapper.xml` 的 `getUserProfilesByPage` 赛恩查询固定包含 `and nm.ecuState = '0'`，数量查询 `getCountByKeywords` 也固定过滤 `nm.ecuState = '0'`；停用接口将状态改为 `3`，因此停用成功后主列表必然查不到，并非数据被删除。
 - 完成 `omsapi` 与 `product` 表具最新状态、停用/启用、落表/复装、普通换表、炳华换表/补卡、卡表换 NB 和 IC 转 NB 流程对比。
