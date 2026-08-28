@@ -46,6 +46,7 @@ Agent 进入业务项目后，如项目内存在 `agentic-codex/AGENT.md`，应�
 - `rules/frontend-common-components.md`：前端通用组件使用规范
 - `rules/client-application-standards.md`：客户端应用创建通用规范
 - `rules/database-design.md`：数据库设计与迁移规范
+- 数据库迭代执行规则：新增、修改类 SQL 在完成校验后可直接执行；删除表、删除字段、删除数据、清空数据、重命名等破坏性 SQL 必须先向用户确认，未经确认不得执行。
 - `rules/project-script-standards.md`：项目脚本通用规范
 - `rules/agent-work-principles.md`：Agent 通用工作原则
 - `rules/security-and-permissions.md`：安全与权限规范
