@@ -1,5 +1,10 @@
 # PROJECT_HISTORY
 
+## 2026-08-28
+
+- 完成 `omsapi` 与 `product` 表具最新状态、停用/启用、落表/复装、普通换表、炳华换表/补卡、卡表换 NB 和 IC 转 NB 流程对比。
+- 新增 `agent-docs/project-notes/cbys-omsapi/OMSAPI_PRODUCT_METER_FLOW_DIFF.md`，记录接口链路、状态映射、数据表变化、旧实现依据、差异风险和维护建议。
+
 ## 2026-08-26
 
 - 新增“系统配置-站点配置”：支持配置系统标题 `天津港供水营收管理平台` 与余额信用开关，后端提供 `/config/site`、`/system/site/config` 查询和保存接口，前端登录页、顶部标题、抄表端标题改为读取站点标题；新增生产迭代 SQL `20260826_create_sys_site_config.sql`。
