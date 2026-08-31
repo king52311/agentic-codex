@@ -1,5 +1,12 @@
 # PROJECT_HISTORY
 
+## 2026-08-31
+
+- 修复收费工作台“快速水费预存”与账单状态展示：
+  - 新建用户现在支持预存，`workbenchDeposit` 会在缺少 `newsun_account` 记录时自动补建账户后再写入预存金额，不再提示“用户水费账户不存在”。
+  - 缴费工作台、账单查询页状态文案统一为“已结清/未结清”，移除“待缴/已缴”字样。
+  - 已出账成功的历史明细补充迁移脚本，统一回填为“已结清”。
+
 ## 2026-08-28
 
 - 排查表号 `0180174779` 在页面查不到指数：截图页面实际为换表记录页面，调用 `/newsunMeter/exchange/list`，查询表 `newsun_meter_change.oldEcuId/newEcuId`；测试库该表号在 `ecu` 和 `ecu_history` 中存在最新指数 `381.0`，但 `newsun_meter_change` 没有对应换表记录，因此列表返回 0 条。该页面不会直接读取 `ecu_history` 指数。
@@ -248,6 +255,8 @@
 - 新增“缴费管理 > 账单查询”：复用 `reading_billing_detail`，增加账单编号、账期、表类型、用户类型和核销信息快照字段；新增 `/reading/bill/page` 分页汇总查询与 `/reading/bill/export` 当页/全部导出接口；前端新增 `BusiBillQuery` 页面，支持账期、抄表册、用户号、表号、用户名称和结清状态筛选。数据库变更同步至 `db/migrations/20260826_add_bill_query.sql`；后端使用 Zulu JDK 8 编译通过，前端 `./build.sh test` 构建通过并更新 `dist.zip`。后端提交 `ce22ce1`、前端提交 `c3919d3` 已推送。
 - 测试库已执行 `20260826_add_bill_query.sql`，新增“缴费管理 > 账单查询”菜单并为 16 个现有角色分配权限；收费工作台“查看全部”改为跳转 `/busi/BusiBillQuery`，自动携带当前用户号及相关表号/用户名称筛选条件，账单查询页面自动回填并查询。前端 `./build.sh test` 通过，提交 `9257124` 已推送。
 - 修复 `/loadCharges/recordData` 扣费记录列表异常：污水处理费单价计算遇到用量为 0 时不再执行除法，同时补充缴费金额、污水费和用量空值保护，正常除法统一保留两位小数；Zulu JDK 8 编译通过，后端提交 `f82af1a` 已推送。
+- 收费工作台用户查询放宽：`/newsun/payment/workbench/search` 增加 `keyword` 去空格，`registNo/ecuId/customer` 改为模糊匹配，避免表号或户号存在格式差异时查不到用户；后端已同步修改 `NewsunPaymentController` 和 `ReadingMapper.xml`。
+- 收费工作台按站点配置联动天津港模式：读取 `/system/site/config` 的 `allowNegativeBalance`，当余额信用开关允许负数时，工作台账单区标题切换为“已结算扣费记录”，隐藏单笔“缴费”按钮，并隐藏“勾选未结清账单后可合并办理缴费”提示文案。
 
 - 用户档案管理列表默认按更新时间 `dateWrite` 倒序、更新时间相同时按创建时间 `creattm` 倒序，表号作为稳定的第三排序字段；新增档案同步写入创建时间，后端编译通过。
 
