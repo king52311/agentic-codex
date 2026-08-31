@@ -1,5 +1,18 @@
 # PROJECT_HISTORY
 
+## 2026-08-28
+
+- 排查表号 `0180174779` 在页面查不到指数：截图页面实际为换表记录页面，调用 `/newsunMeter/exchange/list`，查询表 `newsun_meter_change.oldEcuId/newEcuId`；测试库该表号在 `ecu` 和 `ecu_history` 中存在最新指数 `381.0`，但 `newsun_meter_change` 没有对应换表记录，因此列表返回 0 条。该页面不会直接读取 `ecu_history` 指数。
+- 更新通用数据库执行规则：新增、修改类 SQL 校验后直接执行；删除表、字段、数据、清空或重命名等破坏性 SQL 必须先询问用户确认。
+- 表具状态筛选下拉框无数据：确认数据库缺少 `basic_code.codeType='ecuState'` 字典；新增 `omsapi/db/migrations/20260828_add_ecu_state_codes.sql`，补充正常、已换表、已落表、已停用 4 个幂等字典项，前端保留空接口响应时的兜底选项。
+- 已将该迭代 SQL 执行到测试库 `172.18.2.14:3306/djwms`，验证 `ecuState` 返回 `0正常、1已换表、2已落表、3已停用`。
+- 用户档案管理列表改为默认查询全部表具状态，新增 `ecuState` 状态筛选；后端同步调整列表 SQL、统计 SQL、Controller、Service、Mapper 参数，前端高级搜索增加状态下拉框。后端编译和前端 `./build.sh test` 构建通过。
+- 排查用户档案管理停用表后列表消失：`UserProfilesMapper.xml` 的 `getUserProfilesByPage` 赛恩查询固定包含 `and nm.ecuState = '0'`，数量查询 `getCountByKeywords` 也固定过滤 `nm.ecuState = '0'`；停用接口将状态改为 `3`，因此停用成功后主列表必然查不到，并非数据被删除。
+- 完成 `omsapi` 与 `product` 表具最新状态、停用/启用、落表/复装、普通换表、炳华换表/补卡、卡表换 NB 和 IC 转 NB 流程对比。
+- 新增 `agent-docs/project-notes/cbys-omsapi/OMSAPI_PRODUCT_METER_FLOW_DIFF.md`，记录接口链路、状态映射、数据表变化、旧实现依据、差异风险和维护建议。
+- 补充两套系统的实际代码执行顺序：Vue 入口、Controller 分支、Service 查询/计算、Mapper 写表、事务结果和页面刷新，并明确普通换表当前实际调用合计水价算法，未调用阶梯算法。
+- 进一步核对数据库 Mapper 和 Controller class：核心状态/换表 SQL 基本一致，`omsapi` 新增按户 ID 查询全部表具接口 `/meter/profileMeters`，并补充外部接口、查询条件、写入表及本地写卡接口差异。
+
 ## 2026-08-26
 
 - 新增“系统配置-站点配置”：支持配置系统标题 `天津港供水营收管理平台` 与余额信用开关，后端提供 `/config/site`、`/system/site/config` 查询和保存接口，前端登录页、顶部标题、抄表端标题改为读取站点标题；新增生产迭代 SQL `20260826_create_sys_site_config.sql`。
@@ -233,3 +246,7 @@
 - 新增“缴费管理 > 账单查询”：复用 `reading_billing_detail`，增加账单编号、账期、表类型、用户类型和核销信息快照字段；新增 `/reading/bill/page` 分页汇总查询与 `/reading/bill/export` 当页/全部导出接口；前端新增 `BusiBillQuery` 页面，支持账期、抄表册、用户号、表号、用户名称和结清状态筛选。数据库变更同步至 `db/migrations/20260826_add_bill_query.sql`；后端使用 Zulu JDK 8 编译通过，前端 `./build.sh test` 构建通过并更新 `dist.zip`。后端提交 `ce22ce1`、前端提交 `c3919d3` 已推送。
 - 测试库已执行 `20260826_add_bill_query.sql`，新增“缴费管理 > 账单查询”菜单并为 16 个现有角色分配权限；收费工作台“查看全部”改为跳转 `/busi/BusiBillQuery`，自动携带当前用户号及相关表号/用户名称筛选条件，账单查询页面自动回填并查询。前端 `./build.sh test` 通过，提交 `9257124` 已推送。
 - 修复 `/loadCharges/recordData` 扣费记录列表异常：污水处理费单价计算遇到用量为 0 时不再执行除法，同时补充缴费金额、污水费和用量空值保护，正常除法统一保留两位小数；Zulu JDK 8 编译通过，后端提交 `f82af1a` 已推送。
+
+- 用户档案管理列表默认按更新时间 `dateWrite` 倒序、更新时间相同时按创建时间 `creattm` 倒序，表号作为稳定的第三排序字段；新增档案同步写入创建时间，后端编译通过。
+
+- 前端后台新增全局多 Tab：动态路由打开后进入顶部 Tab，支持切换、关闭当前、关闭其他、关闭全部，Tab 状态保存到浏览器并在刷新后恢复；动态菜单页面统一启用 `keep-alive`，测试环境构建和 `dist.zip` 更新通过。
