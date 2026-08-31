@@ -222,6 +222,8 @@
 - 继续替换高频列表页公共分页：用户档案管理 `DocuserDocument.vue`、表具历史 `MetecuHistory.vue`、表具基础管理 `DocMeter.vue` 改用 `WsPagination`，保持原分页事件、页码和 pageSize 逻辑不变；后端无业务改动，本轮复验前端 `npm run build`、后端 JDK8 `mvn -q -DskipTests compile` 均通过。
 - 前端打包输出降噪：`omsvue/build.sh` 增加 `NODE_OPTIONS=--no-warnings` 与 `BROWSERSLIST_IGNORE_OLD_DATA=1`，并使用 `npm run --silent build`；`package.json` 的 `build` 脚本同步设置 `--no-warnings` 和 Browserslist 静默变量。已执行 `./build.sh test` 验证，Node circular dependency warning 与 Browserslist outdated 提示不再输出，dist 与 dist.zip 正常生成。
 
+- 后台全局多 Tab 页面移除面包屑导航，Tab 栏固定高度并隐藏空内容区，修复右侧更多按钮错位；收费工作台查询下拉框与输入框统一为 42px 高度。测试环境构建及 `dist.zip` 更新通过。
+
 - 继续统一前端系统设置分页：`SysCity`、`SysArea`、`SysStreet`、`SysCommunity`、`SysCodeTable`、`Organization` 改用公共 `WsPagination`，并通过 `npm run build` 验证。
 
 - 前端提交 `402e492 统一系统页面分页组件` 已推送到 `omsvue/new`：统一系统设置与用户管理相关页面分页组件。
