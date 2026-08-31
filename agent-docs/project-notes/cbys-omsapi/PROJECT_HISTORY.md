@@ -2,6 +2,7 @@
 
 ## 2026-08-28
 
+- 排查表号 `0180174779` 在页面查不到指数：截图页面实际为换表记录页面，调用 `/newsunMeter/exchange/list`，查询表 `newsun_meter_change.oldEcuId/newEcuId`；测试库该表号在 `ecu` 和 `ecu_history` 中存在最新指数 `381.0`，但 `newsun_meter_change` 没有对应换表记录，因此列表返回 0 条。该页面不会直接读取 `ecu_history` 指数。
 - 更新通用数据库执行规则：新增、修改类 SQL 校验后直接执行；删除表、字段、数据、清空或重命名等破坏性 SQL 必须先询问用户确认。
 - 表具状态筛选下拉框无数据：确认数据库缺少 `basic_code.codeType='ecuState'` 字典；新增 `omsapi/db/migrations/20260828_add_ecu_state_codes.sql`，补充正常、已换表、已落表、已停用 4 个幂等字典项，前端保留空接口响应时的兜底选项。
 - 已将该迭代 SQL 执行到测试库 `172.18.2.14:3306/djwms`，验证 `ecuState` 返回 `0正常、1已换表、2已落表、3已停用`。
@@ -245,3 +246,5 @@
 - 新增“缴费管理 > 账单查询”：复用 `reading_billing_detail`，增加账单编号、账期、表类型、用户类型和核销信息快照字段；新增 `/reading/bill/page` 分页汇总查询与 `/reading/bill/export` 当页/全部导出接口；前端新增 `BusiBillQuery` 页面，支持账期、抄表册、用户号、表号、用户名称和结清状态筛选。数据库变更同步至 `db/migrations/20260826_add_bill_query.sql`；后端使用 Zulu JDK 8 编译通过，前端 `./build.sh test` 构建通过并更新 `dist.zip`。后端提交 `ce22ce1`、前端提交 `c3919d3` 已推送。
 - 测试库已执行 `20260826_add_bill_query.sql`，新增“缴费管理 > 账单查询”菜单并为 16 个现有角色分配权限；收费工作台“查看全部”改为跳转 `/busi/BusiBillQuery`，自动携带当前用户号及相关表号/用户名称筛选条件，账单查询页面自动回填并查询。前端 `./build.sh test` 通过，提交 `9257124` 已推送。
 - 修复 `/loadCharges/recordData` 扣费记录列表异常：污水处理费单价计算遇到用量为 0 时不再执行除法，同时补充缴费金额、污水费和用量空值保护，正常除法统一保留两位小数；Zulu JDK 8 编译通过，后端提交 `f82af1a` 已推送。
+
+- 用户档案管理列表默认按更新时间 `dateWrite` 倒序、更新时间相同时按创建时间 `creattm` 倒序，表号作为稳定的第三排序字段；新增档案同步写入创建时间，后端编译通过。
