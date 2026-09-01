@@ -105,3 +105,13 @@
 - 测试库 `djwms` 已执行抄表计划批量结算索引变更：`idx_reading_billing_batch_plan_type(plan_id, billing_type)`。
 
 - 已将 `20260901_add_plan_settle_batch_index.sql` 调整为可重复执行脚本，并重新执行到测试库 `djwms`，确认索引存在。
+
+## 2026-09-01
+
+- 抄表册管理新增“小区表册生成”：支持多选小区、选择抄表员、设置周期/抄表月份/抄表例日/账单日，一次性按小区生成表册。
+- 后端新增 `/reading/book/generate-by-community`，仅余额信用允许负数时可用；每个小区生成一个表册，表册成员为该小区全部正常状态水表对应用户，支持一户多表后续生成抄表活动。
+- 验证通过：`omsapi mvn -q -DskipTests compile`，`omsvue ./build.sh test`，并更新 `dist.zip`。
+
+- 自动生成抄表计划规则调整：由抄表日前 3 天生成，改为抄表日前一天或当天扫描生成；计划任务管理文案同步为“抄表日前一天生成”。
+- 抄表活动上期读数仍保持计划生成时固定，出账时使用 `reading_activity.last_reading`，不实时重取。
+- 验证通过：`omsapi mvn -q -DskipTests compile`。
