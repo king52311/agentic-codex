@@ -115,3 +115,32 @@
 - 自动生成抄表计划规则调整：由抄表日前 3 天生成，改为抄表日前一天或当天扫描生成；计划任务管理文案同步为“抄表日前一天生成”。
 - 抄表活动上期读数仍保持计划生成时固定，出账时使用 `reading_activity.last_reading`，不实时重取。
 - 验证通过：`omsapi mvn -q -DskipTests compile`。
+
+- 修复表具最新状态列表搜索已建档但无实时 `ecu` 记录的表具时表号为空的问题：列表 SQL 改为 `ifnull(e.ecuId, nm.ecuId)`，排序表号时使用 `newsun_meter.ecuId`。测试表号 `8787687654` 已验证可返回表号。
+- 验证通过：`omsapi mvn -q -DskipTests compile`，`EcuMapper.xml` 结构校验通过。
+
+- 修复用户档案管理抄表导出导致页面白屏：前端由 `window.location.href` 跳转下载改为 `axios` blob 下载，支持单小区 Excel 和多小区 zip，并解析后端文件名。
+- 优化内容区顶部多标签栏：标签超出时横向滚动、标题省略，避免标签过多导致错位。
+- 验证通过：`omsvue ./build.sh test`，并更新 `dist.zip`。
+
+- 内容区多标签栏改为左右箭头翻动模式：隐藏原生横向滚动条，左右按钮控制标签滚动，当前激活标签自动滚入可视区；样式参考用户提供截图调整为紧凑按钮态。
+- 验证通过：`omsvue ./build.sh test`，并更新 `dist.zip`。
+
+- 抄表导出季度口径调整为包含当前日期所在季度，并向前推三个季度；2026 年 9 月导出最后一列季度为 2026 第三季度抄表止度。
+- 抄表导出“用户名”列增加格式化：匹配 `楼栋#房号` 时导出为 `楼栋-1-房号`，如 `上东湾5#101` 导出为 `上东湾5-1-101`，只影响导出文件不改数据库。
+- 验证通过：`omsapi mvn -q -DskipTests compile`。
+
+- 抄表导出文件名调整：单小区格式为 `yyyyMMdd统计小区-小区名的季度抄表情况.xlsx`，多小区压缩包格式为 `yyyyMMdd统计小区的季度抄表情况.zip`。
+- 验证通过：`omsapi mvn -q -DskipTests compile`。
+
+- 修复后端重启后后台登录态丢失问题：Spring Security remember-me 增加 `alwaysRemember(true)`，登录成功后默认写入 30 天持久 Cookie，后端重启后可自动恢复认证；原 JSESSIONID 仍会随 JVM 重启失效。
+- 验证通过：`omsapi mvn -q -DskipTests compile`。
+
+- 修复抄表导出前端下载兜底文件名：浏览器取不到后端 `Content-Disposition` 或后端未重启时，也按 `yyyyMMdd统计小区-小区名的季度抄表情况.xlsx` / `yyyyMMdd统计小区的季度抄表情况.zip` 命名。
+- 验证通过：`omsvue ./build.sh test`，并更新 `dist.zip`。
+
+- 重做内容区标签栏样式为浅灰卡片风格：白底、细边框、顶部强调线，左右箭头和更多菜单保持独立按钮区，整体更接近用户提供的参考图。
+- 验证通过：`omsvue ./build.sh test`，并更新 `dist.zip`。
+
+- 收紧内容区标签栏箭头展示：去掉外层重复的左右箭头按钮，仅保留 tabs 本身的滚动表现，避免双层箭头干扰点击。
+- 验证通过：`omsvue ./build.sh test`，并更新 `dist.zip`。
