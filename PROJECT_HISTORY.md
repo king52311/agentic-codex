@@ -144,3 +144,6 @@
 
 - 收紧内容区标签栏箭头展示：去掉外层重复的左右箭头按钮，仅保留 tabs 本身的滚动表现，避免双层箭头干扰点击。
 - 验证通过：`omsvue ./build.sh test`，并更新 `dist.zip`。
+
+- 修复自动生成抄表计划任务扫描空指针：`ReadingService.generateDuePlans` 先判空再计算日期差，`daysBetween` 增加空值兜底，避免定时任务因空日期中断。
+- 验证通过：`omsapi mvn -q -DskipTests compile`。
