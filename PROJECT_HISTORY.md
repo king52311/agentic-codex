@@ -94,3 +94,14 @@
 - 修正品牌管理菜单层级：保留一级菜单“系统设置”，将“品牌管理”从“后台配置”下移为“系统设置”的直属子菜单，与“后台配置”同级；测试数据库已同步更新，前端测试构建通过。
 - 修复用户档案品牌选项与品牌管理不一致：新增档案、编辑档案、添加表具及档案筛选均改为读取 `metercompany` 品牌字典，当前统一展示赛恩、浪花、炳华NB、环翔NB、水门NB；前端测试构建通过。
 - 抄表册新增/编辑弹窗候选水表优化：增加小区下拉筛选，候选列表改为以 `newsun_meter` 为主表查询全部正常状态水表，并带出小区列；已选列表同步展示小区。后端编译和前端测试构建通过，`dist.zip` 已更新。
+
+## 2026-09-01
+
+- 抄表计划管理新增批量结算：勾选计划后显示“结算”按钮，调用 `/reading/plan/billing-settle`。
+- 后端新增计划结算模式 `PLAN_SETTLE`：仅余额信用开关允许负数时可用；同一计划复用同一个出账批次，重复点击会回滚旧扣款与旧流水后重算，不重复生成批次。
+- 新增迁移 SQL `omsapi/db/migrations/20260901_add_plan_settle_batch_index.sql`，用于加速按计划复用批次查询。
+- 验证通过：`omsapi mvn -q -DskipTests compile`，`omsvue ./build.sh test`，并更新 `dist.zip`。
+
+- 测试库 `djwms` 已执行抄表计划批量结算索引变更：`idx_reading_billing_batch_plan_type(plan_id, billing_type)`。
+
+- 已将 `20260901_add_plan_settle_batch_index.sql` 调整为可重复执行脚本，并重新执行到测试库 `djwms`，确认索引存在。
