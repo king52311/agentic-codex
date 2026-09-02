@@ -173,6 +173,8 @@ omsapi/db/migrations/ct-biz-revenue/
 9. 执行 `04_validation.sql`，核对数据、权限和关联链路。
 10. 校验通过后，切系统配置到 `ct-biz-revenue`。
 
+`04_validation.sql` 会直接输出核心表数量、字段数量、索引数量和几张关键业务表的记录数，方便快速判断迁移是否正常。
+
 ## 注意事项
 
 - 不允许直接覆盖自增 ID。
