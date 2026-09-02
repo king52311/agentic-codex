@@ -154,6 +154,7 @@ omsapi/db/migrations/ct-biz-revenue/
 ├── 01_schema_from_djwms_new.sql
 ├── 02_merge_djwms_base_data.sql
 ├── 03_merge_djwms_new_config_data.sql
+├── 05_merge_views.sql
 ├── 04_validation.sql
 └── README.md
 ```
@@ -170,8 +171,9 @@ omsapi/db/migrations/ct-biz-revenue/
 6. 执行 `02_merge_djwms_base_data.sql`，同步旧库最新业务数据。
 7. 比对 `djwms_new` 与 `ct-biz-revenue` 的新功能配置差异。
 8. 执行 `03_merge_djwms_new_config_data.sql`，补齐菜单、权限、系统配置和定时任务配置。
-9. 执行 `04_validation.sql`，核对数据、权限和关联链路。
-10. 校验通过后，切系统配置到 `ct-biz-revenue`。
+9. 执行 `05_merge_views.sql`，重建 `hisreading`、`view_address`、`view_pay_meter` 视图。
+10. 执行 `04_validation.sql`，核对数据、权限和关联链路。
+11. 校验通过后，切系统配置到 `ct-biz-revenue`。
 
 `04_validation.sql` 会直接输出核心表数量、字段数量、索引数量和几张关键业务表的记录数，方便快速判断迁移是否正常。
 

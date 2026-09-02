@@ -202,3 +202,4 @@
 - `02_merge_djwms_base_data.sql` 已进一步调整为直接 upsert，重复执行时会按 `djwms` 最新值回写目标库。
 - `04_validation.sql` 已改为可直接输出结果的校验脚本，覆盖表数、字段数、索引数和核心业务表记录数。
 - `ct-biz-revenue` 已完成整套迁移执行：`00-04` 顺序跑通，目标库已落入新结构、新功能配置和基础业务数据；校验结果为 118 张表、1762 个字段、225 个索引，核心业务表数据已同步完成。
+- 视图迁移脚本已补充，`hisreading`、`view_address`、`view_pay_meter` 可在 `ct-biz-revenue` 中重建。
