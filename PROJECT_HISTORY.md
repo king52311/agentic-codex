@@ -187,3 +187,6 @@
 - 已完成 API 与采集项目数据库连接切换为 `djwms_new`。远程账号 `newsun_dev_admin` 当前仅有 `djwms` 权限，访问 `djwms_new` 返回 1044，需要数据库管理员为该账号授权后服务才能正常连接。
 
 - 执行 `git` 整理本轮业务改动：API 包含换表流程及 `djwms_new` 配置，采集项目包含 `djwms_new` 配置，Vue 包含换表弹窗样式及 Node 20 启动缓存修复；三个业务项目均准备提交并推送。
+
+- 修复账单查询时间少 8 小时的问题：API 全环境增加 Jackson `Asia/Shanghai` 时区和 `yyyy-MM-dd HH:mm:ss` 日期格式，Docker 启动增加 `-Duser.timezone=Asia/Shanghai`；采集项目同步 Jackson 东八区配置。
+- 验证通过：`omsapi mvn -q -DskipTests compile`、`collect-data ./build.sh test`。
