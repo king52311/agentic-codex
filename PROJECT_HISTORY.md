@@ -190,3 +190,7 @@
 
 - 修复账单查询时间少 8 小时的问题：API 全环境增加 Jackson `Asia/Shanghai` 时区和 `yyyy-MM-dd HH:mm:ss` 日期格式，Docker 启动增加 `-Duser.timezone=Asia/Shanghai`；采集项目同步 Jackson 东八区配置。
 - 验证通过：`omsapi mvn -q -DskipTests compile`、`collect-data ./build.sh test`。
+
+- API 和采集项目新增 test/prod 双环境数据库连接配置，默认值分别指向测试库和正式库，并支持通过环境变量覆盖连接地址、用户名和密码。
+- 同步更新 `omsapi/README.md` 与 `collect-data/README.md`，补充环境变量与构建脚本说明。
+- 说明补充：`omsapi` 与 `collect-data` 已完成双环境数据库配置说明提交，分别支持 `OMSAPI_DB_*` 和 `COLLECT_DATA_DB_*` 环境变量覆盖。
