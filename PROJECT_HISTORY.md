@@ -150,3 +150,7 @@
 
 - 修复缴费记录接口 `/newsun/payment/getpayments` 查询用户 `profilesId=7503` 时的零除异常：缴费量为空或为 0 时，污水处理单价返回 `0`，不再执行除法。
 - 验证通过：`omsapi mvn -q -DskipTests compile`。
+
+- 抄表活动明细查询时自动同步符合计划抄表日期的表具实时读数；已有本期读数但状态为待抄的记录自动改为“已抄”，并同步抄表时间、用水量和采集来源。
+- 前端抄表活动状态文案由“已上传”调整为“已抄”。
+- 验证通过：`omsapi mvn -q -DskipTests compile`，`omsvue ./build.sh test`，并更新 `dist.zip`。
