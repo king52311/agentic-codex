@@ -179,3 +179,5 @@
 
 - 换表弹窗按参考风格重构为客户信息、旧表信息、新表信息分区布局，统一只读字段、输入控件、颜色和底部操作区，并增加移动端自适应。
 - 验证通过：`omsvue ./build.sh test`，已更新 `dist.zip`。
+
+- 执行换表迭代 SQL 到测试库 `172.18.2.14:3306/djwms`，补齐 `reading_billing_detail.bill_source` 和 `sys_site_config.old_meter_exchange_strategy`，并确认默认值正确。
