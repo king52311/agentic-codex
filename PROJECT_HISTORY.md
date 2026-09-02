@@ -194,3 +194,5 @@
 - API 和采集项目新增 test/prod 双环境数据库连接配置，默认值分别指向测试库和正式库，并支持通过环境变量覆盖连接地址、用户名和密码。
 - 同步更新 `omsapi/README.md` 与 `collect-data/README.md`，补充环境变量与构建脚本说明。
 - 说明补充：`omsapi` 与 `collect-data` 已完成双环境数据库配置说明提交，分别支持 `OMSAPI_DB_*` 和 `COLLECT_DATA_DB_*` 环境变量覆盖。
+
+- 新增 `ct-biz-revenue` 数据迁移方案文档，明确以 `djwms_new` 补结构、以 `djwms` 同步最新业务数据，并列出只读比对、结构补齐、数据合并、配置迁移和校验五个阶段。
