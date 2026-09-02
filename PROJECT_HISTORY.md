@@ -147,3 +147,6 @@
 
 - 修复自动生成抄表计划任务扫描空指针：`ReadingService.generateDuePlans` 先判空再计算日期差，`daysBetween` 增加空值兜底，避免定时任务因空日期中断。
 - 验证通过：`omsapi mvn -q -DskipTests compile`。
+
+- 修复缴费记录接口 `/newsun/payment/getpayments` 查询用户 `profilesId=7503` 时的零除异常：缴费量为空或为 0 时，污水处理单价返回 `0`，不再执行除法。
+- 验证通过：`omsapi mvn -q -DskipTests compile`。
