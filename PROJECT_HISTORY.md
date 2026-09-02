@@ -158,3 +158,6 @@
 - 收费工作台新增“充值记录”“用水分析”入口，分别复用原账户充值管理的充值记录接口和用水分析接口。
 - 优化收费工作台预存弹窗：当前用户和可用余额改为分行展示，避免长文本挤压换行；补充入口及分析弹窗响应式样式。
 - 验证通过：`omsvue ./build.sh test`，并更新 `dist.zip`。
+
+- 修复 `ReadingMapper.xml` 中 SQL 比较符未转义导致的 MyBatis XML 解析失败，`<>` 改为 `&lt;&gt;`。
+- 验证通过：`omsapi mvn -q -DskipTests compile`。
