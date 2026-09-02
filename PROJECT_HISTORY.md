@@ -161,3 +161,6 @@
 
 - 修复 `ReadingMapper.xml` 中 SQL 比较符未转义导致的 MyBatis XML 解析失败，`<>` 改为 `&lt;&gt;`。
 - 验证通过：`omsapi mvn -q -DskipTests compile`。
+
+- 调整收费工作台用户信息卡片布局：保留“查看完整资料”在用户信息右上角，将“充值记录”“用水分析”移动到下方信息区域右侧，并统一为白底蓝字描边按钮。
+- 验证通过：`omsvue ./build.sh test`，并更新 `dist.zip`。
