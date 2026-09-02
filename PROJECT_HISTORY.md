@@ -181,3 +181,7 @@
 - 验证通过：`omsvue ./build.sh test`，已更新 `dist.zip`。
 
 - 执行换表迭代 SQL 到测试库 `172.18.2.14:3306/djwms`，补齐 `reading_billing_detail.bill_source` 和 `sys_site_config.old_meter_exchange_strategy`，并确认默认值正确。
+
+- API 与数据采集项目的测试、开发和生产数据库连接统一改为 `djwms_new`；原 `djwms` 未删除，检查确认 `djwms_new` 当前尚未创建。
+
+- 已完成 API 与采集项目数据库连接切换为 `djwms_new`。远程账号 `newsun_dev_admin` 当前仅有 `djwms` 权限，访问 `djwms_new` 返回 1044，需要数据库管理员为该账号授权后服务才能正常连接。
