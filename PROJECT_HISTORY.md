@@ -167,3 +167,12 @@
 
 - 修复账单查询“结清类型”显示英文编码和数字的问题：保留数据库原始值，前端通过支付方式字典映射中文，并补充“余额扣款”“自动余额结算”内部结算类型说明。
 - 验证通过：`omsvue ./build.sh test`，并更新 `dist.zip`。
+
+## 2026-09-02
+
+- 新增普通换表业务流程：换表前读取旧表结清策略，旧表结清策略下存在未结清账单时禁止换表。
+- 新增换表准备接口和事务换表接口，生成换表记录、旧表换表出账账单及扣费流水；余额信用允许负数时自动扣款并结清，否则保留未结清账单。
+- `reading_billing_detail` 增加 `bill_source`，换表账单来源标记为 `METER_EXCHANGE`；站点配置增加旧表换表结清策略。
+- 前端普通换表弹窗补充户号、账户余额、结算读数、抄表日期、换表读数、备注等字段，改用新换表接口；新增迁移脚本 `20260902_add_meter_exchange_billing.sql`。
+- 修复 Vue Node 20 开发启动时旧 hard-source 缓存导致 `loader-runner` 崩溃，`start.sh` 启动前自动清理失效缓存。
+- 验证通过：`omsapi mvn -q -DskipTests compile`、`omsvue ./build.sh test`、MyBatis XML 校验。
