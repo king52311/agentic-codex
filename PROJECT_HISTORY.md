@@ -176,3 +176,6 @@
 - 前端普通换表弹窗补充户号、账户余额、结算读数、抄表日期、换表读数、备注等字段，改用新换表接口；新增迁移脚本 `20260902_add_meter_exchange_billing.sql`。
 - 修复 Vue Node 20 开发启动时旧 hard-source 缓存导致 `loader-runner` 崩溃，`start.sh` 启动前自动清理失效缓存。
 - 验证通过：`omsapi mvn -q -DskipTests compile`、`omsvue ./build.sh test`、MyBatis XML 校验。
+
+- 换表弹窗按参考风格重构为客户信息、旧表信息、新表信息分区布局，统一只读字段、输入控件、颜色和底部操作区，并增加移动端自适应。
+- 验证通过：`omsvue ./build.sh test`，已更新 `dist.zip`。
