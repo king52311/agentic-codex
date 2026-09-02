@@ -8852,3 +8852,9 @@
 - 修复附件名已明确命中开票主体，但 OCR 税号错误导致继续触发“发票抬头有误”的问题。
 - 附件名命中开票主体表后标记为可信主体，后续开票主体校验直接通过，仍保留付款主体一致性校验。
 - 验证：`cd backend && python -m py_compile app/services/finance_reimbursement.py`、`git diff --check` 通过。
+### 2026-09-02 前端构建规则补充
+- 凡涉及 `frontend/` 文件变更，必须执行 `cd frontend && ./build.sh` 完成编译校验，不得直接使用 `npm run build`、`pnpm build` 或 `yarn build` 替代。
+
+### 2026-09-02 营销项目备注查看
+- 列表页和详情页的备注图标支持点击查看备注弹窗，继续保留鼠标悬停提示。
+- 根目录 `PROJECT_HISTORY.md` 已清理，项目历史统一维护在 `agentic-codex/projects/smart-cs-ai/PROJECT_HISTORY.md`。

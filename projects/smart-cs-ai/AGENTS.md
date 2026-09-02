@@ -136,7 +136,7 @@ npm run dev
 ./build.sh
 ```
 
-前端项目编译统一使用 `frontend/` 目录下的 `build.sh`，不要直接用 `npm run build` 代替。
+凡涉及前端页面、组件、样式、前端接口或其他 `frontend/` 文件变更，编译校验必须执行 `frontend/` 目录下的 `build.sh`（即 `cd frontend && ./build.sh`）；不得直接用 `npm run build`、`pnpm build` 或 `yarn build` 代替。
 
 如果本机 `node` / `npm` 环境异常，允许优先使用 `nvm` 切换或安装合适版本后再执行前端命令。后续遇到类似 `npm` 缺失内置模块、版本过旧、构建链不兼容等问题，默认先检查当前 `node -v`、`npm -v`，必要时通过 `nvm use` / `nvm install` 处理，并把实际使用的 Node 版本记录到结果说明里。
 
