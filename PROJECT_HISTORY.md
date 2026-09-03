@@ -206,3 +206,5 @@
 - 数据迁移口径更新为：`djwms` 的所有数据都要在新库中保留，结构按 `djwms_new` 适配，配置和新功能数据以 `djwms_new` 为准。
 - 按新口径再次重跑 `00-05`：`ct-biz-revenue` 现已包含视图、NB 设备相关表和最新基础数据；校验结果仍通过，`nb_device` 已同步 832124 条，`nb_deviceorder` 1 条。
 - `ct-biz-revenue` 迁移脚本 README 已补一键执行命令，方便按 `00_precheck -> 01_schema -> 02_merge -> 03_merge -> 05_views -> 04_validation` 顺序直接跑。
+- `omsapi/db/migrations/ct-biz-revenue/run.sh` 已新增一键执行脚本，支持用环境变量覆盖数据库连接信息，并按固定顺序执行迁移与校验。
+- `omsapi` 默认系统数据库连接已切换到 `ct-biz-revenue`，测试、开发、正式和 `docker-compose` 默认值都指向新库，可通过 `OMSAPI_DB_URL` 覆盖。
