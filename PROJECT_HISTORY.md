@@ -209,3 +209,4 @@
 - `omsapi/db/migrations/ct-biz-revenue/run.sh` 已新增一键执行脚本，支持用环境变量覆盖数据库连接信息，并按固定顺序执行迁移与校验。
 - `omsapi` 默认系统数据库连接已切换到 `ct-biz-revenue`，测试、开发、正式和 `docker-compose` 默认值都指向新库，可通过 `OMSAPI_DB_URL` 覆盖。
 - 迁移脚本已新增默认管理员账号 `admin/admin`，并绑定系统管理员角色 `ROLE_admin`，方便新库初始化后直接登录。
+- 迁移口径更新为：表册、计划、活动、出账数据在新库中清空保留空表，余额、扣款记录和费用流水统一以 `djwms` 为准。
