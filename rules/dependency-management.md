@@ -19,3 +19,9 @@
 - Python 新增或调整导入后，至少运行相关文件的 `py_compile` 或 import 级校验。
 - TypeScript / JavaScript 新增或调整导入后，运行项目约定的构建或类型检查。
 - 不能只看编辑器不报错就结束。
+
+## Python 3.13 Docker 依赖
+
+- Python 3.13 slim 镜像中的 Debian 源配置可能位于 `/etc/apt/sources.list.d/*.sources`，不要固定修改 `/etc/apt/sources.list`。
+- Pillow 等带原生 wheel 的依赖遇到镜像源显示 `No matching distribution` 时，先确认镜像是否同步当前 Python 版本，再切换到 PyPI 或可用镜像。
+- Pillow 在 Python 3.13 容器中优先使用 `11.0.0` 及以上版本。
