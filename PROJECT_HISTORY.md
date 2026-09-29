@@ -1,5 +1,10 @@
 # PROJECT_HISTORY
 
+## 2026-09-29
+
+- CBYS：已补齐 `djwms_new` 模板库结构/配置，补丁 `omsapi/db/migrations/20260929_refresh_djwms_new_template.sql` 已执行两次验证幂等。现有 119 张表、3 个视图，与现用库字段/索引/视图定义差异为 0；新增 5 项采集任务配置、换表结算字典，保留用户权限及其他一致配置，移除历史废弃菜单。核心业务空表没有回灌数据。
+- 经验：模板库更新必须先比较实际结构和代码迁移，配置采用白名单，任务运行时间/状态不作为模板配置复制；验证应覆盖字段属性、完整复合索引和视图引用，不能只比表数；新版本 mysqldump 默认导出 masking policies 时可能权限报错，备份需显式 `--skip-masking-policies` 并检查结果。
+
 ## 2026-08-24
 
 - 新增 `agent-docs/` 目录，作为 Agent 相关 Markdown 文档统一归档入口。
