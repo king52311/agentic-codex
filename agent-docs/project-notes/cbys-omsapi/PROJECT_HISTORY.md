@@ -2,6 +2,10 @@
 
 ## 2026-10-08
 
+- 排查账户充值管理旧弹窗：前端已传 `profilesId`，根因是旧充值 SQL 收到 `profilesId` 后只按账户 `profilesId` 更新，而正式库 6333 条历史账户该字段为空，导致余额更新0行后仍写充值流水。正式库已执行 `20261008_backfill_newsun_account_profiles_id.sql`，6333条全部通过唯一表号回填，6337条账户未关联数现为0。充值/退费 SQL 改为按表号锁定账户并补关联，余额更新非1行时抛错回滚；成功后前端原有逻辑自动关闭弹窗并刷新列表回显余额。后端编译通过。
+
+## 2026-10-08
+
 - 正式库用户档案列表慢查询已优化：`newsun_account.ecuId` 原无索引，账户关联执行全表扫描；已执行 `20261008_add_newsun_account_ecuid_index.sql`，新增 `idx_newsun_account_ecuid`。`EXPLAIN` 已验证账户关联由全表扫描改为 `ref` 索引查询。
 
 ## 2026-10-08
