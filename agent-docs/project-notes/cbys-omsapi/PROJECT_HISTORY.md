@@ -2,6 +2,10 @@
 
 ## 2026-10-08
 
+- 修复生产 Vue 请求 `/api/config/site` 返回 401：Spring Security 静态配置已放行，但动态 `UrlFilterInvocationSecurityMetadataSource` 未加入 `/config/site` 白名单；现已同步放行无查询参数和带查询参数的请求，需部署新 API 包后生效。
+
+## 2026-10-08
+
 - 新 API 增加旧 API 端口兼容：测试、正式及 server_dev profile 同时监听 `7077` 和 `9901`，两个端口共用同一服务；新增端口配置可覆盖，后端编译通过后部署生效。
 
 ## 2026-10-08
