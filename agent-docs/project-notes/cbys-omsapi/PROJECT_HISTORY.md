@@ -2,6 +2,10 @@
 
 ## 2026-10-08
 
+- 正式库用户档案列表慢查询已优化：`newsun_account.ecuId` 原无索引，账户关联执行全表扫描；已执行 `20261008_add_newsun_account_ecuid_index.sql`，新增 `idx_newsun_account_ecuid`。`EXPLAIN` 已验证账户关联由全表扫描改为 `ref` 索引查询。
+
+## 2026-10-08
+
 - 修复生产 Vue 请求 `/api/config/site` 返回 401：Spring Security 静态配置已放行，但动态 `UrlFilterInvocationSecurityMetadataSource` 未加入 `/config/site` 白名单；现已同步放行无查询参数和带查询参数的请求，需部署新 API 包后生效。
 
 ## 2026-10-08
