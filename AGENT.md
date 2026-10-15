@@ -36,7 +36,7 @@ Agent 进入业务项目后，如项目内存在 `agentic-codex/AGENT.md`，应�
 - 改完要做与影响范围匹配的验证。
 - 前端项目构建验证时，若项目根目录存在 `build.sh`，必须优先执行该脚本；仅当 `build.sh` 不存在时，才根据项目包管理器执行 `npm run build`、`pnpm build`、`yarn build` 等系统构建命令。
 - 重要改动要留下可回顾记录，便于后续 Agent 恢复上下文。
-- 所有项目的 Agent 相关 Markdown 文档统一写入 `agentic-codex` 项目对应目录，不写入业务项目根目录；写完自动在 `agentic-codex` 中先 `git pull --rebase`，再 `git add`、中文 `git commit`、`git push`。
+- 所有项目的 Agent 相关 Markdown 文档统一写入 `agentic-codex` 项目对应目录，不写入业务项目根目录。每次本地事项处理完成并写好 Agent 记录后，必须自动同步并提交推送 `agentic-codex` 仓库，不等待用户另发 `git` 指令：修改前工作区干净时先 `git pull --rebase`；修改后执行 `git add`、中文 `git commit`、`git pull --rebase`、`git push`。若已有其他未提交改动，只提交本次相关文件，不覆盖或丢弃其他改动；同步冲突时先解决再推送。
 
 ## 规则索引
 
