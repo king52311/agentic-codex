@@ -4,6 +4,8 @@
 
 ## 最新记录
 
+- 2026-10-15 收据回款台账新增筛选范围金额汇总：收据金额按筛选后的收据编号汇总；累计已回款按这些收据关联的合同回款单去重汇总；未回款余额为两者之差。`/finance-receipt-ledger/rows` 返回 `summary`，前端列表上方展示三项，翻页不改变汇总。后端 `py_compile`、前端 `tsc --noEmit` 通过；`./build.sh` 因本机 Docker 未启动无法完成。
+
 - 2026-08-24 财务报销消息与调度排查：
   - 正式 OA E9 登录态正常：`check_oa_e9_login_status` 返回 `is_nologin=false`，能拿到 OA 用户信息；`zhidao-cron` 浏览器守护每分钟运行，独立凭证文件持续刷新。
   - 财务报销同步任务元数据启用（10 分钟 interval），但此前每分钟 `apply_scheduler_meta_overrides` 都无条件 `reschedule_job`，导致 interval 任务下一次执行时间被不断后推。已改为 trigger 配置未变化时不重排，临时同步到正式 `zhidao-cron` 并重启。
