@@ -299,3 +299,7 @@ cd backend && source .venv/bin/activate && alembic upgrade head
 - 如果因为切换 `nvm` 版本解决了问题，结果里要顺带说明当前使用的 Node 版本
 - 本机 Python 默认使用 `conda activate smart`，后续执行 Python 相关命令优先基于该环境
 - 生产环境 Python 默认使用 `/anaconda3/envs/smart/bin/python`，依赖安装用 `/anaconda3/envs/smart/bin/python -m pip`，不要使用 `conda` 或裸 `pip`
+
+## 13. 列表页面加载规则
+
+- 项目内所有列表页面首次进入、切换分页或执行筛选时，先显示 loading 状态；接口返回后再显示列表数据或“暂无数据”，禁止在请求尚未完成时先显示空数据状态。
