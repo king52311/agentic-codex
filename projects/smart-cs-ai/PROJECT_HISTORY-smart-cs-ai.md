@@ -1427,3 +1427,4 @@
 - 本地 API 启动后健康检查 200，OpenAPI 包含 `/api/wecom-attendance/season-configs`；正式 API 健康检查 200且包含同一路由。
 - SQLAlchemy 和本机 MySQL 客户端直连均通过，测试/正式配置库各查询到 2 条令时配置。前端本地端口当前未启动，正式首页返回 200。
 - 系统 Python 3.9 不作为本地测试解释器，后续统一使用 Conda `smart`。
+- 本地 Node.js 使用 nvm 管理，前端和客户端命令执行前按项目 `.nvmrc` 运行 `nvm use` 切换版本。

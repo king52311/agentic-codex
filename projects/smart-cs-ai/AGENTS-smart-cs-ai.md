@@ -18,4 +18,5 @@
 - 本机已安装 MySQL 客户端，数据库联查或 SQL 执行优先使用 `mysql` 客户端；项目脚本 `backend/tasks/run_sql_on_envs.py` 可用于按 `env_test`、`env_prod` 执行 SQL。
 - 本地数据库交互测试至少执行一次 `SELECT 1`，涉及表结构或配置表时同时核对字段和实际数据。
 - `backend/config/env_test` 与 `env_prod` 如出现相同数据库地址或库名，先记录并提示确认，禁止默认认为是隔离环境。
+- 本地 Node.js 已配置 nvm，前端或客户端开发、测试、构建前先执行 `nvm use`，按项目 `.nvmrc` 切换版本；不要直接使用系统 Node。
 </INSTRUCTIONS>
