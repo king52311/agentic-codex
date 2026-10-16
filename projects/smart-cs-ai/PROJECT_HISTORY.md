@@ -8917,3 +8917,4 @@
 ### 2026-10-16 收据回款台账导出修复
 - 正式环境 `/api/finance-receipt-ledger/export` 返回 500，日志为 `UnicodeEncodeError`：响应头 `Content-Disposition` 直接包含中文文件名。
 - 响应头改为 ASCII 兜底文件名和 `filename*` UTF-8 编码中文文件名。测试库直接调用导出验证返回 200，Excel 153 行、11 列；后端语法和 diff 检查通过。
+- 主仓提交 `b7b975e` 已推送，正式服务器 `git pull` 后重启 `zhidao-api`。正式进程导出实测 200，Excel 153 行、11 列，响应头含 UTF-8 中文文件名。
