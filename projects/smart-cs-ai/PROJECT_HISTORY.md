@@ -8930,6 +8930,11 @@
 - 前端 TypeScript 和 diff 检查通过，本机 Docker 未启动，完整构建待服务器执行。
 - 主仓提交 `1724720` 已推送并由正式服务器拉取，`frontend/./build.sh` Docker 构建通过且 `dist` 已切换。
 
+### 2026-10-16 收据回款台账角色权限排查
+- 正式库 `finance_receipt_ledger_member` 仅有 `app:finance_receipt_ledger:access`；`finance_receipt_ledger_admin` 多 `app:finance_receipt_ledger:admin`。
+- 台账前端和全部业务接口当前只检查 `access`，未检查 `admin`，因此两角色在台账页面的查看、导出、手动同步、匹配和批量匹配等操作上目前无区别。
+- 两角色的数据范围配置与名称相反：member=5（ALL）、admin=1（SELF）；台账接口当前未按数据范围过滤。此次仅排查，没有修改权限或数据。
+
 ### 2026-10-16 收据提醒接收人调整
 - 正式环境收据超期未匹配提醒接收人由康鹏改为张国君，测试环境保持康鹏。正式库验证张国君账号唯一、启用，企微 ID 可映射。
 - 版本控制中的 `backend/config/env_prod` 已修改；正式服务器实际加载独立的 `backend/.env`，需同步该项配置并重启 cron 服务，不手动触发推送。
