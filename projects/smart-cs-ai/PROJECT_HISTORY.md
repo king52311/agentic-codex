@@ -8913,3 +8913,7 @@
 - 点击卡片先完成访问记录请求再跳转，移动端也上报访问并保留服务端顺序；卡片 React key 改为稳定的应用标识。
 - 前端 TypeScript 检查通过；本机 Docker 不可用，`./build.sh` 待正式服务器执行。
 - 主仓提交 `7e800c9` 已推送并拉取到正式服务器；服务器已有前端构建运行，等待其完成，`frontend/dist/index.html` 于 17:20 更新，构建锁已释放，产物存在。
+
+### 2026-10-16 收据回款台账导出修复
+- 正式环境 `/api/finance-receipt-ledger/export` 返回 500，日志为 `UnicodeEncodeError`：响应头 `Content-Disposition` 直接包含中文文件名。
+- 响应头改为 ASCII 兜底文件名和 `filename*` UTF-8 编码中文文件名。测试库直接调用导出验证返回 200，Excel 153 行、11 列；后端语法和 diff 检查通过。
