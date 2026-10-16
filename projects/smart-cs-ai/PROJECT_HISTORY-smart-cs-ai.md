@@ -1420,3 +1420,10 @@
 - 本地 Python 统一使用 Conda `smart` 环境，后端测试、编译和脚本禁止使用系统 Python 3.9。
 - 本机已安装 MySQL 客户端，数据库联查和 SQL 执行优先使用 `mysql`；`run_sql_on_envs.py` 用于测试、正式环境 SQL 执行。
 - 本地数据库自测至少执行 `SELECT 1` 并核对实际配置数据；发现 `env_test` 与 `env_prod` 使用相同数据库地址/库名时必须提示确认。
+
+## 2026-10-16 应用构建与接口数据库完整自测
+
+- Conda `smart` 环境下后端全量测试 89 项通过、1 项跳过；前端 TypeScript 检查和 Vite 生产构建通过。
+- 本地 API 启动后健康检查 200，OpenAPI 包含 `/api/wecom-attendance/season-configs`；正式 API 健康检查 200且包含同一路由。
+- SQLAlchemy 和本机 MySQL 客户端直连均通过，测试/正式配置库各查询到 2 条令时配置。前端本地端口当前未启动，正式首页返回 200。
+- 系统 Python 3.9 不作为本地测试解释器，后续统一使用 Conda `smart`。
